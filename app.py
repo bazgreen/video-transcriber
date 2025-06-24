@@ -21,12 +21,30 @@ app.config['RESULTS_FOLDER'] = 'results'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 
+# Load keywords from config file
+def load_keywords():
+    keywords_file = 'config/keywords_config.json'
+    try:
+        with open(keywords_file, 'r') as f:
+            config = json.load(f)
+            return config.get('assessment_keywords', [])
+    except FileNotFoundError:
+        # If file doesn't exist, create it with default keywords
+        default_keywords = [
+            "assignment", "submission", "deadline", "notebook", "python", "ipython",
+            "output", "reference", "proof of concept", "automate", "RO1", "RO2", "RO3",
+            "assessment", "grading", "criteria", "format", "feedback"
+        ]
+        save_keywords(default_keywords)
+        return default_keywords
+
+def save_keywords(keywords):
+    keywords_file = 'config/keywords_config.json'
+    with open(keywords_file, 'w') as f:
+        json.dump({'assessment_keywords': keywords}, f, indent=4)
+
 # Keywords for assessment detection
-ASSESSMENT_KEYWORDS = [
-    "assignment", "submission", "deadline", "notebook", "python", "ipython",
-    "output", "reference", "proof of concept", "automate", "RO1", "RO2", "RO3",
-    "assessment", "grading", "criteria", "format", "feedback"
-]
+ASSESSMENT_KEYWORDS = load_keywords()
 
 # Emphasis cue patterns
 EMPHASIS_PATTERNS = [
@@ -679,6 +697,89 @@ def search_sessions():
                         pass
     
     return jsonify(sessions)
+
+@app.route('/config')
+def config():
+    """Show keyword configuration page"""
+    return render_template('config.html', keywords=ASSESSMENT_KEYWORDS)
+
+@app.route('/api/keywords', methods=['GET'])
+def get_keywords():
+    """Get current keywords"""
+    return jsonify({'keywords': ASSESSMENT_KEYWORDS})
+
+@app.route('/api/keywords', methods=['POST'])
+def update_keywords():
+    """Update keywords list"""
+    global ASSESSMENT_KEYWORDS
+    data = request.get_json()
+    
+    if 'keywords' not in data:
+        return jsonify({'error': 'No keywords provided'}), 400
+    
+    keywords = data['keywords']
+    
+    # Validate keywords
+    if not isinstance(keywords, list):
+        return jsonify({'error': 'Keywords must be a list'}), 400
+    
+    # Clean and validate each keyword
+    cleaned_keywords = []
+    for keyword in keywords:
+        if isinstance(keyword, str) and keyword.strip():
+            cleaned_keywords.append(keyword.strip())
+    
+    if not cleaned_keywords:
+        return jsonify({'error': 'At least one valid keyword is required'}), 400
+    
+    # Save to file and update global variable
+    save_keywords(cleaned_keywords)
+    ASSESSMENT_KEYWORDS = cleaned_keywords
+    
+    return jsonify({'success': True, 'keywords': cleaned_keywords})
+
+@app.route('/api/keywords/add', methods=['POST'])
+def add_keyword():
+    """Add a single keyword"""
+    global ASSESSMENT_KEYWORDS
+    data = request.get_json()
+    
+    if 'keyword' not in data:
+        return jsonify({'error': 'No keyword provided'}), 400
+    
+    keyword = data['keyword'].strip()
+    
+    if not keyword:
+        return jsonify({'error': 'Keyword cannot be empty'}), 400
+    
+    if keyword.lower() in [k.lower() for k in ASSESSMENT_KEYWORDS]:
+        return jsonify({'error': 'Keyword already exists'}), 400
+    
+    # Add keyword and save
+    ASSESSMENT_KEYWORDS.append(keyword)
+    save_keywords(ASSESSMENT_KEYWORDS)
+    
+    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
+
+@app.route('/api/keywords/remove', methods=['POST'])
+def remove_keyword():
+    """Remove a keyword"""
+    global ASSESSMENT_KEYWORDS
+    data = request.get_json()
+    
+    if 'keyword' not in data:
+        return jsonify({'error': 'No keyword provided'}), 400
+    
+    keyword = data['keyword']
+    
+    if keyword not in ASSESSMENT_KEYWORDS:
+        return jsonify({'error': 'Keyword not found'}), 404
+    
+    # Remove keyword and save
+    ASSESSMENT_KEYWORDS.remove(keyword)
+    save_keywords(ASSESSMENT_KEYWORDS)
+    
+    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
