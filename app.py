@@ -110,14 +110,10 @@ def load_keywords():
     try:
         with open(keywords_file, 'r') as f:
             config = json.load(f)
-            return config.get('assessment_keywords', [])
+            return config.get('keywords', [])
     except FileNotFoundError:
-        # If file doesn't exist, create it with default keywords
-        default_keywords = [
-            "assignment", "submission", "deadline", "notebook", "python", "ipython",
-            "output", "reference", "proof of concept", "automate", "RO1", "RO2", "RO3",
-            "assessment", "grading", "criteria", "format", "feedback"
-        ]
+        # If file doesn't exist, create it with minimal default keywords
+        default_keywords = []
         save_keywords(default_keywords)
         return default_keywords
 
@@ -128,7 +124,7 @@ def save_keywords(keywords):
     # Write to temporary file first
     try:
         with open(temp_file, 'w') as f:
-            json.dump({'assessment_keywords': keywords}, f, indent=4)
+            json.dump({'keywords': keywords}, f, indent=4)
         
         # Atomic rename (on POSIX systems)
         os.replace(temp_file, keywords_file)
@@ -138,8 +134,8 @@ def save_keywords(keywords):
             os.remove(temp_file)
         raise e
 
-# Keywords for assessment detection
-ASSESSMENT_KEYWORDS = load_keywords()
+# Keywords for content analysis
+CUSTOM_KEYWORDS = load_keywords()
 
 # Emphasis cue patterns
 EMPHASIS_PATTERNS = [
