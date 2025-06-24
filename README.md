@@ -56,6 +56,7 @@ A powerful Python web application that transforms educational videos into search
 ### One-Command Setup & Launch
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/bazgreen/video-transcriber.git
    cd video-transcriber
@@ -331,4 +332,4 @@ If you encounter any issues or have questions:
 
 ---
 
-**Made with ❤️ for educational content creators**
+Made with ❤️ for educational content creators

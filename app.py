@@ -942,16 +942,31 @@ def get_performance_info():
 def update_performance_settings():
     """Update performance settings"""
     data = request.get_json()
+    errors = []
     
     if 'chunk_duration' in data:
-        duration = int(data['chunk_duration'])
-        if 60 <= duration <= 600:  # 1-10 minutes
-            transcriber.chunk_duration = duration
+        try:
+            duration = int(data['chunk_duration'])
+            if 60 <= duration <= 600:  # 1-10 minutes
+                transcriber.chunk_duration = duration
+            else:
+                errors.append(f"chunk_duration must be between 60-600 seconds, got {duration}")
+        except (ValueError, TypeError):
+            errors.append("chunk_duration must be a valid integer")
     
     if 'max_workers' in data:
-        workers = int(data['max_workers'])
-        if 1 <= workers <= multiprocessing.cpu_count():
-            transcriber.max_workers = workers
+        try:
+            workers = int(data['max_workers'])
+            max_cpu = multiprocessing.cpu_count()
+            if 1 <= workers <= max_cpu:
+                transcriber.max_workers = workers
+            else:
+                errors.append(f"max_workers must be between 1-{max_cpu}, got {workers}")
+        except (ValueError, TypeError):
+            errors.append("max_workers must be a valid integer")
+    
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
     
     return jsonify({'success': True, 'message': 'Performance settings updated'})
 
