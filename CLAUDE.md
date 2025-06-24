@@ -103,10 +103,25 @@ The new web application (`app.py`) provides a comprehensive interface with all f
 
 ## File Processing Logic
 
-- Automatically splits input videos into 5-minute segments using FFmpeg
-- Processes chunks in parallel for faster transcription
-- Extracts audio to `.wav` format (16kHz, mono, PCM)
-- Transcribes each chunk with Whisper's "small" model
-- Aggregates results with adjusted timestamps
+### Performance Optimizations (v1.2.0)
+
+- **Parallel Video Splitting**: Uses ThreadPoolExecutor to split multiple video chunks simultaneously
+- **Parallel Transcription**: Uses ProcessPoolExecutor to transcribe multiple chunks on different CPU cores
+- **Adaptive Chunking**: Dynamic chunk sizing (3-7 minutes) based on video length for optimal performance
+- **Smart Worker Management**: Automatically determines optimal worker count based on CPU cores and memory
+- **Memory Management**: Limits concurrent workers to prevent RAM overload (~2GB per Whisper process)
+- **Automatic Cleanup**: Removes temporary video chunks after processing to save disk space
+
+### Traditional Processing
+
+- Automatically splits input videos using FFmpeg with parallel operations
+- Extracts audio to `.wav` format (16kHz, mono, PCM) concurrently
+- Transcribes chunks with Whisper's "small" model using multiple processes
+- Aggregates results with adjusted timestamps maintaining chronological order
 - Uses regex pattern matching for keyword extraction with 50-character context windows
 - Generates comprehensive analysis and multiple output formats
+
+### Performance APIs
+
+- `GET /api/performance` - View current performance settings
+- `POST /api/performance` - Update chunk duration and worker count for tuning
