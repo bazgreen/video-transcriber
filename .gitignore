@@ -1,8 +1,12 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -44,6 +48,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -66,6 +71,7 @@ instance/
 docs/_build/
 
 # PyBuilder
+.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -80,6 +86,18 @@ ipython_config.py
 
 # pipenv
 Pipfile.lock
+
+# UV
+uv.lock
+
+# poetry
+poetry.lock
+
+# pdm
+pdm.lock
+.pdm.toml
+.pdm-python
+.pdm-build/
 
 # PEP 582
 __pypackages__/
@@ -119,7 +137,32 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Video files
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+.idea/
+
+# Abstra
+.abstra/
+
+# Visual Studio Code
+.vscode/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Cursor
+.cursorignore
+.cursorindexingignore
+
+# Video files (project-specific)
 *.mp4
 *.avi
 *.mov
@@ -129,7 +172,7 @@ dmypy.json
 *.webm
 *.m4v
 
-# Audio files
+# Audio files (project-specific)
 *.wav
 *.mp3
 *.aac
@@ -137,7 +180,7 @@ dmypy.json
 *.ogg
 *.wma
 
-# Results and uploads directories
+# Results and uploads directories (project-specific)
 results/
 uploads/
 transcripts/
@@ -148,14 +191,7 @@ transcripts/
 .DS_Store
 Thumbs.db
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# FFmpeg logs
+# FFmpeg logs (project-specific)
 ffmpeg*.log
 
 # Large files
