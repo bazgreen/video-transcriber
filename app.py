@@ -706,7 +706,7 @@ def config():
 @app.route('/api/keywords', methods=['GET'])
 def get_keywords():
     """Get current keywords"""
-    return jsonify({'keywords': ASSESSMENT_KEYWORDS})
+    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
 
 @app.route('/api/keywords', methods=['POST'])
 def update_keywords():
