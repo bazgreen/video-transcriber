@@ -48,6 +48,7 @@ def get_model():
 
 def process_chunk_parallel(chunk_info):
     """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
+    chunk_path, audio_path, start_time, filename = None, None, None, 'unknown'
     try:
         chunk_path, audio_path, start_time, filename = chunk_info
         
@@ -122,8 +123,20 @@ def load_keywords():
 
 def save_keywords(keywords):
     keywords_file = 'config/keywords_config.json'
-    with open(keywords_file, 'w') as f:
-        json.dump({'assessment_keywords': keywords}, f, indent=4)
+    temp_file = keywords_file + '.tmp'
+    
+    # Write to temporary file first
+    try:
+        with open(temp_file, 'w') as f:
+            json.dump({'assessment_keywords': keywords}, f, indent=4)
+        
+        # Atomic rename (on POSIX systems)
+        os.replace(temp_file, keywords_file)
+    except Exception as e:
+        # Clean up temp file if something goes wrong
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        raise e
 
 # Keywords for assessment detection
 ASSESSMENT_KEYWORDS = load_keywords()
@@ -174,9 +187,31 @@ class VideoTranscriber:
         if chunk_duration is None:
             chunk_duration = self.chunk_duration
         
-        # Get video info
-        probe = ffmpeg.probe(input_path)
-        duration = float(probe['streams'][0]['duration'])
+        # Get video info with proper error handling
+        try:
+            probe = ffmpeg.probe(input_path)
+            # Check if streams exist and have duration
+            if 'streams' not in probe or len(probe['streams']) == 0:
+                raise ValueError(f"No streams found in video file: {input_path}")
+            
+            # Find video stream with duration
+            duration = None
+            for stream in probe['streams']:
+                if 'duration' in stream:
+                    duration = float(stream['duration'])
+                    break
+            
+            if duration is None:
+                # Try to get duration from format
+                if 'format' in probe and 'duration' in probe['format']:
+                    duration = float(probe['format']['duration'])
+                else:
+                    raise ValueError(f"Could not determine video duration for: {input_path}")
+                    
+        except ffmpeg.Error as e:
+            raise Exception(f"Failed to probe video file: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error analyzing video file: {str(e)}")
         
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
@@ -444,8 +479,11 @@ class VideoTranscriber:
         try:
             # Remove all .mp4 chunks (keep only final outputs)
             for file in glob.glob(os.path.join(session_dir, "*.mp4")):
-                if "_part_" in file:  # Only remove chunk files
-                    os.remove(file)
+                if "_part_" in file and os.path.exists(file):  # Only remove chunk files that exist
+                    try:
+                        os.remove(file)
+                    except OSError as e:
+                        logger.warning(f"Could not remove file {file}: {e}")
         except Exception as e:
             logger.warning(f"Could not clean up temporary files: {e}")
     
@@ -766,7 +804,15 @@ def list_sessions():
 @app.route('/sessions/delete/<session_id>', methods=['POST'])
 def delete_session(session_id):
     """Delete a transcription session"""
+    # Validate session_id to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        return jsonify({'error': 'Invalid session ID'}), 400
+    
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
+    
+    # Ensure the path is within the results folder
+    if not os.path.abspath(session_dir).startswith(os.path.abspath(app.config['RESULTS_FOLDER'])):
+        return jsonify({'error': 'Access denied'}), 403
     
     if os.path.exists(session_dir):
         try:
