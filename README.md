@@ -62,6 +62,7 @@ A powerful Python web application that transforms educational videos into search
    ```
 
 2. **Run the app** (handles everything automatically)
+
    ```bash
    # macOS/Linux
    ./run.sh
@@ -218,6 +219,7 @@ WHISPER_MODEL=small           # Whisper model size (tiny/small/medium/large)
 ### Performance Configuration
 
 **Automatic Optimization:**
+
 - **Worker Count**: Automatically set to `min(CPU_cores, 4)` to balance speed and memory usage
 - **Chunk Duration**: Adaptive sizing based on video length
   - Short videos (<10 min): 3-minute chunks
@@ -226,6 +228,7 @@ WHISPER_MODEL=small           # Whisper model size (tiny/small/medium/large)
 - **Memory Management**: Each worker uses ~2GB RAM, system prevents overallocation
 
 **Manual Tuning via API:**
+
 ```bash
 # Get current performance settings
 curl http://localhost:5001/api/performance
@@ -237,6 +240,7 @@ curl -X POST http://localhost:5001/api/performance \
 ```
 
 **Performance Expectations:**
+
 - **20-minute video**: ~8-12 minutes (vs 25 minutes sequential)
 - **1-hour video**: ~25-35 minutes (vs 75 minutes sequential)
 - **Speed improvement**: 2-4x faster depending on video length and system specs

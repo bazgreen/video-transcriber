@@ -14,11 +14,16 @@ import glob
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 import multiprocessing
 import functools
+import logging
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Ensure upload and results directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -27,10 +32,17 @@ os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 # Global variable to store model for worker processes
 _model_cache = None
 
+def init_worker():
+    """Initialize worker process with Whisper model - called once per worker"""
+    global _model_cache
+    _model_cache = whisper.load_model("small")
+    logger.info("Whisper model loaded in worker process")
+
 def get_model():
-    """Get or load the Whisper model for parallel processing"""
+    """Get the pre-loaded Whisper model for parallel processing"""
     global _model_cache
     if _model_cache is None:
+        # Fallback if not initialized via worker initializer
         _model_cache = whisper.load_model("small")
     return _model_cache
 
@@ -207,7 +219,7 @@ class VideoTranscriber:
                 try:
                     future.result()  # This will raise any exceptions that occurred
                 except Exception as e:
-                    print(f"Error splitting chunk: {e}")
+                    logger.error(f"Error splitting chunk: {e}")
                     
         return chunks
     
@@ -368,9 +380,10 @@ class VideoTranscriber:
         
         # Use ProcessPoolExecutor for CPU-intensive transcription work
         completed_chunks = []
-        print(f"Processing {len(chunks)} chunks in parallel using {min(self.max_workers, len(chunks))} workers...")
+        num_workers = min(self.max_workers, len(chunks))
+        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers...")
         
-        with ProcessPoolExecutor(max_workers=min(self.max_workers, len(chunks))) as executor:
+        with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
             # Submit all chunk processing tasks
             futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
             
@@ -380,11 +393,11 @@ class VideoTranscriber:
                     result = future.result()
                     if result['success']:
                         completed_chunks.append(result)
-                        print(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
+                        logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
                     else:
-                        print(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
+                        logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
                 except Exception as e:
-                    print(f"Exception processing chunk: {e}")
+                    logger.error(f"Exception processing chunk: {e}")
         
         # Sort results by start time to maintain order
         completed_chunks.sort(key=lambda x: x['start_time'])
@@ -434,7 +447,7 @@ class VideoTranscriber:
                 if "_part_" in file:  # Only remove chunk files
                     os.remove(file)
         except Exception as e:
-            print(f"Warning: Could not clean up temporary files: {e}")
+            logger.warning(f"Could not clean up temporary files: {e}")
     
     def save_results(self, results):
         """Save transcription results to files"""
