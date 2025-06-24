@@ -48,6 +48,7 @@ def get_model():
 
 def process_chunk_parallel(chunk_info):
     """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
+    chunk_path, audio_path, start_time, filename = None, None, None, 'unknown'
     try:
         chunk_path, audio_path, start_time, filename = chunk_info
         
@@ -122,8 +123,20 @@ def load_keywords():
 
 def save_keywords(keywords):
     keywords_file = 'config/keywords_config.json'
-    with open(keywords_file, 'w') as f:
-        json.dump({'assessment_keywords': keywords}, f, indent=4)
+    temp_file = keywords_file + '.tmp'
+    
+    # Write to temporary file first
+    try:
+        with open(temp_file, 'w') as f:
+            json.dump({'assessment_keywords': keywords}, f, indent=4)
+        
+        # Atomic rename (on POSIX systems)
+        os.replace(temp_file, keywords_file)
+    except Exception as e:
+        # Clean up temp file if something goes wrong
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        raise e
 
 # Keywords for assessment detection
 ASSESSMENT_KEYWORDS = load_keywords()
@@ -174,9 +187,31 @@ class VideoTranscriber:
         if chunk_duration is None:
             chunk_duration = self.chunk_duration
         
-        # Get video info
-        probe = ffmpeg.probe(input_path)
-        duration = float(probe['streams'][0]['duration'])
+        # Get video info with proper error handling
+        try:
+            probe = ffmpeg.probe(input_path)
+            # Check if streams exist and have duration
+            if 'streams' not in probe or len(probe['streams']) == 0:
+                raise ValueError(f"No streams found in video file: {input_path}")
+            
+            # Find video stream with duration
+            duration = None
+            for stream in probe['streams']:
+                if 'duration' in stream:
+                    duration = float(stream['duration'])
+                    break
+            
+            if duration is None:
+                # Try to get duration from format
+                if 'format' in probe and 'duration' in probe['format']:
+                    duration = float(probe['format']['duration'])
+                else:
+                    raise ValueError(f"Could not determine video duration for: {input_path}")
+                    
+        except ffmpeg.Error as e:
+            raise Exception(f"Failed to probe video file: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error analyzing video file: {str(e)}")
         
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
@@ -444,8 +479,11 @@ class VideoTranscriber:
         try:
             # Remove all .mp4 chunks (keep only final outputs)
             for file in glob.glob(os.path.join(session_dir, "*.mp4")):
-                if "_part_" in file:  # Only remove chunk files
-                    os.remove(file)
+                if "_part_" in file and os.path.exists(file):  # Only remove chunk files that exist
+                    try:
+                        os.remove(file)
+                    except OSError as e:
+                        logger.warning(f"Could not remove file {file}: {e}")
         except Exception as e:
             logger.warning(f"Could not clean up temporary files: {e}")
     
@@ -649,7 +687,27 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    session_name = request.form.get('session_name', '')
+    # Validate file extension
+    allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in allowed_extensions:
+        return jsonify({'error': f'Invalid file type. Allowed types: {', '.join(allowed_extensions)}'}), 400
+    
+    # Validate file size (500MB limit)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)  # Reset file pointer
+    if file_size > 500 * 1024 * 1024:  # 500MB
+        return jsonify({'error': 'File too large. Maximum size is 500MB'}), 400
+    
+    session_name = request.form.get('session_name', '').strip()
+    
+    # Validate session name
+    if session_name:
+        # Remove potentially problematic characters
+        session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
+        # Limit length
+        session_name = session_name[:50]
     
     # Save uploaded file
     filename = secure_filename(file.filename)
@@ -676,6 +734,10 @@ def upload_file():
 
 @app.route('/results/<session_id>')
 def view_results(session_id):
+    # Validate session_id to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        return "Invalid session ID", 400
+    
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     if not os.path.exists(session_dir):
         return "Session not found", 404
@@ -692,8 +754,20 @@ def view_results(session_id):
 
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
+    # Validate inputs to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        return "Invalid session ID", 400
+    
+    # Validate filename
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', filename) or '..' in filename:
+        return "Invalid filename", 400
+    
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     file_path = os.path.join(session_dir, filename)
+    
+    # Ensure the file path is within the session directory
+    if not os.path.abspath(file_path).startswith(os.path.abspath(session_dir)):
+        return "Access denied", 403
     
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
@@ -702,6 +776,10 @@ def download_file(session_id, filename):
 
 @app.route('/transcript/<session_id>')
 def view_transcript(session_id):
+    # Validate session_id to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        return "Invalid session ID", 400
+    
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     html_path = os.path.join(session_dir, 'searchable_transcript.html')
     
@@ -766,7 +844,15 @@ def list_sessions():
 @app.route('/sessions/delete/<session_id>', methods=['POST'])
 def delete_session(session_id):
     """Delete a transcription session"""
+    # Validate session_id to prevent path traversal
+    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        return jsonify({'error': 'Invalid session ID'}), 400
+    
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
+    
+    # Ensure the path is within the results folder
+    if not os.path.abspath(session_dir).startswith(os.path.abspath(app.config['RESULTS_FOLDER'])):
+        return jsonify({'error': 'Access denied'}), 403
     
     if os.path.exists(session_dir):
         try:
@@ -848,17 +934,17 @@ def search_sessions():
 @app.route('/config')
 def config():
     """Show keyword configuration page"""
-    return render_template('config.html', keywords=ASSESSMENT_KEYWORDS)
+    return render_template('config.html', keywords=CUSTOM_KEYWORDS)
 
 @app.route('/api/keywords', methods=['GET'])
 def get_keywords():
     """Get current keywords"""
-    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
+    return jsonify({'success': True, 'keywords': CUSTOM_KEYWORDS})
 
 @app.route('/api/keywords', methods=['POST'])
 def update_keywords():
     """Update keywords list"""
-    global ASSESSMENT_KEYWORDS
+    global CUSTOM_KEYWORDS
     data = request.get_json()
     
     if 'keywords' not in data:
@@ -881,14 +967,14 @@ def update_keywords():
     
     # Save to file and update global variable
     save_keywords(cleaned_keywords)
-    ASSESSMENT_KEYWORDS = cleaned_keywords
+    CUSTOM_KEYWORDS = cleaned_keywords
     
     return jsonify({'success': True, 'keywords': cleaned_keywords})
 
 @app.route('/api/keywords/add', methods=['POST'])
 def add_keyword():
     """Add a single keyword"""
-    global ASSESSMENT_KEYWORDS
+    global CUSTOM_KEYWORDS
     data = request.get_json()
     
     if 'keyword' not in data:
@@ -899,19 +985,19 @@ def add_keyword():
     if not keyword:
         return jsonify({'error': 'Keyword cannot be empty'}), 400
     
-    if keyword.lower() in [k.lower() for k in ASSESSMENT_KEYWORDS]:
+    if keyword.lower() in [k.lower() for k in CUSTOM_KEYWORDS]:
         return jsonify({'error': 'Keyword already exists'}), 400
     
     # Add keyword and save
-    ASSESSMENT_KEYWORDS.append(keyword)
-    save_keywords(ASSESSMENT_KEYWORDS)
+    CUSTOM_KEYWORDS.append(keyword)
+    save_keywords(CUSTOM_KEYWORDS)
     
-    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
+    return jsonify({'success': True, 'keywords': CUSTOM_KEYWORDS})
 
 @app.route('/api/keywords/remove', methods=['POST'])
 def remove_keyword():
     """Remove a keyword"""
-    global ASSESSMENT_KEYWORDS
+    global CUSTOM_KEYWORDS
     data = request.get_json()
     
     if 'keyword' not in data:
@@ -919,14 +1005,14 @@ def remove_keyword():
     
     keyword = data['keyword']
     
-    if keyword not in ASSESSMENT_KEYWORDS:
+    if keyword not in CUSTOM_KEYWORDS:
         return jsonify({'error': 'Keyword not found'}), 404
     
     # Remove keyword and save
-    ASSESSMENT_KEYWORDS.remove(keyword)
-    save_keywords(ASSESSMENT_KEYWORDS)
+    CUSTOM_KEYWORDS.remove(keyword)
+    save_keywords(CUSTOM_KEYWORDS)
     
-    return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
+    return jsonify({'success': True, 'keywords': CUSTOM_KEYWORDS})
 
 @app.route('/api/performance', methods=['GET'])
 def get_performance_info():
