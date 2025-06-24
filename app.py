@@ -11,15 +11,97 @@ from werkzeug.utils import secure_filename
 import tempfile
 import shutil
 import glob
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+import multiprocessing
+import functools
+import logging
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # Ensure upload and results directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
+
+# Global variable to store model for worker processes
+_model_cache = None
+
+def init_worker():
+    """Initialize worker process with Whisper model - called once per worker"""
+    global _model_cache
+    _model_cache = whisper.load_model("small")
+    logger.info("Whisper model loaded in worker process")
+
+def get_model():
+    """Get the pre-loaded Whisper model for parallel processing"""
+    global _model_cache
+    if _model_cache is None:
+        # Fallback if not initialized via worker initializer
+        _model_cache = whisper.load_model("small")
+    return _model_cache
+
+def process_chunk_parallel(chunk_info):
+    """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
+    try:
+        chunk_path, audio_path, start_time, filename = chunk_info
+        
+        # Extract audio
+        (
+            ffmpeg
+            .input(chunk_path)
+            .output(audio_path, acodec='pcm_s16le', ac=1, ar='16000')
+            .overwrite_output()
+            .run(quiet=True)
+        )
+        
+        # Get model and transcribe
+        model = get_model()
+        result = model.transcribe(audio_path, word_timestamps=True)
+        
+        # Format with timestamps
+        timestamped_segments = []
+        for segment in result['segments']:
+            adjusted_segment = {
+                'start': segment['start'] + start_time,
+                'end': segment['end'] + start_time,
+                'text': segment['text'].strip(),
+                'timestamp_str': format_timestamp(segment['start'] + start_time)
+            }
+            timestamped_segments.append(adjusted_segment)
+        
+        # Clean up audio file
+        try:
+            os.remove(audio_path)
+        except:
+            pass
+            
+        return {
+            'filename': filename,
+            'transcription': result['text'],
+            'segments': timestamped_segments,
+            'start_time': start_time,
+            'success': True
+        }
+    except Exception as e:
+        return {
+            'filename': filename,
+            'error': str(e),
+            'start_time': start_time,
+            'success': False
+        }
+
+def format_timestamp(seconds):
+    """Format seconds as HH:MM:SS"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 # Load keywords from config file
 def load_keywords():
@@ -72,47 +154,87 @@ QUESTION_PATTERNS = [
 class VideoTranscriber:
     def __init__(self):
         self.model = None
+        # Performance tuning: Limit max workers based on system capabilities
+        # Each Whisper process can use ~2GB RAM, so limit accordingly
+        cpu_count = multiprocessing.cpu_count()
+        # Estimate based on typical 8GB+ systems
+        self.max_workers = min(cpu_count, 4) if cpu_count >= 4 else max(1, cpu_count // 2)
+        self.chunk_duration = 300  # 5 minutes default, can be adjusted for performance
         
     def load_model(self):
         if self.model is None:
             self.model = whisper.load_model("small")
         return self.model
     
-    def split_video(self, input_path, output_dir, chunk_duration=300):
-        """Split video into chunks of specified duration (default 5 minutes)"""
+    def split_video(self, input_path, output_dir, chunk_duration=None):
+        """Split video into chunks of specified duration (default 5 minutes) with parallel processing"""
         chunks = []
+        
+        # Use instance default if not specified
+        if chunk_duration is None:
+            chunk_duration = self.chunk_duration
         
         # Get video info
         probe = ffmpeg.probe(input_path)
         duration = float(probe['streams'][0]['duration'])
+        
+        # Adaptive chunk sizing for better performance
+        # For shorter videos, use smaller chunks for faster parallel processing
+        if duration < 600:  # Less than 10 minutes
+            chunk_duration = min(chunk_duration, 180)  # 3 minutes max
+        elif duration > 3600:  # More than 1 hour
+            chunk_duration = min(chunk_duration, 420)  # 7 minutes max
         
         # Calculate number of chunks
         num_chunks = math.ceil(duration / chunk_duration)
         
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         
+        # Prepare chunk info for parallel processing
+        chunk_tasks = []
         for i in range(num_chunks):
             start_time = i * chunk_duration
             chunk_name = f"{base_name}_part_{i:03d}.mp4"
             chunk_path = os.path.join(output_dir, chunk_name)
+            actual_duration = min(chunk_duration, duration - start_time)
             
-            # Split video chunk
-            (
-                ffmpeg
-                .input(input_path, ss=start_time, t=chunk_duration)
-                .output(chunk_path, vcodec='libx264', acodec='aac')
-                .overwrite_output()
-                .run(quiet=True)
-            )
+            chunk_tasks.append((input_path, chunk_path, start_time, actual_duration, chunk_name))
             
             chunks.append({
                 'filename': chunk_name,
                 'path': chunk_path,
                 'start_time': start_time,
-                'duration': min(chunk_duration, duration - start_time)
+                'duration': actual_duration
             })
+        
+        # Process chunks in parallel using ThreadPoolExecutor (I/O bound for ffmpeg)
+        with ThreadPoolExecutor(max_workers=min(self.max_workers, num_chunks)) as executor:
+            futures = []
+            for task in chunk_tasks:
+                future = executor.submit(self._split_single_chunk, *task)
+                futures.append(future)
             
+            # Wait for all chunks to complete
+            for future in as_completed(futures):
+                try:
+                    future.result()  # This will raise any exceptions that occurred
+                except Exception as e:
+                    logger.error(f"Error splitting chunk: {e}")
+                    
         return chunks
+    
+    def _split_single_chunk(self, input_path, chunk_path, start_time, duration, chunk_name):
+        """Split a single video chunk - helper method for parallel processing"""
+        try:
+            (
+                ffmpeg
+                .input(input_path, ss=start_time, t=duration)
+                .output(chunk_path, vcodec='libx264', acodec='aac')
+                .overwrite_output()
+                .run(quiet=True)
+            )
+        except Exception as e:
+            raise Exception(f"Failed to split chunk {chunk_name}: {str(e)}")
     
     def extract_audio(self, video_path, audio_path):
         """Extract audio from video"""
@@ -245,33 +367,45 @@ class VideoTranscriber:
         all_segments = []
         all_text = []
         
-        # Process each chunk
-        for i, chunk in enumerate(chunks):
-            # Extract audio
+        # Process chunks in parallel
+        chunk_info_list = []
+        for chunk in chunks:
             audio_path = os.path.join(session_dir, f"{os.path.splitext(chunk['filename'])[0]}.wav")
-            self.extract_audio(chunk['path'], audio_path)
+            chunk_info_list.append((
+                chunk['path'],
+                audio_path,
+                chunk['start_time'],
+                chunk['filename']
+            ))
+        
+        # Use ProcessPoolExecutor for CPU-intensive transcription work
+        completed_chunks = []
+        num_workers = min(self.max_workers, len(chunks))
+        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers...")
+        
+        with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
+            # Submit all chunk processing tasks
+            futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
             
-            # Transcribe with timestamps
-            transcription = self.transcribe_with_timestamps(audio_path)
-            
-            # Adjust timestamps based on chunk start time
-            adjusted_segments = []
-            for segment in transcription['segments']:
-                adjusted_segment = segment.copy()
-                adjusted_segment['start'] += chunk['start_time']
-                adjusted_segment['end'] += chunk['start_time']
-                adjusted_segment['timestamp_str'] = self.format_timestamp(adjusted_segment['start'])
-                adjusted_segments.append(adjusted_segment)
-            
-            all_segments.extend(adjusted_segments)
-            all_text.append(f"\n\n--- {chunk['filename']} [{self.format_timestamp(chunk['start_time'])}] ---\n\n{transcription['text']}")
-            
-            chunk_result = {
-                'filename': chunk['filename'],
-                'transcription': transcription['text'],
-                'segments': adjusted_segments,
-                'start_time': chunk['start_time']
-            }
+            # Collect results as they complete
+            for i, future in enumerate(as_completed(futures)):
+                try:
+                    result = future.result()
+                    if result['success']:
+                        completed_chunks.append(result)
+                        logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
+                    else:
+                        logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    logger.error(f"Exception processing chunk: {e}")
+        
+        # Sort results by start time to maintain order
+        completed_chunks.sort(key=lambda x: x['start_time'])
+        
+        # Combine results
+        for chunk_result in completed_chunks:
+            all_segments.extend(chunk_result['segments'])
+            all_text.append(f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}")
             results['chunks'].append(chunk_result)
         
         # Combine all text
@@ -300,7 +434,20 @@ class VideoTranscriber:
         results['html_file'] = self.generate_html_transcript(results)
         results['metadata'] = metadata
         
+        # Clean up temporary video chunks to save disk space
+        self.cleanup_temp_files(session_dir)
+        
         return results
+    
+    def cleanup_temp_files(self, session_dir):
+        """Clean up temporary video chunk files to save disk space"""
+        try:
+            # Remove all .mp4 chunks (keep only final outputs)
+            for file in glob.glob(os.path.join(session_dir, "*.mp4")):
+                if "_part_" in file:  # Only remove chunk files
+                    os.remove(file)
+        except Exception as e:
+            logger.warning(f"Could not clean up temporary files: {e}")
     
     def save_results(self, results):
         """Save transcription results to files"""
@@ -781,5 +928,53 @@ def remove_keyword():
     
     return jsonify({'success': True, 'keywords': ASSESSMENT_KEYWORDS})
 
+@app.route('/api/performance', methods=['GET'])
+def get_performance_info():
+    """Get system performance information"""
+    return jsonify({
+        'cpu_count': multiprocessing.cpu_count(),
+        'max_workers': transcriber.max_workers,
+        'chunk_duration': transcriber.chunk_duration,
+        'whisper_model': 'small'
+    })
+
+@app.route('/api/performance', methods=['POST'])
+def update_performance_settings():
+    """Update performance settings"""
+    data = request.get_json()
+    errors = []
+    
+    if 'chunk_duration' in data:
+        try:
+            duration = int(data['chunk_duration'])
+            if 60 <= duration <= 600:  # 1-10 minutes
+                transcriber.chunk_duration = duration
+            else:
+                errors.append(f"chunk_duration must be between 60-600 seconds, got {duration}")
+        except (ValueError, TypeError):
+            errors.append("chunk_duration must be a valid integer")
+    
+    if 'max_workers' in data:
+        try:
+            workers = int(data['max_workers'])
+            max_cpu = multiprocessing.cpu_count()
+            if 1 <= workers <= max_cpu:
+                transcriber.max_workers = workers
+            else:
+                errors.append(f"max_workers must be between 1-{max_cpu}, got {workers}")
+        except (ValueError, TypeError):
+            errors.append("max_workers must be a valid integer")
+    
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+    
+    return jsonify({'success': True, 'message': 'Performance settings updated'})
+
 if __name__ == '__main__':
+    # Ensure multiprocessing works on all platforms
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+    except RuntimeError:
+        # Method already set, ignore
+        pass
     app.run(debug=True, host='0.0.0.0', port=5001)
