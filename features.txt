@@ -1,0 +1,39 @@
+Use ffmpeg to:
+
+Split any long source video (e.g. w1.mp4)
+Into uniform 5-minute chunks (w1_part_000.mp4, w1_part_001.mp4, …)
+Save those parts to the working directory
+🛠 Proposed Feature: Auto-split input video into 5-minute segments
+
+New workflow:
+Ask: "Do you want to split a long video first?"
+If yes, ask for input file (e.g. w1.mp4)
+Split it automatically into w1_part_XXX.mp4
+Continue with the transcription pipeline
+
+🎯 Additional Feature Ideas to Help Extract All Assessment Hints
+
+1. Timestamped transcript
+Add timestamps (approximate) per paragraph
+Useful for jumping back to video/audio for clarification
+2. Extract questions asked aloud
+Identify anything phrased as a question (e.g. "What are we supposed to submit?")
+These often include crucial clarifications or FAQs
+3. Keyword cloud / frequency analysis
+Helps you find patterns: which terms (e.g. "notebook", "outputs", "API") were most repeated?
+4. Speaker emphasis cues
+Highlight lines that include things like:
+“make sure…”
+“don’t forget…”
+“this will definitely be on the assessment…”
+5. Week tagging / output labelling
+Tag outputs by week/session to make searching and revisiting easier
+6. Searchable HTML transcript
+Create an HTML file with collapsible sections, search/filter boxes, and highlighted key terms
+✅ Want to go next level?
+
+We could build:
+
+A --split mode to break down any input video automatically
+A --summarise mode to just extract key points without full transcript
+A basic web interface to browse transcripts and highlights
