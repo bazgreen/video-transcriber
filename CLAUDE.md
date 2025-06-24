@@ -8,7 +8,7 @@ This is a Python-based video transcription tool that processes video chunks and 
 
 ## Architecture
 
-The main script `transcribe.py` orchestrates the entire transcription workflow:
+The main script `scripts/transcribe.py` orchestrates the entire transcription workflow:
 - **Audio Extraction**: Uses FFmpeg to extract 16kHz mono audio from video chunks
 - **Speech Recognition**: Uses Whisper's "small" model for transcription
 - **Content Analysis**: Searches for educational keywords and generates assessment-related highlights
@@ -47,7 +47,7 @@ source venv311/bin/activate
 #### Command Line Interface
 ```bash
 # Run the original CLI transcription script
-./venv311/bin/python transcribe.py
+./venv311/bin/python scripts/transcribe.py
 ```
 
 ### Package Management

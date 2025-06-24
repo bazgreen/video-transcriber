@@ -1,5 +1,5 @@
-openai-whisper==20240930
-ffmpeg-python==0.2.0
-flask==3.1.1
+openai-whisper>=20231117
+ffmpeg-python>=0.2.0
+flask>=3.0.0
 torch>=2.0.0
-numpy>=1.20.0
+numpy>=1.20.0,<2.0.0
