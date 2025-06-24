@@ -128,16 +128,23 @@ def save_keywords(keywords):
 # Keywords for assessment detection
 ASSESSMENT_KEYWORDS = load_keywords()
 
-# Emphasis cue patterns
+# Emphasis cue patterns - generic phrases that indicate important content
 EMPHASIS_PATTERNS = [
     r"make sure.*",
     r"don't forget.*",
-    r"this will.*be.*assessment.*",
     r"important.*to.*remember.*",
     r"pay attention.*",
     r"note that.*",
     r"be careful.*",
-    r"remember.*"
+    r"remember.*",
+    r".*crucial.*",
+    r".*essential.*",
+    r".*critical.*",
+    r".*vital.*",
+    r".*significant.*",
+    r".*key.*point.*",
+    r".*highlight.*",
+    r".*emphasize.*"
 ]
 
 # Question patterns

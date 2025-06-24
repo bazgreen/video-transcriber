@@ -1,6 +1,6 @@
 # 🎥 Video Transcriber
 
-A powerful Python web application that transforms educational videos into searchable, analyzed transcripts using AI. Built with Flask, OpenAI Whisper, and FFmpeg.
+A powerful Python web application that transforms videos into searchable, analyzed transcripts using AI. Built with Flask, OpenAI Whisper, and FFmpeg.
 
 ![Video Transcriber](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)
@@ -14,7 +14,7 @@ A powerful Python web application that transforms educational videos into search
 - **🧩 Adaptive Video Splitting** - Smart chunk sizing based on video length (3-7 minutes)
 - **🤖 AI-Powered Transcription** - Uses OpenAI Whisper for accurate speech-to-text conversion
 - **⏱️ Timestamped Transcripts** - Precise timing for each segment with clickable timestamps
-- **🔍 Smart Content Analysis** - Detects questions, emphasis cues, and educational keywords
+- **🔍 Smart Content Analysis** - Detects questions, emphasis cues, and custom keywords
 - **📱 Interactive HTML Transcripts** - Searchable, filterable browser-based transcript viewer
 - **📊 Multiple Export Formats** - TXT, JSON, and HTML outputs for maximum flexibility
 
@@ -22,7 +22,7 @@ A powerful Python web application that transforms educational videos into search
 
 - **Question Detection** - Automatically identifies spoken questions with timestamps
 - **Emphasis Cue Recognition** - Finds important phrases like "make sure...", "don't forget..."
-- **Educational Keyword Tracking** - Monitors assessment-related terms and their frequency
+- **Custom Keyword Tracking** - Monitors user-defined terms and their frequency
 - **Keyword Frequency Analysis** - Visual charts showing usage patterns
 - **Content Summarization** - Extracts key points and highlights
 
@@ -36,11 +36,11 @@ A powerful Python web application that transforms educational videos into search
 
 ### 🔤 Keyword Configuration
 
-- **Custom Keywords** - Add, remove, and manage educational keywords
+- **Custom Keywords** - Add, remove, and manage keywords for any use case
 - **Visual Keyword Cloud** - See all active keywords at a glance
 - **Persistent Storage** - Keywords saved in JSON configuration file
 - **Real-time Updates** - Changes take effect immediately
-- **Reset to Defaults** - Quick option to restore original keyword set
+- **Flexible Configuration** - Start with empty keywords or import predefined sets
 
 ### ⚡ Performance Optimization
 
@@ -152,32 +152,37 @@ Each transcription session generates multiple output files:
 - **`searchable_transcript.html`** - Interactive browser-based transcript
 - **`metadata.json`** - Session information and statistics
 
-## 🎯 Educational Keywords
+## 🎯 Use Cases & Keywords
 
-The system automatically detects and highlights educational terms. You can customize these keywords through the configuration page.
+The system can be customized for various industries and use cases through keyword configuration.
 
-**Default Keywords Include:**
+**Example Use Cases:**
 
-**Academic Terms:**
+**🎓 Education & Training:**
+- Lectures, workshops, online courses
+- Keywords: assignment, assessment, homework, exam, grade
 
-- assignment, submission, deadline
-- assessment, grading, criteria, feedback
-- notebook, reference, output, format
+**💼 Business & Corporate:**
+- Meetings, presentations, training sessions
+- Keywords: action items, deadline, budget, KPI, ROI
 
-**Technical Terms:**
+**🎙️ Media & Podcasts:**
+- Interviews, podcasts, webinars
+- Keywords: guest, sponsor, announcement, call-to-action
 
-- python, ipython, automate
-- proof of concept
+**🔬 Research & Academia:**
+- Research presentations, thesis defenses
+- Keywords: hypothesis, methodology, results, conclusion
 
-**Project-Specific:**
-
-- RO1, RO2, RO3 (Research Objectives)
+**🏥 Healthcare & Medical:**
+- Medical training, patient consultations
+- Keywords: diagnosis, treatment, symptoms, medication
 
 **Customization:**
 
+- Start with empty keywords or choose a preset
 - Access the configuration page at `/config`
-- Add new keywords relevant to your content
-- Remove keywords that aren't needed
+- Add keywords relevant to your specific use case
 - Keywords are stored in `config/keywords_config.json`
 
 ## 🛠️ Technical Architecture
