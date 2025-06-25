@@ -254,31 +254,31 @@ class ProgressiveFileManager:
             
             # Progressive cleanup: remove oldest files if we exceed limit
             if len(self.temp_files) > self.max_temp_files:
-                self._cleanup_oldest_files(keep_recent=self.max_temp_files)
+                self._cleanup_oldest_files(keep_recent_count=self.max_temp_files)
     
-    def get_file_size(self, file_path):
+    def get_file_size(self, file_path: str) -> int:
         """Get file size safely"""
         try:
             return os.path.getsize(file_path) if os.path.exists(file_path) else 0
         except OSError:
             return 0
     
-    def _cleanup_oldest_files(self, keep_recent=10):
+    def _cleanup_oldest_files(self, keep_recent_count: int = 10) -> None:
         """Clean up oldest temporary files"""
-        if len(self.temp_files) <= keep_recent:
+        if len(self.temp_files) <= keep_recent_count:
             return
             
         # Sort by timestamp (oldest first)
         self.temp_files.sort(key=lambda x: x['timestamp'])
         
-        files_to_remove = self.temp_files[:-keep_recent]
-        self.temp_files = self.temp_files[-keep_recent:]
+        files_to_remove = self.temp_files[:-keep_recent_count]
+        self.temp_files = self.temp_files[-keep_recent_count:]
         
         # Remove old files
         for file_info in files_to_remove:
             self._safe_remove_file(file_info['path'])
     
-    def _safe_remove_file(self, file_path):
+    def _safe_remove_file(self, file_path: str) -> None:
         """Safely remove a file with logging"""
         try:
             if os.path.exists(file_path):
@@ -289,7 +289,7 @@ class ProgressiveFileManager:
         except OSError as e:
             logger.warning(f"Failed to remove temp file {file_path}: {e}")
     
-    def cleanup_all(self):
+    def cleanup_all(self) -> None:
         """Clean up all tracked temporary files"""
         with self.lock:
             total_size = 0
