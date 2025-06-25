@@ -1478,13 +1478,13 @@ def update_keywords():
     data = request.get_json()
     
     if 'keywords' not in data:
-        return jsonify({'error': 'No keywords provided'}), 400
+        return jsonify({'success': False, 'error': 'No keywords provided'}), 400
     
     keywords = data['keywords']
     
     # Validate keywords
     if not isinstance(keywords, list):
-        return jsonify({'error': 'Keywords must be a list'}), 400
+        return jsonify({'success': False, 'error': 'Keywords must be a list'}), 400
     
     # Clean and validate each keyword
     cleaned_keywords = []
@@ -1493,7 +1493,7 @@ def update_keywords():
             cleaned_keywords.append(keyword.strip())
     
     if not cleaned_keywords:
-        return jsonify({'error': 'At least one valid keyword is required'}), 400
+        return jsonify({'success': False, 'error': 'At least one valid keyword is required'}), 400
     
     # Save to file and update global variable
     save_keywords(cleaned_keywords)
@@ -1508,15 +1508,15 @@ def add_keyword():
     data = request.get_json()
     
     if 'keyword' not in data:
-        return jsonify({'error': 'No keyword provided'}), 400
+        return jsonify({'success': False, 'error': 'No keyword provided'}), 400
     
     keyword = data['keyword'].strip()
     
     if not keyword:
-        return jsonify({'error': 'Keyword cannot be empty'}), 400
+        return jsonify({'success': False, 'error': 'Keyword cannot be empty'}), 400
     
     if keyword.lower() in [k.lower() for k in CUSTOM_KEYWORDS]:
-        return jsonify({'error': 'Keyword already exists'}), 400
+        return jsonify({'success': False, 'error': 'Keyword already exists'}), 400
     
     # Add keyword and save
     CUSTOM_KEYWORDS.append(keyword)
@@ -1531,12 +1531,12 @@ def remove_keyword():
     data = request.get_json()
     
     if 'keyword' not in data:
-        return jsonify({'error': 'No keyword provided'}), 400
+        return jsonify({'success': False, 'error': 'No keyword provided'}), 400
     
     keyword = data['keyword']
     
     if keyword not in CUSTOM_KEYWORDS:
-        return jsonify({'error': 'Keyword not found'}), 404
+        return jsonify({'success': False, 'error': 'Keyword not found'}), 404
     
     # Remove keyword and save
     CUSTOM_KEYWORDS.remove(keyword)
@@ -1579,7 +1579,7 @@ def update_performance_settings():
     data = request.get_json()
     
     if not data:
-        return jsonify({'error': 'No data provided'}), 400
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
     
     try:
         # Update chunk duration if provided
@@ -1588,15 +1588,16 @@ def update_performance_settings():
             if 60 <= chunk_duration <= 600:  # 1-10 minutes
                 transcriber.chunk_duration = chunk_duration
             else:
-                return jsonify({'error': 'Chunk duration must be between 60 and 600 seconds'}), 400
+                return jsonify({'success': False, 'error': 'Chunk duration must be between 60 and 600 seconds'}), 400
         
         # Update max workers if provided
         if 'max_workers' in data:
             max_workers = int(data['max_workers'])
-            if 1 <= max_workers <= 8:  # Reasonable limits
+            max_cpu_limit = min(multiprocessing.cpu_count(), 14)  # Allow up to CPU count or 14, whichever is lower
+            if 1 <= max_workers <= max_cpu_limit:
                 transcriber.max_workers = max_workers
             else:
-                return jsonify({'error': 'Max workers must be between 1 and 8'}), 400
+                return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit}'}), 400
         
         return jsonify({
             'success': True, 
@@ -1608,9 +1609,9 @@ def update_performance_settings():
         })
         
     except (ValueError, TypeError) as e:
-        return jsonify({'error': f'Invalid data format: {str(e)}'}), 400
+        return jsonify({'success': False, 'error': f'Invalid data format: {str(e)}'}), 400
     except Exception as e:
-        return jsonify({'error': f'Failed to update settings: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Failed to update settings: {str(e)}'}), 500
 
 @app.route('/api/memory', methods=['GET'])
 def get_memory_info():
@@ -1730,14 +1731,34 @@ def _get_memory_recommendations(memory_info):
     recommendations = []
     
     if memory_info['system_used_percent'] > 90:
-        recommendations.append('Critical: System memory usage is very high')
+        recommendations.append({
+            'type': 'critical',
+            'category': 'memory',
+            'message': 'Critical: System memory usage is very high',
+            'action': 'Close other applications or reduce workers'
+        })
     elif memory_info['system_used_percent'] > 75:
-        recommendations.append('Warning: Consider closing other applications')
+        recommendations.append({
+            'type': 'warning',
+            'category': 'memory',
+            'message': 'Warning: Consider closing other applications',
+            'action': 'Close unnecessary applications'
+        })
     elif memory_info['system_used_percent'] < 40:
-        recommendations.append('Good: Plenty of memory available for processing')
+        recommendations.append({
+            'type': 'info',
+            'category': 'memory',
+            'message': 'Good: Plenty of memory available for processing',
+            'action': 'Consider increasing workers for faster processing'
+        })
     
     if memory_info['process_rss_mb'] > 2000:  # 2GB
-        recommendations.append('Process using significant memory - normal during transcription')
+        recommendations.append({
+            'type': 'info',
+            'category': 'memory',
+            'message': 'Process using significant memory - normal during transcription',
+            'action': 'Monitor memory usage during processing'
+        })
     
     return recommendations
 
