@@ -8,7 +8,7 @@ from typing import Dict, Any, Tuple
 from werkzeug.utils import secure_filename
 from flask import request, jsonify
 
-from src.config import AppConfig
+from src.config import AppConfig, Constants
 from src.models.exceptions import UserFriendlyError
 from src.utils import is_valid_session_id
 
@@ -37,14 +37,14 @@ def process_upload(transcriber, memory_manager, upload_folder: str) -> Tuple[Dic
     file_size = file.tell()
     file.seek(0)  # Reset file pointer
     
-    file_size_mb = file_size / (1024 * 1024)
+    file_size_mb = file_size / Constants.BYTES_PER_MB
     if file_size > config.MAX_FILE_SIZE_BYTES:
-        max_size_mb = config.MAX_FILE_SIZE_BYTES / (1024 * 1024)
+        max_size_mb = config.MAX_FILE_SIZE_BYTES / Constants.BYTES_PER_MB
         raise UserFriendlyError(f'File too large: {file_size_mb:.1f}MB. Maximum allowed: {max_size_mb:.0f}MB')
     
     # Check available memory before processing
     memory_info = memory_manager.get_memory_info()
-    if memory_info['system_used_percent'] > 90:
+    if memory_info['system_used_percent'] > config.MEMORY_PRESSURE_THRESHOLD:
         raise UserFriendlyError(f'Insufficient memory: {memory_info["system_used_percent"]:.1f}% used, {memory_info["system_available_gb"]:.1f}GB available')
     
     session_name = request.form.get('session_name', '').strip()
@@ -56,7 +56,7 @@ def process_upload(transcriber, memory_manager, upload_folder: str) -> Tuple[Dic
     # Remove potentially problematic characters
     session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
     # Limit length
-    session_name = session_name[:50]
+    session_name = session_name[:config.MAX_SESSION_NAME_LENGTH]
     
     # Save uploaded file
     filename = secure_filename(file.filename)
@@ -102,20 +102,47 @@ def delete_session(session_id: str, results_folder: str) -> Tuple[Dict[str, Any]
     """Delete a transcription session"""
     # Validate session_id to prevent path traversal
     if not is_valid_session_id(session_id):
-        return {'error': 'Invalid session ID'}, 400
+        return {
+            'success': False,
+            'error': 'Invalid session ID format',
+            'error_type': 'validation_error'
+        }, 400
     
     session_dir = os.path.join(results_folder, session_id)
     
     # Ensure the path is within the results folder
     if not os.path.abspath(session_dir).startswith(os.path.abspath(results_folder)):
-        return {'error': 'Access denied'}, 403
+        return {
+            'success': False,
+            'error': 'Access denied: Invalid session path',
+            'error_type': 'security_error'
+        }, 403
     
-    if os.path.exists(session_dir):
-        try:
-            shutil.rmtree(session_dir)
-            return {'success': True, 'message': 'Session deleted successfully'}, 200
-        except Exception as e:
-            logger.error(f"Error deleting session {session_id}: {e}")
-            return {'error': str(e)}, 500
-    else:
-        return {'error': 'Session not found'}, 404
+    if not os.path.exists(session_dir):
+        return {
+            'success': False,
+            'error': f'Session "{session_id}" not found',
+            'error_type': 'not_found_error'
+        }, 404
+    
+    try:
+        shutil.rmtree(session_dir)
+        logger.info(f"Successfully deleted session {session_id}")
+        return {
+            'success': True,
+            'message': f'Session "{session_id}" deleted successfully'
+        }, 200
+    except PermissionError as e:
+        logger.error(f"Permission error deleting session {session_id}: {e}")
+        return {
+            'success': False,
+            'error': 'Insufficient permissions to delete session',
+            'error_type': 'permission_error'
+        }, 500
+    except Exception as e:
+        logger.error(f"Unexpected error deleting session {session_id}: {e}", exc_info=True)
+        return {
+            'success': False,
+            'error': 'Failed to delete session due to internal error',
+            'error_type': 'server_error'
+        }, 500

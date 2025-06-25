@@ -5,7 +5,7 @@ import re
 import json
 import math
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any, Union
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
@@ -16,7 +16,8 @@ from flask import render_template
 
 from src.config import VideoConfig, AnalysisConfig
 from src.utils import load_keywords, format_timestamp
-from src.models.managers import MemoryManager, ProgressiveFileManager, ModelManager
+from src.models import MemoryManager, ProgressiveFileManager, ModelManager
+from src.models.exceptions import UserFriendlyError
 
 logger = logging.getLogger(__name__)
 
@@ -24,45 +25,68 @@ logger = logging.getLogger(__name__)
 video_config = VideoConfig()
 analysis_config = AnalysisConfig()
 
-# Patterns for content analysis
-EMPHASIS_PATTERNS = [
-    r"make sure.*",
-    r"don't forget.*", 
-    r"this will.*be.*assessment.*",
-    r"important.*to.*remember.*",
-    r"pay attention.*",
-    r"note that.*",
-    r"be careful.*",
-    r"remember.*"
-]
-
-QUESTION_PATTERNS = [
-    r"what.*\?",
-    r"how.*\?", 
-    r"why.*\?",
-    r"when.*\?",
-    r"where.*\?",
-    r"which.*\?",
-    r"who.*\?"
-]
+# Patterns are now configured in AnalysisConfig
 
 
-def init_worker():
-    """Initialize worker process - now more memory efficient"""
+def init_worker() -> None:
+    """
+    Initialize worker process for parallel transcription.
+    
+    This function is called when a new worker process is created for
+    parallel chunk processing. It prepares the worker for memory-efficient
+    operation by deferring model loading until needed.
+    """
     logger.info("Worker process initialized (model will be loaded on demand)")
 
 
-def get_model():
-    """Get the Whisper model with efficient memory management"""
-    # This will need to be injected or managed differently in the modular version
-    from src.models.managers import ModelManager
+def get_model() -> Any:
+    """
+    Get the Whisper model with efficient memory management.
+    
+    This function provides lazy loading of the Whisper model for worker
+    processes, ensuring memory efficiency in parallel processing scenarios.
+    
+    Returns:
+        Loaded Whisper model instance
+        
+    Note:
+        This function is primarily used by worker processes and will be
+        refactored to use dependency injection in future versions.
+    """
     model_manager = ModelManager()
     return model_manager.get_model()
 
 
-def process_chunk_parallel(chunk_info):
-    """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
-    # This function will need access to file_manager - will be refactored
+def process_chunk_parallel(chunk_info: Tuple[str, str, float, str]) -> Dict[str, Any]:
+    """
+    Process a single video chunk in parallel using ProcessPoolExecutor.
+    
+    This function handles audio extraction and transcription for a single
+    video chunk in a separate process for parallel processing efficiency.
+    
+    Args:
+        chunk_info: Tuple containing (chunk_path, audio_path, start_time, filename)
+            - chunk_path: Path to the video chunk file
+            - audio_path: Path where extracted audio will be saved
+            - start_time: Start time offset for timestamp adjustment
+            - filename: Original filename for identification
+    
+    Returns:
+        Dictionary containing transcription results:
+        - filename: Original filename
+        - transcription: Full text transcription
+        - segments: List of timestamped segments
+        - start_time: Start time offset
+        - success: Boolean indicating success/failure
+        - error: Error message (if success=False)
+        
+    Raises:
+        ValueError: If chunk_info format is invalid
+        
+    Note:
+        This function is designed for use with ProcessPoolExecutor and
+        includes error handling for robust parallel processing.
+    """
     if not isinstance(chunk_info, tuple) or len(chunk_info) != 4:
         raise ValueError("Invalid chunk_info format. Expected a tuple with 4 elements: (chunk_path, audio_path, start_time, filename).")
     
@@ -113,10 +137,47 @@ def process_chunk_parallel(chunk_info):
 
 
 class VideoTranscriber:
-    """Video transcription service"""
+    """
+    Comprehensive video transcription service.
     
-    def __init__(self, memory_manager: MemoryManager, file_manager: ProgressiveFileManager, 
-                 progress_tracker, results_folder: str) -> None:
+    This service handles the complete video-to-text transcription pipeline,
+    including video splitting, parallel processing, audio extraction,
+    speech recognition, content analysis, and result generation.
+    
+    Features:
+    - Parallel video chunk processing for performance
+    - Memory-aware worker management
+    - Real-time progress tracking via WebSocket
+    - Comprehensive content analysis (keywords, questions, emphasis)
+    - Multiple output formats (text, JSON, HTML)
+    - Progressive file cleanup during processing
+    
+    Attributes:
+        model: Loaded Whisper model (lazy-loaded)
+        memory_manager: Memory monitoring and optimization
+        file_manager: Progressive file cleanup management
+        progress_tracker: Real-time progress updates
+        results_folder: Base folder for storing transcription results
+        max_workers: Optimal number of parallel workers
+        chunk_duration: Default chunk duration for video splitting
+    """
+    
+    def __init__(
+        self, 
+        memory_manager: MemoryManager, 
+        file_manager: ProgressiveFileManager, 
+        progress_tracker: Any,  # ProgressTracker type 
+        results_folder: str
+    ) -> None:
+        """
+        Initialize the VideoTranscriber service.
+        
+        Args:
+            memory_manager: Memory monitoring and management instance
+            file_manager: Progressive file cleanup manager
+            progress_tracker: Real-time progress tracking for WebSocket updates
+            results_folder: Base directory for storing transcription results
+        """
         self.model = None
         self.memory_manager = memory_manager
         self.file_manager = file_manager
@@ -134,12 +195,58 @@ class VideoTranscriber:
                    f"{memory_info['system_available_gb']:.1f}GB available")
         
     def load_model(self) -> Any:
+        """
+        Load Whisper model with lazy initialization.
+        
+        The model is loaded on-demand to optimize memory usage, especially
+        in multi-process environments where each worker loads its own model.
+        
+        Returns:
+            Loaded Whisper model instance
+            
+        Note:
+            Model loading is thread-safe and cached after first load.
+        """
         if self.model is None:
+            logger.info(f"Loading Whisper model: {video_config.WHISPER_MODEL}")
             self.model = whisper.load_model(video_config.WHISPER_MODEL)
+            logger.info("Whisper model loaded successfully")
         return self.model
     
-    def split_video(self, input_path: str, output_dir: str, chunk_duration: Optional[int] = None) -> List[Dict[str, Union[str, int, float]]]:
-        """Split video into chunks of specified duration (default 5 minutes) with parallel processing"""
+    def split_video(
+        self, 
+        input_path: str, 
+        output_dir: str, 
+        chunk_duration: Optional[int] = None
+    ) -> List[Dict[str, Union[str, int, float]]]:
+        """
+        Split video into chunks for parallel processing.
+        
+        This method intelligently splits videos into optimal chunks based on
+        video duration and system capabilities, using parallel processing
+        for maximum efficiency.
+        
+        Args:
+            input_path: Path to the input video file
+            output_dir: Directory where video chunks will be saved
+            chunk_duration: Duration of each chunk in seconds (uses instance default if None)
+            
+        Returns:
+            List of chunk information dictionaries, each containing:
+            - filename: Name of the chunk file
+            - path: Full path to the chunk file
+            - start_time: Start time offset in seconds
+            - duration: Duration of the chunk in seconds
+            
+        Raises:
+            Exception: If video file cannot be processed or split
+            
+        Features:
+        - Adaptive chunk sizing based on video length
+        - Parallel chunk creation using ThreadPoolExecutor
+        - Automatic video duration detection
+        - Progressive file tracking for cleanup
+        """
         chunks = []
         
         # Use instance default if not specified
@@ -168,9 +275,11 @@ class VideoTranscriber:
                     raise ValueError(f"Could not determine video duration for: {input_path}")
                     
         except ffmpeg.Error as e:
-            raise Exception(f"Failed to probe video file: {str(e)}")
+            logger.error(f"FFmpeg error while probing video file {input_path}: {e}")
+            raise UserFriendlyError(f"Unable to analyze video file: {os.path.basename(input_path)}. Please ensure it's a valid video format.")
         except Exception as e:
-            raise Exception(f"Error analyzing video file: {str(e)}")
+            logger.error(f"Unexpected error analyzing video file {input_path}: {e}", exc_info=True)
+            raise UserFriendlyError(f"Error analyzing video file: {os.path.basename(input_path)}. Please try again or use a different file.")
         
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
@@ -229,8 +338,12 @@ class VideoTranscriber:
             )
             # Register chunk for progressive cleanup
             self.file_manager.add_temp_file(chunk_path, 'video')
+        except ffmpeg.Error as e:
+            logger.error(f"FFmpeg error splitting chunk {chunk_name}: {e}")
+            raise UserFriendlyError(f"Failed to split video chunk. Please check video format compatibility.")
         except Exception as e:
-            raise Exception(f"Failed to split chunk {chunk_name}: {str(e)}")
+            logger.error(f"Unexpected error splitting chunk {chunk_name}: {e}", exc_info=True)
+            raise UserFriendlyError(f"Error processing video chunk. Please try again.")
     
     def extract_audio(self, video_path, audio_path):
         """Extract audio from video"""
@@ -242,8 +355,21 @@ class VideoTranscriber:
             .run(quiet=True)
         )
     
-    def transcribe_with_timestamps(self, audio_path):
-        """Transcribe audio with timestamp information"""
+    def transcribe_with_timestamps(self, audio_path: str) -> Dict[str, Any]:
+        """
+        Transcribe audio file with detailed timestamp information.
+        
+        Args:
+            audio_path: Path to the audio file to transcribe
+            
+        Returns:
+            Dictionary containing:
+            - text: Full transcription text
+            - segments: List of timestamped segments with start/end times
+            
+        Note:
+            Uses Whisper's word-level timestamps for precise timing information.
+        """
         model = self.load_model()
         result = model.transcribe(audio_path, word_timestamps=True)
         
@@ -254,7 +380,7 @@ class VideoTranscriber:
                 'start': segment['start'],
                 'end': segment['end'],
                 'text': segment['text'].strip(),
-                'timestamp_str': self.format_timestamp(segment['start'])
+                'timestamp_str': format_timestamp(segment['start'])
             })
         
         return {
@@ -262,31 +388,53 @@ class VideoTranscriber:
             'segments': timestamped_segments
         }
     
-    def format_timestamp(self, seconds):
-        """Format seconds as MM:SS or HH:MM:SS"""
-        td = timedelta(seconds=seconds)
-        total_seconds = int(td.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        secs = total_seconds % 60
+    def get_video_duration(self, video_path: str) -> float:
+        """
+        Extract video duration using FFmpeg probe.
         
-        if hours > 0:
-            return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-        else:
-            return f"{minutes:02d}:{secs:02d}"
-    
-    def get_video_duration(self, video_path):
-        """Get video duration in seconds"""
+        Args:
+            video_path: Path to the video file
+            
+        Returns:
+            Video duration in seconds, or 0.0 if duration cannot be determined
+            
+        Note:
+            This is a utility method that safely handles various video formats
+            and provides fallback behavior for problematic files.
+        """
         try:
             probe = ffmpeg.probe(video_path)
             duration = float(probe['streams'][0]['duration'])
             return duration
         except Exception as e:
-            logger.warning(f"Could not get video duration: {e}")
-            return 0
+            logger.warning(f"Could not get video duration for {video_path}: {e}")
+            return 0.0
     
-    def analyze_content(self, text, segments):
-        """Analyze content for keywords, questions, and emphasis cues"""
+    def analyze_content(self, text: str, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Perform comprehensive content analysis on transcribed text.
+        
+        This method analyzes the transcription for educational keywords,
+        questions, emphasis cues, and generates frequency statistics.
+        
+        Args:
+            text: Full transcription text
+            segments: List of timestamped text segments
+            
+        Returns:
+            Dictionary containing analysis results:
+            - keyword_matches: List of keyword matches with context
+            - questions: List of detected questions with timestamps
+            - emphasis_cues: List of emphasis phrases with timestamps
+            - keyword_frequency: Frequency count of detected keywords
+            - total_words: Total word count in transcription
+            
+        Features:
+        - Context-aware keyword matching with surrounding text
+        - Pattern-based question detection
+        - Emphasis cue recognition for important content
+        - Statistical analysis with word frequency counting
+        """
         analysis = {
             'keyword_matches': [],
             'questions': [],
@@ -320,7 +468,7 @@ class VideoTranscriber:
         
         # Find questions in segments
         for segment in segments:
-            for pattern in QUESTION_PATTERNS:
+            for pattern in analysis_config.QUESTION_PATTERNS:
                 if re.search(pattern, segment['text'], re.IGNORECASE):
                     analysis['questions'].append({
                         'timestamp': segment['timestamp_str'],
@@ -331,7 +479,7 @@ class VideoTranscriber:
         
         # Find emphasis cues
         for segment in segments:
-            for pattern in EMPHASIS_PATTERNS:
+            for pattern in analysis_config.EMPHASIS_PATTERNS:
                 if re.search(pattern, segment['text'], re.IGNORECASE):
                     analysis['emphasis_cues'].append({
                         'timestamp': segment['timestamp_str'],

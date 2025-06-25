@@ -1,10 +1,16 @@
-"""API routes for the video transcriber application."""
+"""
+API routes for the video transcriber application.
+
+This module provides RESTful API endpoints for configuration management,
+performance monitoring, and system status information.
+"""
 
 import os
 import time
 import multiprocessing
 import logging
-from flask import Blueprint, request, jsonify
+from typing import Dict, Any, Tuple, Optional
+from flask import Blueprint, request, jsonify, Response
 
 from src.config import PerformanceConfig, VideoConfig
 from src.utils import load_keywords, save_keywords, handle_user_friendly_error, is_valid_session_id
@@ -12,16 +18,25 @@ from src.models.exceptions import UserFriendlyError
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
-performance_config = PerformanceConfig()
 
 # Global references (will be injected from main app)
-memory_manager = None
-file_manager = None
-progress_tracker = None
+memory_manager: Optional[Any] = None
+file_manager: Optional[Any] = None
+progress_tracker: Optional[Any] = None
 
 
-def init_api_globals(mm, fm, pt):
-    """Initialize global references for API routes"""
+def init_api_globals(mm: Any, fm: Any, pt: Any) -> None:
+    """
+    Initialize global references for API routes.
+    
+    This function is called during application initialization to inject
+    dependencies that API routes need to access.
+    
+    Args:
+        mm: MemoryManager instance for system monitoring
+        fm: FileManager instance for file cleanup operations
+        pt: ProgressTracker instance for session progress
+    """
     global memory_manager, file_manager, progress_tracker
     memory_manager = mm
     file_manager = fm
@@ -30,16 +45,40 @@ def init_api_globals(mm, fm, pt):
 
 @api_bp.route('/keywords', methods=['GET'])
 @handle_user_friendly_error
-def get_keywords():
-    """Get current keywords list"""
+def get_keywords() -> Response:
+    """
+    Get current keywords list for content analysis.
+    
+    Returns:
+        JSON response with current keywords list
+        
+    Response Format:
+        {
+            "success": true,
+            "keywords": ["keyword1", "keyword2", ...]
+        }
+    """
     keywords = load_keywords()
     return jsonify({'success': True, 'keywords': keywords})
 
 
 @api_bp.route('/keywords', methods=['POST'])
 @handle_user_friendly_error
-def update_keywords():
-    """Update the entire keywords list"""
+def update_keywords() -> Response:
+    """
+    Update the entire keywords list for content analysis.
+    
+    Request Body:
+        {
+            "keywords": ["new_keyword1", "new_keyword2", ...]
+        }
+        
+    Returns:
+        JSON response with updated keywords list
+        
+    Raises:
+        UserFriendlyError: If request format is invalid
+    """
     data = request.get_json()
     if not data or 'keywords' not in data:
         raise UserFriendlyError("Invalid request: 'keywords' field is required")
@@ -122,18 +161,18 @@ def remove_keyword():
 @handle_user_friendly_error
 def get_performance_settings():
     """Get current performance settings"""
-    optimal_workers = memory_manager.get_optimal_workers() if memory_manager else performance_config.DEFAULT_MAX_WORKERS
+    optimal_workers = memory_manager.get_optimal_workers() if memory_manager else PerformanceConfig.DEFAULT_MAX_WORKERS
     memory_info = memory_manager.get_memory_info() if memory_manager else {}
     
     settings = {
-        'chunk_duration': getattr(performance_config, 'current_chunk_duration', 300),
-        'max_workers': getattr(performance_config, 'current_max_workers', optimal_workers),
+        'chunk_duration': getattr(PerformanceConfig, 'current_chunk_duration', 300),
+        'max_workers': getattr(PerformanceConfig, 'current_max_workers', optimal_workers),
         'optimal_workers': optimal_workers,
         'cpu_count': multiprocessing.cpu_count(),
         'memory_info': memory_info,
         'limits': {
-            'min_workers': performance_config.MIN_WORKERS,
-            'max_workers_limit': performance_config.MAX_WORKERS_LIMIT,
+            'min_workers': PerformanceConfig.MIN_WORKERS,
+            'max_workers_limit': PerformanceConfig.MAX_WORKERS_LIMIT,
             'min_chunk_duration': VideoConfig.MIN_CHUNK_DURATION_SECONDS,
             'max_chunk_duration': VideoConfig.MAX_CHUNK_DURATION_SECONDS
         }
@@ -155,24 +194,24 @@ def update_performance_settings():
         chunk_duration = data['chunk_duration']
         if not isinstance(chunk_duration, (int, float)) or chunk_duration < VideoConfig.MIN_CHUNK_DURATION_SECONDS or chunk_duration > VideoConfig.MAX_CHUNK_DURATION_SECONDS:
             raise UserFriendlyError(f"Chunk duration must be between {VideoConfig.MIN_CHUNK_DURATION_SECONDS} and {VideoConfig.MAX_CHUNK_DURATION_SECONDS} seconds, got: {chunk_duration}")
-        performance_config.current_chunk_duration = int(chunk_duration)
+        PerformanceConfig.current_chunk_duration = int(chunk_duration)
     
     # Validate and update max workers
     if 'max_workers' in data:
         max_workers = data['max_workers']
-        if not isinstance(max_workers, int) or max_workers < performance_config.MIN_WORKERS or max_workers > performance_config.MAX_WORKERS_LIMIT:
-            raise UserFriendlyError(f"Max workers must be between {performance_config.MIN_WORKERS} and {performance_config.MAX_WORKERS_LIMIT}, got: {max_workers}")
-        performance_config.current_max_workers = max_workers
+        if not isinstance(max_workers, int) or max_workers < PerformanceConfig.MIN_WORKERS or max_workers > PerformanceConfig.MAX_WORKERS_LIMIT:
+            raise UserFriendlyError(f"Max workers must be between {PerformanceConfig.MIN_WORKERS} and {PerformanceConfig.MAX_WORKERS_LIMIT}, got: {max_workers}")
+        PerformanceConfig.current_max_workers = max_workers
     
-    logger.info(f"Updated performance settings: chunk_duration={getattr(performance_config, 'current_chunk_duration', 'unchanged')}, "
-               f"max_workers={getattr(performance_config, 'current_max_workers', 'unchanged')}")
+    logger.info(f"Updated performance settings: chunk_duration={getattr(PerformanceConfig, 'current_chunk_duration', 'unchanged')}, "
+               f"max_workers={getattr(PerformanceConfig, 'current_max_workers', 'unchanged')}")
     
     return jsonify({
         'success': True,
         'message': 'Performance settings updated successfully',
         'settings': {
-            'chunk_duration': getattr(performance_config, 'current_chunk_duration', 300),
-            'max_workers': getattr(performance_config, 'current_max_workers', performance_config.DEFAULT_MAX_WORKERS)
+            'chunk_duration': getattr(PerformanceConfig, 'current_chunk_duration', 300),
+            'max_workers': getattr(PerformanceConfig, 'current_max_workers', PerformanceConfig.DEFAULT_MAX_WORKERS)
         }
     })
 
