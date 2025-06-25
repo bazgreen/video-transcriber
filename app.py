@@ -16,12 +16,8 @@ import time
 import threading
 import multiprocessing
 import logging
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-import multiprocessing
 import functools
-import logging
-import threading
-import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 # Optional memory monitoring
 try:
@@ -34,7 +30,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
-app.config['SECRET_KEY'] = 'video-transcriber-secret-key'  # For SocketIO
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')  # For SocketIO
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -1793,4 +1789,7 @@ if __name__ == '__main__':
     except RuntimeError:
         # Method already set, ignore
         pass
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)
+    
+    # Determine if the environment is development
+    is_development = os.getenv('FLASK_ENV', 'production') == 'development'
+    socketio.run(app, debug=is_development, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=is_development)
