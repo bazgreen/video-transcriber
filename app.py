@@ -25,6 +25,10 @@ app.config['RESULTS_FOLDER'] = 'results'
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def is_valid_session_id(session_id):
+    """Validate session_id to prevent path traversal attacks"""
+    return bool(re.match(r'^[a-zA-Z0-9_-]+$', session_id))
+
 # Ensure upload and results directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
@@ -48,7 +52,10 @@ def get_model():
 
 def process_chunk_parallel(chunk_info):
     """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
-    chunk_path, audio_path, start_time, filename = None, None, None, 'unknown'
+    # Validate chunk_info format
+    if not isinstance(chunk_info, tuple) or len(chunk_info) != 4:
+        raise ValueError("Invalid chunk_info format. Expected a tuple with 4 elements: (chunk_path, audio_path, start_time, filename).")
+    
     try:
         chunk_path, audio_path, start_time, filename = chunk_info
         
@@ -687,7 +694,7 @@ def upload_file():
     allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in allowed_extensions:
-        return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'}), 400
+        return jsonify({"error": f"Invalid file type. Allowed types: {', '.join(allowed_extensions)}"}), 400
     
     # Validate file size (500MB limit)
     file.seek(0, os.SEEK_END)
@@ -699,11 +706,13 @@ def upload_file():
     session_name = request.form.get('session_name', '').strip()
     
     # Validate session name
-    if session_name:
-        # Remove potentially problematic characters
-        session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
-        # Limit length
-        session_name = session_name[:50]
+    if not session_name:
+        return jsonify({"error": "Session name is required and cannot be empty"}), 400
+    
+    # Remove potentially problematic characters
+    session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
+    # Limit length
+    session_name = session_name[:50]
     
     # Save uploaded file
     filename = secure_filename(file.filename)
@@ -731,7 +740,7 @@ def upload_file():
 @app.route('/results/<session_id>')
 def view_results(session_id):
     # Validate session_id to prevent path traversal
-    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+    if not is_valid_session_id(session_id):
         return jsonify({'error': 'Invalid session ID'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
@@ -751,7 +760,7 @@ def view_results(session_id):
 @app.route('/download/<session_id>/<filename>')
 def download_file(session_id, filename):
     # Validate inputs to prevent path traversal
-    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+    if not is_valid_session_id(session_id):
         return jsonify({'error': 'Invalid session ID'}), 400
     
     # Validate filename
@@ -773,7 +782,7 @@ def download_file(session_id, filename):
 @app.route('/transcript/<session_id>')
 def view_transcript(session_id):
     # Validate session_id to prevent path traversal
-    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+    if not is_valid_session_id(session_id):
         return jsonify({'error': 'Invalid session ID'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
@@ -841,7 +850,7 @@ def list_sessions():
 def delete_session(session_id):
     """Delete a transcription session"""
     # Validate session_id to prevent path traversal
-    if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+    if not is_valid_session_id(session_id):
         return jsonify({'error': 'Invalid session ID'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
