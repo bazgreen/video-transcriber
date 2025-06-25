@@ -249,5 +249,113 @@ class TestErrorResponses(unittest.TestCase):
         self.assertEqual(data['error'], 'Transcript not found')
 
 
+class TestPerformanceAPI(unittest.TestCase):
+    """Test performance API endpoints"""
+    
+    def setUp(self):
+        """Set up test client"""
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.client = self.app.test_client()
+    
+    def test_get_performance_settings(self):
+        """Test GET /api/performance endpoint"""
+        response = self.client.get('/api/performance')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertTrue(data['success'])
+        self.assertIn('data', data)
+        self.assertIn('current_settings', data['data'])
+        self.assertIn('max_workers', data['data']['current_settings'])
+        self.assertIn('chunk_duration', data['data']['current_settings'])
+    
+    def test_update_performance_settings_valid(self):
+        """Test POST /api/performance with valid data"""
+        test_data = {
+            'max_workers': 2,
+            'chunk_duration': 180
+        }
+        response = self.client.post('/api/performance', 
+                                  data=json.dumps(test_data),
+                                  content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertTrue(data['success'])
+        self.assertIn('current_settings', data)
+        self.assertEqual(data['current_settings']['max_workers'], 2)
+        self.assertEqual(data['current_settings']['chunk_duration'], 180)
+    
+    def test_update_performance_settings_invalid_workers(self):
+        """Test POST /api/performance with invalid max_workers"""
+        test_data = {'max_workers': 50}  # Too high
+        response = self.client.post('/api/performance', 
+                                  data=json.dumps(test_data),
+                                  content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertFalse(data['success'])
+        self.assertIn('error', data)
+        self.assertIn('Max workers must be between', data['error'])
+        self.assertIn('provided: 50', data['error'])
+    
+    def test_update_performance_settings_invalid_chunk_duration(self):
+        """Test POST /api/performance with invalid chunk_duration"""
+        test_data = {'chunk_duration': 30}  # Too low
+        response = self.client.post('/api/performance', 
+                                  data=json.dumps(test_data),
+                                  content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertFalse(data['success'])
+        self.assertIn('error', data)
+        self.assertIn('Chunk duration must be between 60 and 600 seconds', data['error'])
+        self.assertIn('provided: 30', data['error'])
+    
+    def test_update_performance_settings_no_data(self):
+        """Test POST /api/performance with no data"""
+        response = self.client.post('/api/performance', 
+                                  data=json.dumps({}),
+                                  content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertFalse(data['success'])
+        self.assertIn('error', data)
+        self.assertEqual(data['error'], 'No data provided')
+    
+    def test_get_live_performance(self):
+        """Test GET /api/performance/live endpoint"""
+        response = self.client.get('/api/performance/live')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertTrue(data['success'])
+        self.assertIn('data', data)
+        self.assertIn('memory', data['data'])
+        self.assertIn('active_sessions', data['data'])
+        self.assertIn('timestamp', data['data'])
+    
+    def test_get_performance_history(self):
+        """Test GET /api/performance/history endpoint"""
+        response = self.client.get('/api/performance/history')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'application/json')
+        data = json.loads(response.data)
+        self.assertIn('success', data)
+        self.assertTrue(data['success'])
+        self.assertIn('data', data)
+        self.assertIsInstance(data['data'], list)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -12,12 +12,12 @@ from werkzeug.utils import secure_filename
 import tempfile
 import shutil
 import glob
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-import multiprocessing
-import functools
-import logging
-import threading
 import time
+import threading
+import multiprocessing
+import logging
+import functools
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 # Optional memory monitoring
 try:
@@ -30,7 +30,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
-app.config['SECRET_KEY'] = 'video-transcriber-secret-key'  # For SocketIO
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')  # For SocketIO
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -356,6 +356,101 @@ class ProgressTracker:
 
 # Global progress tracker
 progress_tracker = ProgressTracker()
+
+class UserFriendlyError(Exception):
+    """User-friendly error messages with solutions"""
+    
+    ERROR_SOLUTIONS = {
+        'insufficient_memory': {
+            'message': 'Not enough memory available for processing',
+            'solution': 'Try reducing max workers or close other applications',
+            'action': 'Reduce workers in Performance Monitor',
+            'icon': '⚠️'
+        },
+        'large_file_size': {
+            'message': 'File size exceeds recommended limits for optimal processing',
+            'solution': 'Consider splitting the video or reducing quality',
+            'action': 'Use video editing software to compress',
+            'icon': '📁'
+        },
+        'unsupported_format': {
+            'message': 'Video format not supported',
+            'solution': 'Convert to MP4, AVI, or MOV format',
+            'action': 'Use video converter tool like FFmpeg',
+            'icon': '🎥'
+        },
+        'processing_timeout': {
+            'message': 'Video processing took longer than expected',
+            'solution': 'Try processing with fewer workers or smaller chunks',
+            'action': 'Adjust settings in Performance Monitor',
+            'icon': '⏱️'
+        },
+        'network_error': {
+            'message': 'Network connection issue detected',
+            'solution': 'Check your internet connection and try again',
+            'action': 'Refresh page and retry upload',
+            'icon': '🌐'
+        },
+        'storage_full': {
+            'message': 'Insufficient storage space for processing',
+            'solution': 'Free up disk space or process smaller files',
+            'action': 'Clean up old results or temporary files',
+            'icon': '💾'
+        }
+    }
+    
+    def __init__(self, error_type, details=None):
+        self.error_type = error_type
+        self.details = details or {}
+        
+        error_info = self.ERROR_SOLUTIONS.get(error_type, {
+            'message': 'An unexpected error occurred',
+            'solution': 'Please try again or contact support',
+            'action': 'Refresh page and retry',
+            'icon': '❌'
+        })
+        
+        super().__init__(error_info['message'])
+        self.solution = error_info['solution']
+        self.action = error_info['action']
+        self.icon = error_info['icon']
+    
+    def to_dict(self):
+        """Convert error to dictionary for JSON response"""
+        return {
+            'type': 'user_friendly_error',
+            'error_type': self.error_type,
+            'message': str(self),
+            'solution': self.solution,
+            'action': self.action,
+            'icon': self.icon,
+            'details': self.details
+        }
+
+def handle_user_friendly_error(func):
+    """Decorator to handle and convert exceptions to user-friendly errors"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except UserFriendlyError:
+            raise  # Re-raise user-friendly errors as-is
+        except MemoryError:
+            raise UserFriendlyError('insufficient_memory')
+        except FileNotFoundError as e:
+            if 'video' in str(e).lower():
+                raise UserFriendlyError('unsupported_format')
+            raise UserFriendlyError('storage_full')
+        except TimeoutError:
+            raise UserFriendlyError('processing_timeout')
+        except Exception as e:
+            # Log the original error for debugging
+            logger.error(f"Unexpected error in {func.__name__}: {str(e)}")
+            # Convert to generic user-friendly error
+            raise UserFriendlyError('unknown_error', {'original_error': str(e)})
+    
+    return wrapper
+
+# ...existing code...
 
 def init_worker():
     """Initialize worker process - now more memory efficient"""
@@ -1074,31 +1169,54 @@ def index():
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
+@handle_user_friendly_error
 def upload_file():
     if 'video' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
+        raise UserFriendlyError('unsupported_format', {'reason': 'No file uploaded'})
     
     file = request.files['video']
     if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
+        raise UserFriendlyError('unsupported_format', {'reason': 'No file selected'})
     
     # Validate file extension
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in ALLOWED_FILE_EXTENSIONS:
-        return jsonify({"error": f"Invalid file type. Allowed types: {', '.join(ALLOWED_FILE_EXTENSIONS)}"}), 400
+        raise UserFriendlyError('unsupported_format', {
+            'current_format': file_ext,
+            'supported_formats': list(ALLOWED_FILE_EXTENSIONS)
+        })
     
-    # Validate file size (500MB limit)
+    # Enhanced file size validation with context
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)  # Reset file pointer
+    
+    file_size_mb = file_size / (1024 * 1024)
     if file_size > 500 * 1024 * 1024:  # 500MB
-        return jsonify({'error': 'File too large. Maximum size is 500MB'}), 400
+        raise UserFriendlyError('large_file_size', {
+            'file_size_mb': f"{file_size_mb:.1f}",
+            'max_size_mb': '500'
+        })
+    
+    # Check available memory before processing
+    memory_info = memory_manager.get_memory_info()
+    if memory_info['system_used_percent'] > 90:
+        raise UserFriendlyError('insufficient_memory', {
+            'current_usage': f"{memory_info['system_used_percent']:.1f}%",
+            'available_gb': f"{memory_info['system_available_gb']:.1f}"
+        })
     
     session_name = request.form.get('session_name', '').strip()
     
     # Validate session name
     if not session_name:
-        return jsonify({"error": "Session name is required and cannot be empty"}), 400
+        return jsonify({
+            "type": "validation_error",
+            "message": "Session name is required and cannot be empty",
+            "solution": "Please enter a descriptive name for your video session",
+            "action": "Fill in the session name field",
+            "icon": "📝"
+        }), 400
     
     # Remove potentially problematic characters
     session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
@@ -1108,7 +1226,11 @@ def upload_file():
     # Save uploaded file
     filename = secure_filename(file.filename)
     upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(upload_path)
+    
+    try:
+        file.save(upload_path)
+    except IOError:
+        raise UserFriendlyError('storage_full')
     
     try:
         # Process video
@@ -1117,16 +1239,28 @@ def upload_file():
         return jsonify({
             'success': True,
             'session_id': results['session_id'],
-            'message': 'Video processed successfully!'
+            'message': 'Video processed successfully!',
+            'stats': {
+                'chunks': len(results.get('chunks', [])),
+                'words': results.get('analysis', {}).get('total_words', 0),
+                'duration': results.get('metadata', {}).get('processing_time', 0)
+            }
         })
     
+    except UserFriendlyError as e:
+        return jsonify(e.to_dict()), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Upload processing error: {str(e)}")
+        error = UserFriendlyError('processing_timeout', {'original_error': str(e)})
+        return jsonify(error.to_dict()), 500
     
     finally:
         # Clean up uploaded file
         if os.path.exists(upload_path):
-            os.remove(upload_path)
+            try:
+                os.remove(upload_path)
+            except OSError:
+                logger.warning(f"Could not remove uploaded file: {upload_path}")
 
 @app.route('/results/<session_id>')
 def view_results(session_id):
@@ -1344,13 +1478,13 @@ def update_keywords():
     data = request.get_json()
     
     if 'keywords' not in data:
-        return jsonify({'error': 'No keywords provided'}), 400
+        return jsonify({'success': False, 'error': 'No keywords provided'}), 400
     
     keywords = data['keywords']
     
     # Validate keywords
     if not isinstance(keywords, list):
-        return jsonify({'error': 'Keywords must be a list'}), 400
+        return jsonify({'success': False, 'error': 'Keywords must be a list'}), 400
     
     # Clean and validate each keyword
     cleaned_keywords = []
@@ -1359,7 +1493,7 @@ def update_keywords():
             cleaned_keywords.append(keyword.strip())
     
     if not cleaned_keywords:
-        return jsonify({'error': 'At least one valid keyword is required'}), 400
+        return jsonify({'success': False, 'error': 'At least one valid keyword is required'}), 400
     
     # Save to file and update global variable
     save_keywords(cleaned_keywords)
@@ -1374,15 +1508,15 @@ def add_keyword():
     data = request.get_json()
     
     if 'keyword' not in data:
-        return jsonify({'error': 'No keyword provided'}), 400
+        return jsonify({'success': False, 'error': 'No keyword provided'}), 400
     
     keyword = data['keyword'].strip()
     
     if not keyword:
-        return jsonify({'error': 'Keyword cannot be empty'}), 400
+        return jsonify({'success': False, 'error': 'Keyword cannot be empty'}), 400
     
     if keyword.lower() in [k.lower() for k in CUSTOM_KEYWORDS]:
-        return jsonify({'error': 'Keyword already exists'}), 400
+        return jsonify({'success': False, 'error': 'Keyword already exists'}), 400
     
     # Add keyword and save
     CUSTOM_KEYWORDS.append(keyword)
@@ -1397,12 +1531,12 @@ def remove_keyword():
     data = request.get_json()
     
     if 'keyword' not in data:
-        return jsonify({'error': 'No keyword provided'}), 400
+        return jsonify({'success': False, 'error': 'No keyword provided'}), 400
     
     keyword = data['keyword']
     
     if keyword not in CUSTOM_KEYWORDS:
-        return jsonify({'error': 'Keyword not found'}), 404
+        return jsonify({'success': False, 'error': 'Keyword not found'}), 404
     
     # Remove keyword and save
     CUSTOM_KEYWORDS.remove(keyword)
@@ -1412,84 +1546,304 @@ def remove_keyword():
 
 @app.route('/api/performance', methods=['GET'])
 def get_performance_info():
-    """Get system performance information"""
-    return jsonify({
-        'cpu_count': multiprocessing.cpu_count(),
-        'max_workers': transcriber.max_workers,
-        'chunk_duration': transcriber.chunk_duration,
-        'whisper_model': 'small'
-    })
+    """Get current performance settings and system information"""
+    memory_info = memory_manager.get_memory_info()
+    
+    # Get current transcriber settings
+    performance_data = {
+        'system_info': {
+            'cpu_count': multiprocessing.cpu_count(),
+            'memory_total_gb': memory_info['system_total_gb'],
+            'memory_available_gb': memory_info['system_available_gb'],
+            'memory_used_percent': memory_info['system_used_percent'],
+            'process_memory_mb': memory_info['process_rss_mb'],
+            'whisper_model': 'small',
+            'psutil_available': PSUTIL_AVAILABLE
+        },
+        'current_settings': {
+            'max_workers': transcriber.max_workers,
+            'chunk_duration': transcriber.chunk_duration,
+            'optimal_workers': memory_manager.get_optimal_workers(max_workers=transcriber.max_workers)
+        },
+        'file_manager_stats': file_manager.get_cleanup_stats(),
+        'active_sessions': len(progress_tracker.sessions),
+        'memory_pressure': memory_manager.check_memory_pressure(),
+        'recommendations': _get_performance_recommendations()
+    }
+    
+    return jsonify({'success': True, 'data': performance_data})
 
 @app.route('/api/performance', methods=['POST'])
 def update_performance_settings():
     """Update performance settings"""
     data = request.get_json()
-    errors = []
     
-    if 'chunk_duration' in data:
-        try:
-            duration = int(data['chunk_duration'])
-            if 60 <= duration <= 600:  # 1-10 minutes
-                transcriber.chunk_duration = duration
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+    
+    try:
+        # Update chunk duration if provided
+        if 'chunk_duration' in data:
+            chunk_duration = int(data['chunk_duration'])
+            if 60 <= chunk_duration <= 600:  # 1-10 minutes
+                transcriber.chunk_duration = chunk_duration
             else:
-                errors.append(f"chunk_duration must be between 60-600 seconds, got {duration}")
-        except (ValueError, TypeError):
-            errors.append("chunk_duration must be a valid integer")
-    
-    if 'max_workers' in data:
-        try:
-            workers = int(data['max_workers'])
-            max_cpu = multiprocessing.cpu_count()
-            if 1 <= workers <= max_cpu:
-                transcriber.max_workers = workers
+                return jsonify({'success': False, 'error': f'Chunk duration must be between 60 and 600 seconds (provided: {chunk_duration})'}), 400
+        
+        # Update max workers if provided
+        if 'max_workers' in data:
+            max_workers = int(data['max_workers'])
+            max_cpu_limit = min(multiprocessing.cpu_count(), 14)  # Allow up to CPU count or 14, whichever is lower
+            if 1 <= max_workers <= max_cpu_limit:
+                transcriber.max_workers = max_workers
             else:
-                errors.append(f"max_workers must be between 1-{max_cpu}, got {workers}")
-        except (ValueError, TypeError):
-            errors.append("max_workers must be a valid integer")
-    
-    if errors:
-        return jsonify({'success': False, 'errors': errors}), 400
-    
-    return jsonify({'success': True, 'message': 'Performance settings updated'})
+                return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit} (provided: {max_workers})'}), 400
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Performance settings updated',
+            'current_settings': {
+                'max_workers': transcriber.max_workers,
+                'chunk_duration': transcriber.chunk_duration
+            }
+        })
+        
+    except (ValueError, TypeError) as e:
+        return jsonify({'success': False, 'error': f'Invalid data format: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Failed to update settings: {str(e)}'}), 500
 
 @app.route('/api/memory', methods=['GET'])
 def get_memory_info():
-    """Get current memory usage information"""
-    try:
-        memory_info = memory_manager.get_memory_info()
-        
-        # Calculate optimal workers based on current memory
-        optimal_workers = memory_manager.get_optimal_workers(max_workers=transcriber.max_workers)
-        
-        # Check if system is under memory pressure
-        memory_pressure = memory_manager.check_memory_pressure()
-        
-        return jsonify({
-            'success': True,
-            'memory': {
+    """Get detailed memory information"""
+    memory_info = memory_manager.get_memory_info()
+    
+    # Add process-specific memory details if psutil is available
+    if PSUTIL_AVAILABLE:
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_details = {
                 'system': {
-                    'total_gb': round(memory_info['system_total_gb'], 2),
-                    'available_gb': round(memory_info['system_available_gb'], 2),
-                    'used_percent': round(memory_info['system_used_percent'], 1)
+                    'total_gb': memory_info['system_total_gb'],
+                    'available_gb': memory_info['system_available_gb'],
+                    'used_percent': memory_info['system_used_percent'],
+                    'free_gb': memory_info['system_available_gb']
                 },
                 'process': {
-                    'rss_mb': round(memory_info['process_rss_mb'], 1),
-                    'vms_mb': round(memory_info['process_vms_mb'], 1)
-                }
-            },
-            'performance': {
-                'optimal_workers': optimal_workers,
-                'current_workers': transcriber.max_workers,
-                'memory_pressure': memory_pressure,
-                'memory_pressure_threshold': memory_manager.max_memory_percent
-            },
-            'recommendations': {
-                'worker_adjustment': 'increase' if optimal_workers > transcriber.max_workers else 'decrease' if optimal_workers < transcriber.max_workers else 'optimal',
-                'memory_status': 'high' if memory_pressure else 'normal'
+                    'rss_mb': memory_info['process_rss_mb'],
+                    'vms_mb': memory_info['process_vms_mb'],
+                    'percent': process.memory_percent(),
+                    'num_threads': process.num_threads()
+                },
+                'recommendations': _get_memory_recommendations(memory_info)
             }
+        except Exception as e:
+            logger.warning(f"Error getting detailed memory info: {e}")
+            memory_details = {
+                'system': {
+                    'total_gb': memory_info['system_total_gb'],
+                    'available_gb': memory_info['system_available_gb'],
+                    'used_percent': memory_info['system_used_percent']
+                },
+                'process': {
+                    'rss_mb': memory_info['process_rss_mb'],
+                    'vms_mb': memory_info['process_vms_mb']
+                }
+            }
+    else:
+        memory_details = {
+            'system': {
+                'total_gb': memory_info['system_total_gb'],
+                'available_gb': memory_info['system_available_gb'],
+                'used_percent': memory_info['system_used_percent']
+            },
+            'process': {
+                'rss_mb': memory_info['process_rss_mb'],
+                'vms_mb': memory_info['process_vms_mb']
+            },
+            'note': 'Install psutil for detailed memory monitoring'
+        }
+    
+    return jsonify({'success': True, 'data': memory_details})
+
+def _get_performance_recommendations():
+    """Generate performance optimization recommendations"""
+    recommendations = []
+    memory_info = memory_manager.get_memory_info()
+    
+    # Memory-based recommendations
+    if memory_info['system_used_percent'] > 85:
+        recommendations.append({
+            'type': 'warning',
+            'category': 'memory',
+            'message': 'High memory usage detected. Consider reducing max workers or chunk duration.',
+            'action': 'Reduce max_workers or increase chunk_duration'
         })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    elif memory_info['system_used_percent'] < 50:
+        recommendations.append({
+            'type': 'info',
+            'category': 'memory',
+            'message': 'Memory usage is low. You can potentially increase workers for faster processing.',
+            'action': 'Consider increasing max_workers'
+        })
+    
+    # CPU-based recommendations
+    cpu_count = multiprocessing.cpu_count()
+    if transcriber.max_workers < cpu_count // 2:
+        recommendations.append({
+            'type': 'info',
+            'category': 'cpu',
+            'message': f'You have {cpu_count} CPU cores. Consider increasing workers for better parallelization.',
+            'action': f'Increase max_workers (current: {transcriber.max_workers}, suggested: {min(cpu_count, 4)})'
+        })
+    
+    # Chunk duration recommendations
+    if transcriber.chunk_duration > 420:  # 7 minutes
+        recommendations.append({
+            'type': 'info',
+            'category': 'chunking',
+            'message': 'Large chunk duration may reduce parallelization benefits.',
+            'action': 'Consider reducing chunk_duration to 300-420 seconds'
+        })
+    elif transcriber.chunk_duration < 180:  # 3 minutes
+        recommendations.append({
+            'type': 'info',
+            'category': 'chunking',
+            'message': 'Very small chunks may increase overhead.',
+            'action': 'Consider increasing chunk_duration to 180-300 seconds'
+        })
+    
+    # File cleanup recommendations
+    cleanup_stats = file_manager.get_cleanup_stats()
+    if cleanup_stats['total_size_mb'] > 500:  # 500MB
+        recommendations.append({
+            'type': 'warning',
+            'category': 'storage',
+            'message': f'High temporary file usage: {cleanup_stats["total_size_mb"]:.1f}MB',
+            'action': 'Temporary files will be cleaned automatically'
+        })
+    
+    return recommendations
+
+def _get_memory_recommendations(memory_info):
+    """Generate memory-specific recommendations"""
+    recommendations = []
+    
+    if memory_info['system_used_percent'] > 90:
+        recommendations.append({
+            'type': 'critical',
+            'category': 'memory',
+            'message': 'Critical: System memory usage is very high',
+            'action': 'Close other applications or reduce workers'
+        })
+    elif memory_info['system_used_percent'] > 75:
+        recommendations.append({
+            'type': 'warning',
+            'category': 'memory',
+            'message': 'Warning: Consider closing other applications',
+            'action': 'Close unnecessary applications'
+        })
+    elif memory_info['system_used_percent'] < 40:
+        recommendations.append({
+            'type': 'info',
+            'category': 'memory',
+            'message': 'Good: Plenty of memory available for processing',
+            'action': 'Consider increasing workers for faster processing'
+        })
+    
+    if memory_info['process_rss_mb'] > 2000:  # 2GB
+        recommendations.append({
+            'type': 'info',
+            'category': 'memory',
+            'message': 'Process using significant memory - normal during transcription',
+            'action': 'Monitor memory usage during processing'
+        })
+    
+    return recommendations
+
+# Add real-time performance monitoring API
+@app.route('/api/performance/live', methods=['GET'])
+def get_live_performance():
+    """Get real-time performance metrics"""
+    memory_info = memory_manager.get_memory_info()
+    
+    # Get active session information
+    active_sessions_info = []
+    with progress_tracker.lock:
+        for session_id, session_data in progress_tracker.sessions.items():
+            active_sessions_info.append({
+                'session_id': session_id,
+                'progress': session_data.get('progress', 0),
+                'stage': session_data.get('stage', 'unknown'),
+                'current_task': session_data.get('current_task', ''),
+                'chunks_completed': session_data.get('chunks_completed', 0),
+                'chunks_total': session_data.get('chunks_total', 0),
+                'elapsed_time': time.time() - session_data.get('start_time', time.time())
+            })
+    
+    live_data = {
+        'timestamp': time.time(),
+        'memory': {
+            'system_used_percent': memory_info['system_used_percent'],
+            'system_available_gb': memory_info['system_available_gb'],
+            'process_rss_mb': memory_info['process_rss_mb']
+        },
+        'active_sessions': active_sessions_info,
+        'temp_files': file_manager.get_cleanup_stats(),
+        'system_load': {
+            'cpu_count': multiprocessing.cpu_count(),
+            'optimal_workers': memory_manager.get_optimal_workers(),
+            'memory_pressure': memory_manager.check_memory_pressure()
+        }
+    }
+    
+    return jsonify({'success': True, 'data': live_data})
+
+# Add performance history tracking
+@app.route('/api/performance/history', methods=['GET'])
+def get_performance_history():
+    """Get performance history from recent sessions"""
+    sessions_data = []
+    results_dir = app.config['RESULTS_FOLDER']
+    
+    if os.path.exists(results_dir):
+        # Get last 10 sessions for performance analysis
+        session_folders = sorted(os.listdir(results_dir), reverse=True)[:10]
+        
+        for session_folder in session_folders:
+            session_path = os.path.join(results_dir, session_folder)
+            if os.path.isdir(session_path):
+                metadata_path = os.path.join(session_path, 'metadata.json')
+                
+                if os.path.exists(metadata_path):
+                    try:
+                        with open(metadata_path, 'r') as f:
+                            metadata = json.load(f)
+                            
+                        # Calculate performance metrics
+                        processing_time = metadata.get('processing_time', 0)
+                        total_words = metadata.get('total_words', 0)
+                        total_chunks = metadata.get('total_chunks', 0)
+                        
+                        performance_metrics = {
+                            'session_id': metadata.get('session_id', session_folder),
+                            'session_name': metadata.get('session_name', ''),
+                            'created_at': metadata.get('created_at', ''),
+                            'processing_time': processing_time,
+                            'total_words': total_words,
+                            'total_chunks': total_chunks,
+                            'words_per_minute': (total_words / (processing_time / 60)) if processing_time > 0 else 0,
+                            'chunks_per_minute': (total_chunks / (processing_time / 60)) if processing_time > 0 else 0,
+                            'status': metadata.get('status', 'unknown')
+                        }
+                        
+                        sessions_data.append(performance_metrics)
+                        
+                    except Exception as e:
+                        logger.warning(f"Error reading metadata for {session_folder}: {e}")
+    
+    return jsonify({'success': True, 'data': sessions_data})
 
 # WebSocket event handlers
 @socketio.on('connect')
@@ -1543,6 +1897,11 @@ def handle_get_progress(data):
     else:
         emit('error', {'message': 'Session ID required'})
 
+@app.route('/performance')
+def performance_monitor():
+    """Show performance monitoring dashboard"""
+    return render_template('performance.html')
+
 if __name__ == '__main__':
     # Ensure multiprocessing works on all platforms
     try:
@@ -1550,4 +1909,7 @@ if __name__ == '__main__':
     except RuntimeError:
         # Method already set, ignore
         pass
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)
+    
+    # Determine if the environment is development
+    is_development = os.getenv('FLASK_ENV', 'production') == 'development'
+    socketio.run(app, debug=is_development, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=is_development)

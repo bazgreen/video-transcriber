@@ -593,7 +593,8 @@
     <div class="container">
         <div style="text-align: right; margin-bottom: 20px;">
             <a href="/sessions" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; margin-right: 10px;">📚 Browse Previous Sessions</a>
-            <a href="/config" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">🔤 Keyword Config</a>
+            <a href="/config" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; margin-right: 10px;">🔤 Keyword Config</a>
+            <a href="/performance" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">🚀 Performance Monitor</a>
         </div>
         <h1>🎥 Video Transcriber</h1>
         <p class="subtitle">Transform your educational videos into searchable, analyzed transcripts</p>
@@ -1031,13 +1032,21 @@
                         // Remove the processed file from queue
                         this.removeFile(fileObj.id);
                         
+                        // Show enhanced success message
+                        this.showSuccess(`✅ ${fileObj.name} processed successfully! Found ${result.stats?.words || 0} words in ${result.stats?.chunks || 0} chunks.`);
+                        
                     } else {
-                        this.showError(`Failed to process ${fileObj.name}: ${result.error}`);
+                        // Handle enhanced error format
+                        if (result.type === 'user_friendly_error' || result.type === 'validation_error') {
+                            this.showError(result);
+                        } else {
+                            this.showError(`Failed to process ${fileObj.name}: ${result.error || 'Unknown error'}`);
+                        }
                         this.onProcessingError();
                     }
 
                 } catch (error) {
-                    this.showError(`Error processing ${fileObj.name}: ${error.message}`);
+                    this.showError(`Network error processing ${fileObj.name}: ${error.message}`);
                     this.onProcessingError();
                 }
             }
@@ -1050,10 +1059,57 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
 
-            showError(message) {
-                errorMessage.textContent = message;
+            showError(messageOrError) {
+                // Handle both string messages and user-friendly error objects
+                if (typeof messageOrError === 'string') {
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.2rem;">❌</span>
+                            <div>
+                                <strong>Error:</strong> ${messageOrError}
+                            </div>
+                        </div>
+                    `;
+                } else if (messageOrError && messageOrError.type === 'user_friendly_error') {
+                    // Enhanced user-friendly error display
+                    const error = messageOrError;
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.5rem;">${error.icon}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #dc3545; margin-bottom: 8px;">
+                                    ${error.message}
+                                </div>
+                                <div style="color: #6c757d; margin-bottom: 8px; font-size: 0.9rem;">
+                                    <strong>Solution:</strong> ${error.solution}
+                                </div>
+                                <div style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; color: #495057;">
+                                    <strong>💡 Action:</strong> ${error.action}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Fallback for other error formats
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.2rem;">⚠️</span>
+                            <div>
+                                <strong>Error:</strong> ${messageOrError.message || 'An unexpected error occurred'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 errorMessage.style.display = 'block';
                 successMessage.style.display = 'none';
+                
+                // Auto-hide after 10 seconds for non-critical errors
+                setTimeout(() => {
+                    if (errorMessage.style.display === 'block') {
+                        errorMessage.style.display = 'none';
+                    }
+                }, 10000);
             }
 
             showSuccess(message) {
