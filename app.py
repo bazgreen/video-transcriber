@@ -1068,71 +1068,8 @@ class VideoTranscriber:
                 f.write(f"[{cue['timestamp']}] {cue['text']}\n\n")
     
     def generate_html_transcript(self, results):
-        """Generate searchable HTML transcript"""
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Transcript - {results['session_id']}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
-                .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                .search-box {{ margin-bottom: 20px; }}
-                .search-box input {{ width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }}
-                .filters {{ margin-bottom: 20px; }}
-                .filter-btn {{ padding: 8px 16px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; }}
-                .filter-btn.active {{ background-color: #007bff; color: white; }}
-                .filter-btn:not(.active) {{ background-color: #e9ecef; color: #495057; }}
-                .segment {{ margin-bottom: 15px; padding: 10px; border-left: 3px solid #dee2e6; }}
-                .segment.highlight {{ border-left-color: #ffc107; background-color: #fff3cd; }}
-                .segment.question {{ border-left-color: #17a2b8; background-color: #d1ecf1; }}
-                .segment.emphasis {{ border-left-color: #dc3545; background-color: #f8d7da; }}
-                .timestamp {{ font-weight: bold; color: #6c757d; margin-right: 10px; }}
-                .keyword {{ background-color: #ffeb3b; padding: 2px 4px; border-radius: 2px; }}
-                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }}
-                .stat-card {{ background: #f8f9fa; padding: 15px; border-radius: 4px; text-align: center; }}
-                .hidden {{ display: none; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Video Transcript Analysis</h1>
-                <p><strong>Session:</strong> {results['session_id']}</p>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['keyword_matches'])}</h3>
-                        <p>Keywords Found</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['questions'])}</h3>
-                        <p>Questions Detected</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['emphasis_cues'])}</h3>
-                        <p>Emphasis Cues</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{results['analysis']['total_words']}</h3>
-                        <p>Total Words</p>
-                    </div>
-                </div>
-                
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search transcript...">
-                </div>
-                
-                <div class="filters">
-                    <button class="filter-btn active" onclick="filterSegments('all')">All</button>
-                    <button class="filter-btn" onclick="filterSegments('keywords')">Keywords</button>
-                    <button class="filter-btn" onclick="filterSegments('questions')">Questions</button>
-                    <button class="filter-btn" onclick="filterSegments('emphasis')">Emphasis</button>
-                </div>
-                
-                <div id="transcript">
-        """
-        
-        # Add all segments
+        """Generate searchable HTML transcript using template"""
+        # Prepare all segments with metadata
         all_segments = []
         for chunk in results['chunks']:
             all_segments.extend(chunk['segments'])
@@ -1144,73 +1081,44 @@ class VideoTranscriber:
         question_times = {q['start'] for q in results['analysis']['questions']}
         emphasis_times = {e['start'] for e in results['analysis']['emphasis_cues']}
         
+        # Process segments for template
+        processed_segments = []
         for segment in all_segments:
             classes = ['segment']
+            types = []
+            
             if segment['start'] in question_times:
                 classes.append('question')
+                types.append('question')
             if segment['start'] in emphasis_times:
                 classes.append('emphasis')
+                types.append('emphasis')
             
             # Highlight keywords
             text = segment['text']
+            has_keywords = False
             for keyword in CUSTOM_KEYWORDS:
                 pattern = re.compile(re.escape(keyword), re.IGNORECASE)
                 text = pattern.sub(f'<span class="keyword">{keyword}</span>', text)
                 if pattern.search(segment['text']):
-                    classes.append('highlight')
+                    has_keywords = True
             
-            html_content += f'''
-                    <div class="{' '.join(classes)}" data-type="{' '.join(classes[1:]) if len(classes) > 1 else 'normal'}">
-                        <span class="timestamp">{segment['timestamp_str']}</span>
-                        {text}
-                    </div>
-            '''
+            if has_keywords:
+                classes.append('highlight')
+                types.append('highlight')
+            
+            processed_segments.append({
+                'classes': classes,
+                'types': types,
+                'timestamp_str': segment['timestamp_str'],
+                'highlighted_text': text
+            })
         
-        html_content += """
-                </div>
-            </div>
-            
-            <script>
-                // Search functionality
-                document.getElementById('searchInput').addEventListener('input', function(e) {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const segments = document.querySelectorAll('.segment');
-                    
-                    segments.forEach(segment => {
-                        const text = segment.textContent.toLowerCase();
-                        if (text.includes(searchTerm) || searchTerm === '') {
-                            segment.style.display = 'block';
-                        } else {
-                            segment.style.display = 'none';
-                        }
-                    });
-                });
-                
-                // Filter functionality
-                let currentFilter = 'all';
-                
-                function filterSegments(type) {
-                    currentFilter = type;
-                    const segments = document.querySelectorAll('.segment');
-                    const buttons = document.querySelectorAll('.filter-btn');
-                    
-                    // Update button states
-                    buttons.forEach(btn => btn.classList.remove('active'));
-                    event.target.classList.add('active');
-                    
-                    segments.forEach(segment => {
-                        const segmentType = segment.getAttribute('data-type');
-                        if (type === 'all' || segmentType.includes(type)) {
-                            segment.style.display = 'block';
-                        } else {
-                            segment.style.display = 'none';
-                        }
-                    });
-                }
-            </script>
-        </body>
-        </html>
-        """
+        # Render template
+        html_content = render_template('transcript.html',
+                                     session_id=results['session_id'],
+                                     analysis=results['analysis'],
+                                     segments=processed_segments)
         
         # Save HTML file
         html_path = os.path.join(results['session_dir'], 'searchable_transcript.html')
