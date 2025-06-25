@@ -691,10 +691,9 @@ def upload_file():
         return jsonify({'error': 'No file selected'}), 400
     
     # Validate file extension
-    allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
     file_ext = os.path.splitext(file.filename)[1].lower()
-    if file_ext not in allowed_extensions:
-        return jsonify({"error": f"Invalid file type. Allowed types: {', '.join(allowed_extensions)}"}), 400
+    if file_ext not in ALLOWED_FILE_EXTENSIONS:
+        return jsonify({"error": f"Invalid file type. Allowed types: {', '.join(ALLOWED_FILE_EXTENSIONS)}"}), 400
     
     # Validate file size (500MB limit)
     file.seek(0, os.SEEK_END)
