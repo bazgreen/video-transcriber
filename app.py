@@ -652,6 +652,41 @@ def save_keywords(keywords: List[str]) -> None:
             os.remove(temp_file)
         raise e
 
+def parse_session_metadata(session_folder: str, session_path: str) -> Dict[str, str]:
+    """Parse session metadata from folder name for legacy sessions without metadata.json
+    
+    Args:
+        session_folder: The session folder name (e.g., 'MySession_20231225_143000')
+        session_path: Full path to the session folder
+        
+    Returns:
+        Dictionary containing session metadata with keys:
+        - session_id, session_name, original_filename, created_at, status
+    """
+    # Legacy session without metadata - try to extract session name from folder
+    session_name = ''
+    original_filename = 'Unknown'
+    
+    # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
+    parts = session_folder.split('_')
+    if len(parts) >= 3:
+        # Check if last two parts look like date and time
+        if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
+            len(parts[-1]) == 6 and parts[-1].isdigit()):
+            # Extract session name (everything except the last two parts)
+            session_name = '_'.join(parts[:-2])
+            # Guess original filename based on session name
+            if session_name:
+                original_filename = f"{session_name.split('_')[-1]}.mp4"
+    
+    return {
+        'session_id': session_folder,
+        'session_name': session_name,
+        'original_filename': original_filename,
+        'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
+        'status': 'completed'
+    }
+
 # Keywords for content analysis
 CUSTOM_KEYWORDS = load_keywords()
 
@@ -1375,29 +1410,9 @@ def list_sessions():
                             'status': 'unknown'
                         })
                 else:
-                    # Legacy session without metadata - try to extract session name from folder
-                    session_name = ''
-                    original_filename = 'Unknown'
-                    
-                    # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
-                    parts = session_folder.split('_')
-                    if len(parts) >= 3:
-                        # Check if last two parts look like date and time
-                        if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
-                            len(parts[-1]) == 6 and parts[-1].isdigit()):
-                            # Extract session name (everything except the last two parts)
-                            session_name = '_'.join(parts[:-2])
-                            # Guess original filename based on session name
-                            if session_name:
-                                original_filename = f"{session_name.split('_')[-1]}.mp4"
-                    
-                    sessions.append({
-                        'session_id': session_folder,
-                        'session_name': session_name,
-                        'original_filename': original_filename,
-                        'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
-                        'status': 'completed'
-                    })
+                    # Legacy session without metadata - parse using utility function
+                    metadata = parse_session_metadata(session_folder, session_path)
+                    sessions.append(metadata)
     
     return render_template('sessions.html', sessions=sessions)
 
@@ -1462,29 +1477,8 @@ def search_sessions():
                                 with open(metadata_path, 'r') as f:
                                     metadata = json.load(f)
                             else:
-                                # Legacy session without metadata - try to extract session name from folder
-                                session_name = ''
-                                original_filename = 'Unknown'
-                                
-                                # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
-                                parts = session_folder.split('_')
-                                if len(parts) >= 3:
-                                    # Check if last two parts look like date and time
-                                    if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
-                                        len(parts[-1]) == 6 and parts[-1].isdigit()):
-                                        # Extract session name (everything except the last two parts)
-                                        session_name = '_'.join(parts[:-2])
-                                        # Guess original filename based on session name
-                                        if session_name:
-                                            original_filename = f"{session_name.split('_')[-1]}.mp4"
-                                
-                                metadata = {
-                                    'session_id': session_folder,
-                                    'session_name': session_name,
-                                    'original_filename': original_filename,
-                                    'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
-                                    'status': 'completed'
-                                }
+                                # Legacy session without metadata - parse using utility function
+                                metadata = parse_session_metadata(session_folder, session_path)
                             sessions.append(metadata)
                     except IOError:
                         pass
