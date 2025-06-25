@@ -15,6 +15,15 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 import multiprocessing
 import functools
 import logging
+import threading
+import time
+
+# Optional memory monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
@@ -24,6 +33,10 @@ app.config['RESULTS_FOLDER'] = 'results'
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Check for optional dependencies
+if not PSUTIL_AVAILABLE:
+    logger.warning("psutil not available - memory monitoring will use conservative estimates")
 
 # Security constants
 ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
@@ -41,26 +54,209 @@ def is_safe_path(file_path, base_dir):
     except (OSError, ValueError):
         return False
 
+class MemoryManager:
+    """Memory monitoring and management for efficient processing"""
+    
+    def __init__(self, max_memory_percent=75):
+        self.max_memory_percent = max_memory_percent
+        self.available = PSUTIL_AVAILABLE
+        if self.available:
+            self.process = psutil.Process()
+        self.lock = threading.Lock()
+        
+    def get_memory_info(self):
+        """Get current memory usage information"""
+        if not self.available:
+            # Fallback when psutil is not available
+            return {
+                'system_total_gb': 8.0,  # Conservative estimate
+                'system_available_gb': 4.0,  # Conservative estimate
+                'system_used_percent': 50.0,  # Conservative estimate
+                'process_rss_mb': 100.0,  # Conservative estimate
+                'process_vms_mb': 200.0   # Conservative estimate
+            }
+            
+        # System memory
+        system_memory = psutil.virtual_memory()
+        
+        # Process memory
+        process_memory = self.process.memory_info()
+        
+        return {
+            'system_total_gb': system_memory.total / (1024**3),
+            'system_available_gb': system_memory.available / (1024**3),
+            'system_used_percent': system_memory.percent,
+            'process_rss_mb': process_memory.rss / (1024**2),
+            'process_vms_mb': process_memory.vms / (1024**2)
+        }
+    
+    def get_optimal_workers(self, min_workers=1, max_workers=None):
+        """Calculate optimal number of workers based on available memory"""
+        if max_workers is None:
+            max_workers = min(multiprocessing.cpu_count(), 4)
+            
+        memory_info = self.get_memory_info()
+        
+        # Estimate memory per worker (Whisper model + processing overhead)
+        # Conservative estimate: 600MB per worker (500MB model + 100MB overhead)
+        memory_per_worker_gb = 0.6
+        
+        # Available memory for workers (reserve 2GB for system + main process)
+        available_for_workers_gb = memory_info['system_available_gb'] - 2.0
+        
+        # Calculate max workers based on memory
+        memory_based_workers = max(1, int(available_for_workers_gb / memory_per_worker_gb))
+        
+        # Take minimum of CPU-based and memory-based limits
+        optimal_workers = min(max_workers, memory_based_workers, multiprocessing.cpu_count())
+        optimal_workers = max(min_workers, optimal_workers)
+        
+        logger.info(f"Memory analysis: {memory_info['system_available_gb']:.1f}GB available, "
+                   f"optimal workers: {optimal_workers} (max: {max_workers})")
+        
+        return optimal_workers
+    
+    def check_memory_pressure(self):
+        """Check if system is under memory pressure"""
+        memory_info = self.get_memory_info()
+        return memory_info['system_used_percent'] > self.max_memory_percent
+
+# Global memory manager
+memory_manager = MemoryManager()
+
+class ProgressiveFileManager:
+    """Progressive cleanup manager for temporary files during processing"""
+    
+    def __init__(self, max_temp_files=20):
+        self.max_temp_files = max_temp_files
+        self.temp_files = []
+        self.lock = threading.Lock()
+        
+    def add_temp_file(self, file_path, file_type='audio'):
+        """Add temporary file to cleanup queue with progressive management"""
+        with self.lock:
+            timestamp = time.time()
+            self.temp_files.append({
+                'path': file_path,
+                'type': file_type,
+                'timestamp': timestamp,
+                'size': self.get_file_size(file_path)
+            })
+            
+            # Progressive cleanup: remove oldest files if we exceed limit
+            if len(self.temp_files) > self.max_temp_files:
+                self._cleanup_oldest_files(keep_recent=self.max_temp_files)
+    
+    def get_file_size(self, file_path):
+        """Get file size safely"""
+        try:
+            return os.path.getsize(file_path) if os.path.exists(file_path) else 0
+        except OSError:
+            return 0
+    
+    def _cleanup_oldest_files(self, keep_recent=10):
+        """Clean up oldest temporary files"""
+        if len(self.temp_files) <= keep_recent:
+            return
+            
+        # Sort by timestamp (oldest first)
+        self.temp_files.sort(key=lambda x: x['timestamp'])
+        
+        files_to_remove = self.temp_files[:-keep_recent]
+        self.temp_files = self.temp_files[-keep_recent:]
+        
+        # Remove old files
+        for file_info in files_to_remove:
+            self._safe_remove_file(file_info['path'])
+    
+    def _safe_remove_file(self, file_path):
+        """Safely remove a file with logging"""
+        try:
+            if os.path.exists(file_path):
+                file_size = self.get_file_size(file_path)
+                os.remove(file_path)
+                logger.debug(f"Cleaned up temp file: {os.path.basename(file_path)} "
+                           f"({file_size / (1024*1024):.1f}MB)")
+        except OSError as e:
+            logger.warning(f"Failed to remove temp file {file_path}: {e}")
+    
+    def cleanup_all(self):
+        """Clean up all tracked temporary files"""
+        with self.lock:
+            total_size = 0
+            for file_info in self.temp_files:
+                total_size += file_info['size']
+                self._safe_remove_file(file_info['path'])
+            
+            if self.temp_files:
+                logger.info(f"Cleaned up {len(self.temp_files)} temp files "
+                           f"({total_size / (1024*1024):.1f}MB total)")
+            
+            self.temp_files.clear()
+    
+    def get_cleanup_stats(self):
+        """Get statistics about temporary files"""
+        with self.lock:
+            total_size = sum(f['size'] for f in self.temp_files)
+            return {
+                'count': len(self.temp_files),
+                'total_size_mb': total_size / (1024*1024),
+                'types': {t: len([f for f in self.temp_files if f['type'] == t]) 
+                         for t in set(f['type'] for f in self.temp_files)}
+            }
+
+# Global progressive file manager
+file_manager = ProgressiveFileManager()
+
 # Ensure upload and results directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 
-# Global variable to store model for worker processes
-_model_cache = None
+class ModelManager:
+    """Memory-efficient Whisper model management"""
+    
+    def __init__(self):
+        self._model = None
+        self._model_lock = threading.Lock()
+        self._load_count = 0
+        
+    def get_model(self):
+        """Get Whisper model with lazy loading and memory monitoring"""
+        if self._model is None:
+            with self._model_lock:
+                if self._model is None:  # Double-check locking
+                    logger.info("Loading Whisper model (small)...")
+                    memory_before = memory_manager.get_memory_info()
+                    
+                    self._model = whisper.load_model("small")
+                    self._load_count += 1
+                    
+                    memory_after = memory_manager.get_memory_info()
+                    memory_used = memory_after['process_rss_mb'] - memory_before['process_rss_mb']
+                    
+                    logger.info(f"Whisper model loaded. Memory used: {memory_used:.1f}MB "
+                               f"(Total process memory: {memory_after['process_rss_mb']:.1f}MB)")
+        
+        return self._model
+    
+    def clear_model(self):
+        """Clear model from memory if needed"""
+        with self._model_lock:
+            if self._model is not None:
+                logger.info("Clearing Whisper model from memory")
+                del self._model
+                self._model = None
+
+# Global model manager
+model_manager = ModelManager()
 
 def init_worker():
-    """Initialize worker process with Whisper model - called once per worker"""
-    global _model_cache
-    _model_cache = whisper.load_model("small")
-    logger.info("Whisper model loaded in worker process")
+    """Initialize worker process - now more memory efficient"""
+    logger.info("Worker process initialized (model will be loaded on demand)")
 
 def get_model():
-    """Get the pre-loaded Whisper model for parallel processing"""
-    global _model_cache
-    if _model_cache is None:
-        # Fallback if not initialized via worker initializer
-        _model_cache = whisper.load_model("small")
-    return _model_cache
+    """Get the Whisper model with efficient memory management"""
+    return model_manager.get_model()
 
 def process_chunk_parallel(chunk_info):
     """Process a single chunk in parallel - for use with ProcessPoolExecutor"""
@@ -95,11 +291,8 @@ def process_chunk_parallel(chunk_info):
             }
             timestamped_segments.append(adjusted_segment)
         
-        # Clean up audio file
-        try:
-            os.remove(audio_path)
-        except:
-            pass
+        # Register audio file for progressive cleanup
+        file_manager.add_temp_file(audio_path, 'audio')
             
         return {
             'filename': filename,
@@ -182,12 +375,15 @@ QUESTION_PATTERNS = [
 class VideoTranscriber:
     def __init__(self):
         self.model = None
-        # Performance tuning: Limit max workers based on system capabilities
-        # Each Whisper process can use ~2GB RAM, so limit accordingly
-        cpu_count = multiprocessing.cpu_count()
-        # Estimate based on typical 8GB+ systems
-        self.max_workers = min(cpu_count, 4) if cpu_count >= 4 else max(1, cpu_count // 2)
+        # Memory-aware performance tuning
+        self.max_workers = memory_manager.get_optimal_workers()
         self.chunk_duration = 300  # 5 minutes default, can be adjusted for performance
+        
+        # Log memory and worker configuration
+        memory_info = memory_manager.get_memory_info()
+        logger.info(f"VideoTranscriber initialized with {self.max_workers} max workers. "
+                   f"System memory: {memory_info['system_total_gb']:.1f}GB total, "
+                   f"{memory_info['system_available_gb']:.1f}GB available")
         
     def load_model(self):
         if self.model is None:
@@ -283,6 +479,8 @@ class VideoTranscriber:
                 .overwrite_output()
                 .run(quiet=True)
             )
+            # Register chunk for progressive cleanup
+            file_manager.add_temp_file(chunk_path, 'video')
         except Exception as e:
             raise Exception(f"Failed to split chunk {chunk_name}: {str(e)}")
     
@@ -428,22 +626,41 @@ class VideoTranscriber:
                 chunk['filename']
             ))
         
-        # Use ProcessPoolExecutor for CPU-intensive transcription work
+        # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
         completed_chunks = []
-        num_workers = min(self.max_workers, len(chunks))
-        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers...")
+        
+        # Dynamic memory-aware worker calculation
+        memory_info = memory_manager.get_memory_info()
+        optimal_workers = memory_manager.get_optimal_workers(max_workers=self.max_workers)
+        num_workers = min(optimal_workers, len(chunks))
+        
+        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers "
+                   f"(Memory: {memory_info['system_used_percent']:.1f}% used, "
+                   f"{memory_info['system_available_gb']:.1f}GB available)")
         
         with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
             # Submit all chunk processing tasks
             futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
             
-            # Collect results as they complete
+            # Collect results as they complete with memory monitoring
             for i, future in enumerate(as_completed(futures)):
                 try:
                     result = future.result()
                     if result['success']:
                         completed_chunks.append(result)
-                        logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
+                        
+                        # Periodic memory monitoring (every 25% of chunks)
+                        if (i + 1) % max(1, len(chunks) // 4) == 0:
+                            current_memory = memory_manager.get_memory_info()
+                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
+                                       f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
+                                       f"{current_memory['system_used_percent']:.1f}% system)")
+                            
+                            # Check for memory pressure
+                            if memory_manager.check_memory_pressure():
+                                logger.warning(f"High memory usage detected: {current_memory['system_used_percent']:.1f}%")
+                        else:
+                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
                     else:
                         logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
                 except Exception as e:
@@ -484,23 +701,13 @@ class VideoTranscriber:
         results['html_file'] = self.generate_html_transcript(results)
         results['metadata'] = metadata
         
-        # Clean up temporary video chunks to save disk space
-        self.cleanup_temp_files(session_dir)
+        # Clean up all temporary files using progressive file manager
+        cleanup_stats = file_manager.get_cleanup_stats()
+        logger.info(f"Final cleanup: {cleanup_stats['count']} temp files, "
+                   f"{cleanup_stats['total_size_mb']:.1f}MB")
+        file_manager.cleanup_all()
         
         return results
-    
-    def cleanup_temp_files(self, session_dir):
-        """Clean up temporary video chunk files to save disk space"""
-        try:
-            # Remove all .mp4 chunks (keep only final outputs)
-            for file in glob.glob(os.path.join(session_dir, "*.mp4")):
-                if "_part_" in file and os.path.exists(file):  # Only remove chunk files that exist
-                    try:
-                        os.remove(file)
-                    except OSError as e:
-                        logger.warning(f"Could not remove file {file}: {e}")
-        except Exception as e:
-            logger.warning(f"Could not clean up temporary files: {e}")
     
     def save_results(self, results):
         """Save transcription results to files"""
@@ -1071,6 +1278,45 @@ def update_performance_settings():
         return jsonify({'success': False, 'errors': errors}), 400
     
     return jsonify({'success': True, 'message': 'Performance settings updated'})
+
+@app.route('/api/memory', methods=['GET'])
+def get_memory_info():
+    """Get current memory usage information"""
+    try:
+        memory_info = memory_manager.get_memory_info()
+        
+        # Calculate optimal workers based on current memory
+        optimal_workers = memory_manager.get_optimal_workers(max_workers=transcriber.max_workers)
+        
+        # Check if system is under memory pressure
+        memory_pressure = memory_manager.check_memory_pressure()
+        
+        return jsonify({
+            'success': True,
+            'memory': {
+                'system': {
+                    'total_gb': round(memory_info['system_total_gb'], 2),
+                    'available_gb': round(memory_info['system_available_gb'], 2),
+                    'used_percent': round(memory_info['system_used_percent'], 1)
+                },
+                'process': {
+                    'rss_mb': round(memory_info['process_rss_mb'], 1),
+                    'vms_mb': round(memory_info['process_vms_mb'], 1)
+                }
+            },
+            'performance': {
+                'optimal_workers': optimal_workers,
+                'current_workers': transcriber.max_workers,
+                'memory_pressure': memory_pressure,
+                'memory_pressure_threshold': memory_manager.max_memory_percent
+            },
+            'recommendations': {
+                'worker_adjustment': 'increase' if optimal_workers > transcriber.max_workers else 'decrease' if optimal_workers < transcriber.max_workers else 'optimal',
+                'memory_status': 'high' if memory_pressure else 'normal'
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Ensure multiprocessing works on all platforms
