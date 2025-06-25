@@ -1,3 +1,3 @@
 #!/bin/bash
 # Simple launcher for macOS/Linux
-python3 setup_and_run.py
+python3 scripts/setup/setup_and_run.py

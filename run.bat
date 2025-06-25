@@ -1,4 +1,4 @@
 @echo off
 REM Simple launcher for Windows
-python setup_and_run.py
+python scripts\setup\setup_and_run.py
 pause

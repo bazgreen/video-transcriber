@@ -41,15 +41,22 @@ source venv311/bin/activate
 #### Web Interface (Recommended)
 
 ```bash
-# Start the web application
-./venv311/bin/python app.py
+# Start the web application (modular version)
+./venv311/bin/python main.py
+
+# Or use the setup script (auto-detects version)
+./run.sh  # macOS/Linux
+run.bat   # Windows
 
 # Access at http://localhost:5001
 ```
 
-#### Command Line Interface
+#### Alternative Options
 
 ```bash
+# Run original monolithic version
+./venv311/bin/python app.py
+
 # Run the original CLI transcription script
 ./venv311/bin/python scripts/transcribe.py
 ```
