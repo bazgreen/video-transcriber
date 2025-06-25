@@ -22,6 +22,8 @@ class AppConfig:
     ALLOWED_FILE_EXTENSIONS: Set[str] = {
         '.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'
     }
+    MEMORY_PRESSURE_THRESHOLD: int = 90  # Percentage threshold for memory pressure
+    MAX_SESSION_NAME_LENGTH: int = 50  # Maximum allowed session name length
     
     # Directory Configuration
     UPLOAD_FOLDER: str = 'data/uploads'
