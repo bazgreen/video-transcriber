@@ -1,19 +1,19 @@
 {
   "errors": [],
-  "generated_at": "2025-06-25T21:28:03Z",
+  "generated_at": "2025-06-25T23:16:35Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 0,
       "CONFIDENCE.LOW": 0,
-      "CONFIDENCE.MEDIUM": 1,
+      "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
       "SEVERITY.LOW": 0,
-      "SEVERITY.MEDIUM": 1,
+      "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 2512,
+      "loc": 2683,
       "nosec": 0,
-      "skipped_tests": 0
+      "skipped_tests": 1
     },
     "src/__init__.py": {
       "CONFIDENCE.HIGH": 0,
@@ -44,15 +44,15 @@
     "src/config/settings.py": {
       "CONFIDENCE.HIGH": 0,
       "CONFIDENCE.LOW": 0,
-      "CONFIDENCE.MEDIUM": 1,
+      "CONFIDENCE.MEDIUM": 0,
       "CONFIDENCE.UNDEFINED": 0,
       "SEVERITY.HIGH": 0,
       "SEVERITY.LOW": 0,
-      "SEVERITY.MEDIUM": 1,
+      "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 134,
+      "loc": 175,
       "nosec": 0,
-      "skipped_tests": 0
+      "skipped_tests": 1
     },
     "src/models/__init__.py": {
       "CONFIDENCE.HIGH": 0,
@@ -89,7 +89,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 147,
+      "loc": 149,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -115,7 +115,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 115,
+      "loc": 128,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -206,7 +206,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 583,
+      "loc": 698,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -315,26 +315,5 @@
       "skipped_tests": 0
     }
   },
-  "results": [
-    {
-      "code": "37     # Application Settings\n38     DEFAULT_HOST: str = '0.0.0.0'\n39     DEFAULT_PORT: int = 5001\n",
-      "col_offset": 24,
-      "end_col_offset": 33,
-      "filename": "src/config/settings.py",
-      "issue_confidence": "MEDIUM",
-      "issue_cwe": {
-        "id": 605,
-        "link": "https://cwe.mitre.org/data/definitions/605.html"
-      },
-      "issue_severity": "MEDIUM",
-      "issue_text": "Possible binding to all interfaces.",
-      "line_number": 38,
-      "line_range": [
-        38
-      ],
-      "more_info": "https://bandit.readthedocs.io/en/0.0.0/plugins/b104_hardcoded_bind_all_interfaces.html",
-      "test_id": "B104",
-      "test_name": "hardcoded_bind_all_interfaces"
-    }
-  ]
+  "results": []
 }

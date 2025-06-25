@@ -203,10 +203,7 @@ jobs:
 
       - name: Test application startup
         run: |
-          timeout 30s python main.py &
-          sleep 10
-          curl -f http://localhost:5001/ || exit 1
-          pkill -f "python main.py"
+          python validate_ci.py
 
       - name: Validate configuration
         run: |

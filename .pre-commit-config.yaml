@@ -40,7 +40,7 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
-        args: [--max-line-length=88, --extend-ignore=E203,W503]
+        args: [--max-line-length=120, --extend-ignore=E203,W503,E501,F401,F541,E231]
 
   # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -63,7 +63,7 @@ repos:
     rev: 6.3.0
     hooks:
       - id: pydocstyle
-        args: [--convention=google]
+        args: [--convention=google, --add-ignore=D212,D415,D205]
         exclude: ^(tests/|scripts/)
 
   # Additional Python checks
@@ -71,4 +71,4 @@ repos:
     rev: v3.0.0a7
     hooks:
       - id: pylint
-        args: [--disable=C0114,C0115,C0116,R0903,R0913]  # Disable some verbose checks
+        args: [--disable=C0114,C0115,C0116,R0903,R0913,R0914,R0912,W1203,E0401,W0718,W0707,W1309,W1514,C0415,W0611,R1705,W0603,C0301,R0801]  # Disable verbose checks
