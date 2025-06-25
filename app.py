@@ -1531,41 +1531,6 @@ def get_memory_info():
         }
     
     return jsonify({'success': True, 'data': memory_details})
-    try:
-        memory_info = memory_manager.get_memory_info()
-        
-        # Calculate optimal workers based on current memory
-        optimal_workers = memory_manager.get_optimal_workers(max_workers=transcriber.max_workers)
-        
-        # Check if system is under memory pressure
-        memory_pressure = memory_manager.check_memory_pressure()
-        
-        return jsonify({
-            'success': True,
-            'memory': {
-                'system': {
-                    'total_gb': round(memory_info['system_total_gb'], 2),
-                    'available_gb': round(memory_info['system_available_gb'], 2),
-                    'used_percent': round(memory_info['system_used_percent'], 1)
-                },
-                'process': {
-                    'rss_mb': round(memory_info['process_rss_mb'], 1),
-                    'vms_mb': round(memory_info['process_vms_mb'], 1)
-                }
-            },
-            'performance': {
-                'optimal_workers': optimal_workers,
-                'current_workers': transcriber.max_workers,
-                'memory_pressure': memory_pressure,
-                'memory_pressure_threshold': memory_manager.max_memory_percent
-            },
-            'recommendations': {
-                'worker_adjustment': 'increase' if optimal_workers > transcriber.max_workers else 'decrease' if optimal_workers < transcriber.max_workers else 'optimal',
-                'memory_status': 'high' if memory_pressure else 'normal'
-            }
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 def _get_performance_recommendations():
     """Generate performance optimization recommendations"""

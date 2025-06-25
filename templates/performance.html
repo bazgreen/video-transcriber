@@ -457,7 +457,7 @@
                     <small style="color: #718096;">Video chunk size for processing</small>
                 </div>
                 <div class="setting-group">
-                    <button class="btn" onclick="updateSettings()">Update Settings</button>
+                    <button class="btn" onclick="sendSettingsUpdate()">Update Settings</button>
                 </div>
             </div>
         </div>
@@ -497,7 +497,7 @@
                 if (result.success) {
                     performanceData = result.data;
                     updateDashboard(performanceData);
-                    updateSettings(performanceData.current_settings);
+                    populateSettings(performanceData.current_settings);
                     updateRecommendations(performanceData.recommendations);
                 }
             } catch (error) {
@@ -574,7 +574,7 @@
             document.getElementById('optimalWorkers').textContent = data.system_load.optimal_workers;
         }
 
-        function updateSettings(settings) {
+        function populateSettings(settings) {
             document.getElementById('maxWorkers').value = settings.max_workers;
             document.getElementById('chunkDurationSetting').value = settings.chunk_duration;
         }
@@ -583,21 +583,43 @@
             const container = document.getElementById('recommendationsList');
             
             if (!recommendations || recommendations.length === 0) {
-                container.innerHTML = '<p style="color: #a0aec0; text-align: center; padding: 20px;">All systems optimal! 🎉</p>';
+                container.textContent = '';
+                const emptyMessage = document.createElement('p');
+                emptyMessage.style.cssText = 'color: #a0aec0; text-align: center; padding: 20px;';
+                emptyMessage.textContent = 'All systems optimal! 🎉';
+                container.appendChild(emptyMessage);
                 return;
             }
 
-            container.innerHTML = recommendations.map(rec => `
-                <div class="recommendation ${rec.type}">
-                    <div class="recommendation-icon">
-                        ${rec.type === 'warning' ? '⚠️' : rec.type === 'error' ? '❌' : 'ℹ️'}
-                    </div>
-                    <div class="recommendation-content">
-                        <h4>${rec.category.toUpperCase()}: ${rec.message}</h4>
-                        <p><strong>Action:</strong> ${rec.action}</p>
-                    </div>
-                </div>
-            `).join('');
+            container.textContent = ''; // Clear existing content
+            recommendations.forEach(rec => {
+                const recommendationDiv = document.createElement('div');
+                recommendationDiv.className = `recommendation ${rec.type}`;
+                
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'recommendation-icon';
+                iconDiv.textContent = rec.type === 'warning' ? '⚠️' : rec.type === 'error' ? '❌' : 'ℹ️';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'recommendation-content';
+                
+                const heading = document.createElement('h4');
+                heading.textContent = `${rec.category.toUpperCase()}: ${rec.message}`;
+                
+                const actionParagraph = document.createElement('p');
+                const actionStrong = document.createElement('strong');
+                actionStrong.textContent = 'Action: ';
+                actionParagraph.appendChild(actionStrong);
+                actionParagraph.appendChild(document.createTextNode(rec.action));
+                
+                contentDiv.appendChild(heading);
+                contentDiv.appendChild(actionParagraph);
+                
+                recommendationDiv.appendChild(iconDiv);
+                recommendationDiv.appendChild(contentDiv);
+                
+                container.appendChild(recommendationDiv);
+            });
         }
 
         function updateActiveSessions(sessions) {
@@ -632,7 +654,7 @@
             `).join('');
         }
 
-        async function updateSettings() {
+        async function sendSettingsUpdate() {
             const maxWorkers = parseInt(document.getElementById('maxWorkers').value);
             const chunkDuration = parseInt(document.getElementById('chunkDurationSetting').value);
 
