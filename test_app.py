@@ -118,7 +118,6 @@ class TestFileValidation(unittest.TestCase):
             ('Session_with_underscores', 'Session_with_underscores'),
             ('Session123', 'Session123'),
             ('Session!@#$%', 'Session_____'),
-            ('', None),  # Empty should trigger auto-generation
         ]
         
         for input_name, expected_pattern in test_cases:
@@ -131,7 +130,18 @@ class TestFileValidation(unittest.TestCase):
             # but we can verify the request doesn't fail due to session name
             if response.status_code == 400:
                 response_data = json.loads(response.data)
-                self.assertNotIn('session', response_data['error'].lower())
+                self.assertNotIn('session name', response_data['error'].lower())
+    
+    def test_empty_session_name_rejected(self):
+        """Test that empty session names are rejected"""
+        data = {
+            'video': (BytesIO(b'fake content'), 'test.mp4'),
+            'session_name': ''
+        }
+        response = self.client.post('/upload', data=data)
+        self.assertEqual(response.status_code, 400)
+        response_data = json.loads(response.data)
+        self.assertEqual(response_data['error'], 'Session name is required and cannot be empty')
 
 
 class TestErrorResponses(unittest.TestCase):
