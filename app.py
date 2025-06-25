@@ -727,10 +727,17 @@ class VideoTranscriber:
         }
         
         try:
+            # Initialize progress tracking
+            progress_tracker.start_session(session_id)
+            progress_tracker.update_progress(session_id, 
+                                           current_task="Analyzing video file...", 
+                                           progress=5,
+                                           stage='analysis')
+            
             # Split video into chunks
             chunks = self.split_video(video_path, session_dir)
             
-            # Initialize progress tracking with complete details
+            # Update progress after video splitting
             progress_tracker.start_session(session_id, 
                                          total_chunks=len(chunks),
                                          video_duration=self.get_video_duration(video_path))
@@ -1543,7 +1550,4 @@ if __name__ == '__main__':
     except RuntimeError:
         # Method already set, ignore
         pass
-    
-    # Determine if the environment is development
-    is_development = os.getenv('FLASK_ENV', 'production') == 'development'
-    socketio.run(app, debug=is_development, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=is_development)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)
