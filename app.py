@@ -728,7 +728,7 @@ class VideoTranscriber:
         
     def load_model(self) -> Any:
         if self.model is None:
-            self.model = whisper.load_model("small")
+            self.model = whisper.load_model(video_config.WHISPER_MODEL)
         return self.model
     
     def split_video(self, input_path: str, output_dir: str, chunk_duration: Optional[int] = None) -> List[Dict[str, Union[str, int, float]]]:
