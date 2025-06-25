@@ -3,10 +3,16 @@ import ffmpeg
 import os
 import re
 
-# Constants
-CONTEXT_WINDOW_CHARS = 50
-AUDIO_SAMPLE_RATE = 16000
-AUDIO_CHANNELS = 1
+# Configuration
+class ScriptConfig:
+    """Configuration for the standalone transcription script"""
+    CONTEXT_WINDOW_CHARS = 50
+    AUDIO_SAMPLE_RATE = 16000
+    AUDIO_CHANNELS = 1
+    AUDIO_CODEC = 'pcm_s16le'
+    WHISPER_MODEL = 'small'
+
+config = ScriptConfig()
 
 def prompt_path():
     print("🔍 Enter the relative path to the folder with your video chunks:")
@@ -20,7 +26,7 @@ def extract_audio_ffmpeg(video_path, audio_path):
     (
         ffmpeg
         .input(video_path)
-        .output(audio_path, acodec='pcm_s16le', ac=AUDIO_CHANNELS, ar=str(AUDIO_SAMPLE_RATE))
+        .output(audio_path, acodec=config.AUDIO_CODEC, ac=config.AUDIO_CHANNELS, ar=str(config.AUDIO_SAMPLE_RATE))
         .overwrite_output()
         .run(quiet=True)
     )
@@ -32,7 +38,7 @@ def transcribe_directory(video_dir):
         "assessment", "grading", "criteria", "format", "feedback"
     ]
 
-    model = whisper.load_model("small")
+    model = whisper.load_model(config.WHISPER_MODEL)
     output_dir = os.path.join(video_dir, "transcripts")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -57,7 +63,7 @@ def transcribe_directory(video_dir):
 
             highlights = []
             for kw in keywords:
-                pattern = re.compile(f".{{0,{CONTEXT_WINDOW_CHARS}}}" + re.escape(kw) + f".{{0,{CONTEXT_WINDOW_CHARS}}}", re.IGNORECASE)
+                pattern = re.compile(f".{{0,{config.CONTEXT_WINDOW_CHARS}}}" + re.escape(kw) + f".{{0,{config.CONTEXT_WINDOW_CHARS}}}", re.IGNORECASE)
                 matches = pattern.findall(transcript)
                 if matches:
                     highlights.append(f"\n🔹 Keyword: **{kw}**")

@@ -26,54 +26,116 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-# === CONFIGURATION CONSTANTS ===
+# === CONFIGURATION CLASSES ===
 
-# File Upload Configuration
-MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500MB max file size
-ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
+class AppConfig:
+    """Centralized application configuration"""
+    
+    # File Upload Configuration
+    MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500MB max file size
+    ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
+    
+    # Directories
+    UPLOAD_FOLDER = 'uploads'
+    RESULTS_FOLDER = 'results'
+    TEMPLATES_FOLDER = 'templates'
+    
+    # Security
+    SECRET_KEY = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')
 
-# Memory Management Constants
-DEFAULT_MEMORY_PERCENT_LIMIT = 75
-CONSERVATIVE_SYSTEM_TOTAL_GB = 8.0
-CONSERVATIVE_SYSTEM_AVAILABLE_GB = 4.0
-CONSERVATIVE_SYSTEM_USED_PERCENT = 50.0
-CONSERVATIVE_PROCESS_RSS_MB = 100.0
-CONSERVATIVE_PROCESS_VMS_MB = 200.0
-MEMORY_PER_WORKER_GB = 0.6
-SYSTEM_MEMORY_RESERVE_GB = 2.0
+class MemoryConfig:
+    """Memory management configuration"""
+    
+    # Memory Limits
+    DEFAULT_MEMORY_PERCENT_LIMIT = 75
+    MEMORY_PER_WORKER_GB = 0.6
+    SYSTEM_MEMORY_RESERVE_GB = 2.0
+    
+    # Conservative Fallback Values (when psutil unavailable)
+    CONSERVATIVE_SYSTEM_TOTAL_GB = 8.0
+    CONSERVATIVE_SYSTEM_AVAILABLE_GB = 4.0
+    CONSERVATIVE_SYSTEM_USED_PERCENT = 50.0
+    CONSERVATIVE_PROCESS_RSS_MB = 100.0
+    CONSERVATIVE_PROCESS_VMS_MB = 200.0
 
-# Video Processing Constants
-DEFAULT_CHUNK_DURATION_SECONDS = 300  # 5 minutes
-MIN_CHUNK_DURATION_SECONDS = 60      # 1 minute
-MAX_CHUNK_DURATION_SECONDS = 600     # 10 minutes
-SHORT_VIDEO_CHUNK_LIMIT = 180        # 3 minutes for short videos
-LONG_VIDEO_CHUNK_LIMIT = 420         # 7 minutes for long videos
-SHORT_VIDEO_THRESHOLD = 600          # 10 minutes - threshold for short video
-LONG_VIDEO_THRESHOLD = 3600          # 60 minutes - threshold for long video
-DEFAULT_OVERLAP_SECONDS = 0
-AUDIO_SAMPLE_RATE = 16000
-AUDIO_CHANNELS = 1
+class VideoConfig:
+    """Video processing configuration"""
+    
+    # Chunk Duration Settings
+    DEFAULT_CHUNK_DURATION_SECONDS = 300  # 5 minutes
+    MIN_CHUNK_DURATION_SECONDS = 60      # 1 minute
+    MAX_CHUNK_DURATION_SECONDS = 600     # 10 minutes
+    DEFAULT_OVERLAP_SECONDS = 0
+    
+    # Adaptive Chunking Thresholds
+    SHORT_VIDEO_THRESHOLD = 600          # 10 minutes
+    LONG_VIDEO_THRESHOLD = 3600          # 60 minutes
+    SHORT_VIDEO_CHUNK_LIMIT = 180        # 3 minutes for short videos
+    LONG_VIDEO_CHUNK_LIMIT = 420         # 7 minutes for long videos
+    
+    # Audio Processing
+    AUDIO_SAMPLE_RATE = 16000
+    AUDIO_CHANNELS = 1
+    AUDIO_CODEC = 'pcm_s16le'
+    
+    # Whisper Model
+    WHISPER_MODEL = 'small'
 
-# Performance Limits
-MIN_WORKERS = 1
-MAX_WORKERS_LIMIT = 14
-DEFAULT_MAX_WORKERS = 4
+class PerformanceConfig:
+    """Performance and parallelization configuration"""
+    
+    # Worker Limits
+    MIN_WORKERS = 1
+    MAX_WORKERS_LIMIT = 14
+    DEFAULT_MAX_WORKERS = 4
+    
+    # Progress Monitoring
+    MEMORY_CHECK_INTERVAL = 4  # Check memory every 25% of chunks (len(chunks) // 4)
 
-# Content Analysis Constants
-CONTEXT_WINDOW_CHARS = 50
-MIN_KEYWORD_LENGTH = 2
+class AnalysisConfig:
+    """Content analysis configuration"""
+    
+    # Text Analysis
+    CONTEXT_WINDOW_CHARS = 50
+    MIN_KEYWORD_LENGTH = 2
+    
+    # Pattern Detection
+    QUESTION_PATTERNS = [
+        r'\?',
+        r'\bwhat\b', r'\bhow\b', r'\bwhy\b', r'\bwhen\b', r'\bwhere\b', r'\bwho\b'
+    ]
+    
+    EMPHASIS_PATTERNS = [
+        r'\bmake sure\b', r'\bdon\'t forget\b', r'\bremember\b', r'\bimportant\b',
+        r'\bnote that\b', r'\bpay attention\b', r'\bkeep in mind\b'
+    ]
 
-# Time Constants
-SECONDS_PER_MINUTE = 60
-MILLISECONDS_PER_SECOND = 1000
-BYTES_PER_MB = 1024 * 1024
-BYTES_PER_GB = 1024 * 1024 * 1024
+class Constants:
+    """General constants and conversions"""
+    
+    # Time Conversions
+    SECONDS_PER_MINUTE = 60
+    MINUTES_PER_HOUR = 60
+    MILLISECONDS_PER_SECOND = 1000
+    
+    # Data Size Conversions
+    BYTES_PER_KB = 1024
+    BYTES_PER_MB = 1024 * 1024
+    BYTES_PER_GB = 1024 * 1024 * 1024
+
+# Create global config instances for easy access
+config = AppConfig()
+memory_config = MemoryConfig()
+video_config = VideoConfig()
+performance_config = PerformanceConfig()
+analysis_config = AnalysisConfig()
+constants = Constants()
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['RESULTS_FOLDER'] = 'results'
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')  # For SocketIO
+app.config['MAX_CONTENT_LENGTH'] = config.MAX_FILE_SIZE_BYTES
+app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
+app.config['RESULTS_FOLDER'] = config.RESULTS_FOLDER
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -103,7 +165,7 @@ def is_safe_path(file_path, base_dir):
 class MemoryManager:
     """Memory monitoring and management for efficient processing"""
     
-    def __init__(self, max_memory_percent=DEFAULT_MEMORY_PERCENT_LIMIT):
+    def __init__(self, max_memory_percent=memory_config.DEFAULT_MEMORY_PERCENT_LIMIT):
         self.max_memory_percent = max_memory_percent
         self.available = PSUTIL_AVAILABLE
         if self.available:
@@ -115,11 +177,11 @@ class MemoryManager:
         if not self.available:
             # Fallback when psutil is not available
             return {
-                'system_total_gb': CONSERVATIVE_SYSTEM_TOTAL_GB,
-                'system_available_gb': CONSERVATIVE_SYSTEM_AVAILABLE_GB,
-                'system_used_percent': CONSERVATIVE_SYSTEM_USED_PERCENT,
-                'process_rss_mb': CONSERVATIVE_PROCESS_RSS_MB,
-                'process_vms_mb': CONSERVATIVE_PROCESS_VMS_MB
+                'system_total_gb': memory_config.CONSERVATIVE_SYSTEM_TOTAL_GB,
+                'system_available_gb': memory_config.CONSERVATIVE_SYSTEM_AVAILABLE_GB,
+                'system_used_percent': memory_config.CONSERVATIVE_SYSTEM_USED_PERCENT,
+                'process_rss_mb': memory_config.CONSERVATIVE_PROCESS_RSS_MB,
+                'process_vms_mb': memory_config.CONSERVATIVE_PROCESS_VMS_MB
             }
             
         # System memory
@@ -129,28 +191,28 @@ class MemoryManager:
         process_memory = self.process.memory_info()
         
         return {
-            'system_total_gb': system_memory.total / BYTES_PER_GB,
-            'system_available_gb': system_memory.available / BYTES_PER_GB,
+            'system_total_gb': system_memory.total / constants.BYTES_PER_GB,
+            'system_available_gb': system_memory.available / constants.BYTES_PER_GB,
             'system_used_percent': system_memory.percent,
-            'process_rss_mb': process_memory.rss / BYTES_PER_MB,
-            'process_vms_mb': process_memory.vms / BYTES_PER_MB
+            'process_rss_mb': process_memory.rss / constants.BYTES_PER_MB,
+            'process_vms_mb': process_memory.vms / constants.BYTES_PER_MB
         }
     
-    def get_optimal_workers(self, min_workers=MIN_WORKERS, max_workers=None):
+    def get_optimal_workers(self, min_workers=performance_config.MIN_WORKERS, max_workers=None):
         """Calculate optimal number of workers based on available memory"""
         if max_workers is None:
-            max_workers = min(multiprocessing.cpu_count(), DEFAULT_MAX_WORKERS)
+            max_workers = min(multiprocessing.cpu_count(), performance_config.DEFAULT_MAX_WORKERS)
             
         memory_info = self.get_memory_info()
         
         # Estimate memory per worker (Whisper model + processing overhead)
-        memory_per_worker_gb = MEMORY_PER_WORKER_GB
+        memory_per_worker_gb = memory_config.MEMORY_PER_WORKER_GB
         
         # Available memory for workers (reserve memory for system + main process)
-        available_for_workers_gb = memory_info['system_available_gb'] - SYSTEM_MEMORY_RESERVE_GB
+        available_for_workers_gb = memory_info['system_available_gb'] - memory_config.SYSTEM_MEMORY_RESERVE_GB
         
         # Calculate max workers based on memory
-        memory_based_workers = max(MIN_WORKERS, int(available_for_workers_gb / memory_per_worker_gb))
+        memory_based_workers = max(performance_config.MIN_WORKERS, int(available_for_workers_gb / memory_per_worker_gb))
         
         # Take minimum of CPU-based and memory-based limits
         optimal_workers = min(max_workers, memory_based_workers, multiprocessing.cpu_count())
@@ -513,7 +575,7 @@ def process_chunk_parallel(chunk_info):
         (
             ffmpeg
             .input(chunk_path)
-            .output(audio_path, acodec='pcm_s16le', ac=AUDIO_CHANNELS, ar=str(AUDIO_SAMPLE_RATE))
+            .output(audio_path, acodec=video_config.AUDIO_CODEC, ac=video_config.AUDIO_CHANNELS, ar=str(video_config.AUDIO_SAMPLE_RATE))
             .overwrite_output()
             .run(quiet=True)
         )
@@ -619,7 +681,7 @@ class VideoTranscriber:
         self.model = None
         # Memory-aware performance tuning
         self.max_workers = memory_manager.get_optimal_workers()
-        self.chunk_duration = DEFAULT_CHUNK_DURATION_SECONDS  # Default chunk duration, can be adjusted for performance
+        self.chunk_duration = video_config.DEFAULT_CHUNK_DURATION_SECONDS  # Default chunk duration, can be adjusted for performance
         
         # Log memory and worker configuration
         memory_info = memory_manager.get_memory_info()
@@ -668,10 +730,10 @@ class VideoTranscriber:
         
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
-        if duration < SHORT_VIDEO_THRESHOLD:
-            chunk_duration = min(chunk_duration, SHORT_VIDEO_CHUNK_LIMIT)
-        elif duration > LONG_VIDEO_THRESHOLD:
-            chunk_duration = min(chunk_duration, LONG_VIDEO_CHUNK_LIMIT)
+        if duration < video_config.SHORT_VIDEO_THRESHOLD:
+            chunk_duration = min(chunk_duration, video_config.SHORT_VIDEO_CHUNK_LIMIT)
+        elif duration > video_config.LONG_VIDEO_THRESHOLD:
+            chunk_duration = min(chunk_duration, video_config.LONG_VIDEO_CHUNK_LIMIT)
         
         # Calculate number of chunks
         num_chunks = math.ceil(duration / chunk_duration)
@@ -731,7 +793,7 @@ class VideoTranscriber:
         (
             ffmpeg
             .input(video_path)
-            .output(audio_path, acodec='pcm_s16le', ac=AUDIO_CHANNELS, ar=str(AUDIO_SAMPLE_RATE))
+            .output(audio_path, acodec=video_config.AUDIO_CODEC, ac=video_config.AUDIO_CHANNELS, ar=str(video_config.AUDIO_SAMPLE_RATE))
             .overwrite_output()
             .run(quiet=True)
         )
@@ -791,7 +853,7 @@ class VideoTranscriber:
         
         # Keyword analysis
         for keyword in CUSTOM_KEYWORDS:
-            pattern = re.compile(f'.{{0,{CONTEXT_WINDOW_CHARS}}}' + re.escape(keyword) + f'.{{0,{CONTEXT_WINDOW_CHARS}}}', re.IGNORECASE)
+            pattern = re.compile(f'.{{0,{analysis_config.CONTEXT_WINDOW_CHARS}}}' + re.escape(keyword) + f'.{{0,{analysis_config.CONTEXT_WINDOW_CHARS}}}', re.IGNORECASE)
             matches = pattern.findall(text)
             if matches:
                 analysis['keyword_matches'].append({
@@ -1146,10 +1208,10 @@ def upload_file():
     
     # Validate file extension
     file_ext = os.path.splitext(file.filename)[1].lower()
-    if file_ext not in ALLOWED_FILE_EXTENSIONS:
+    if file_ext not in config.ALLOWED_FILE_EXTENSIONS:
         raise UserFriendlyError('unsupported_format', {
             'current_format': file_ext,
-            'supported_formats': list(ALLOWED_FILE_EXTENSIONS)
+            'supported_formats': list(config.ALLOWED_FILE_EXTENSIONS)
         })
     
     # Enhanced file size validation with context
@@ -1551,16 +1613,16 @@ def update_performance_settings():
         # Update chunk duration if provided
         if 'chunk_duration' in data:
             chunk_duration = int(data['chunk_duration'])
-            if MIN_CHUNK_DURATION_SECONDS <= chunk_duration <= MAX_CHUNK_DURATION_SECONDS:
+            if video_config.MIN_CHUNK_DURATION_SECONDS <= chunk_duration <= video_config.MAX_CHUNK_DURATION_SECONDS:
                 transcriber.chunk_duration = chunk_duration
             else:
-                return jsonify({'success': False, 'error': f'Chunk duration must be between {MIN_CHUNK_DURATION_SECONDS} and {MAX_CHUNK_DURATION_SECONDS} seconds (provided: {chunk_duration})'}), 400
+                return jsonify({'success': False, 'error': f'Chunk duration must be between {video_config.MIN_CHUNK_DURATION_SECONDS} and {video_config.MAX_CHUNK_DURATION_SECONDS} seconds (provided: {chunk_duration})'}), 400
         
         # Update max workers if provided
         if 'max_workers' in data:
             max_workers = int(data['max_workers'])
-            max_cpu_limit = min(multiprocessing.cpu_count(), MAX_WORKERS_LIMIT)  # Allow up to CPU count or limit, whichever is lower
-            if MIN_WORKERS <= max_workers <= max_cpu_limit:
+            max_cpu_limit = min(multiprocessing.cpu_count(), performance_config.MAX_WORKERS_LIMIT)  # Allow up to CPU count or limit, whichever is lower
+            if performance_config.MIN_WORKERS <= max_workers <= max_cpu_limit:
                 transcriber.max_workers = max_workers
             else:
                 return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit} (provided: {max_workers})'}), 400
@@ -1670,14 +1732,14 @@ def _get_performance_recommendations():
             'type': 'info',
             'category': 'chunking',
             'message': 'Large chunk duration may reduce parallelization benefits.',
-            'action': f'Consider reducing chunk_duration to {DEFAULT_CHUNK_DURATION_SECONDS}-{LONG_VIDEO_CHUNK_LIMIT} seconds'
+            'action': f'Consider reducing chunk_duration to {video_config.DEFAULT_CHUNK_DURATION_SECONDS}-{video_config.LONG_VIDEO_CHUNK_LIMIT} seconds'
         })
-    elif transcriber.chunk_duration < SHORT_VIDEO_CHUNK_LIMIT:
+    elif transcriber.chunk_duration < video_config.SHORT_VIDEO_CHUNK_LIMIT:
         recommendations.append({
             'type': 'info',
             'category': 'chunking',
             'message': 'Very small chunks may increase overhead.',
-            'action': f'Consider increasing chunk_duration to {SHORT_VIDEO_CHUNK_LIMIT}-{DEFAULT_CHUNK_DURATION_SECONDS} seconds'
+            'action': f'Consider increasing chunk_duration to {video_config.SHORT_VIDEO_CHUNK_LIMIT}-{video_config.DEFAULT_CHUNK_DURATION_SECONDS} seconds'
         })
     
     # File cleanup recommendations
