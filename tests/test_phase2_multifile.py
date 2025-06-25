@@ -226,7 +226,12 @@ def test_websocket_integration():
     sio = socketio.Client()
     connection_established = False
     progress_updates = []
-    video_files = []  # Initialize to avoid UnboundLocalError
+    
+    # Create test videos first as suggested by Copilot
+    video_files = create_multiple_test_videos()
+    if not video_files:
+        print("⚠️  Skipping WebSocket integration test (no test videos created)")
+        return False
 
     @sio.event
     def connect():
@@ -250,12 +255,6 @@ def test_websocket_integration():
         if not connection_established:
             print("❌ WebSocket connection failed")
             return False
-
-        # Create a test video
-        video_files = create_multiple_test_videos()
-        if not video_files:
-            print("⚠️  Skipping WebSocket integration test (no test videos)")
-            return True
 
         # Pre-join session
         session_name = "websocket_multi_test"
