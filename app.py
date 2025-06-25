@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import whisper
 import ffmpeg
 import os
@@ -29,6 +30,10 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
+app.config['SECRET_KEY'] = 'video-transcriber-secret-key'  # For SocketIO
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -249,6 +254,108 @@ class ModelManager:
 
 # Global model manager
 model_manager = ModelManager()
+
+class ProgressTracker:
+    """Real-time progress tracking for WebSocket communication"""
+    
+    def __init__(self):
+        self.sessions = {}
+        self.lock = threading.Lock()
+    
+    def start_session(self, session_id, total_chunks=0, video_duration=0):
+        """Initialize a new progress tracking session"""
+        with self.lock:
+            self.sessions[session_id] = {
+                'status': 'starting',
+                'progress': 0,
+                'current_task': 'Initializing...',
+                'chunks_total': total_chunks,
+                'chunks_completed': 0,
+                'current_chunk': 0,
+                'start_time': time.time(),
+                'estimated_time': None,
+                'video_duration': video_duration,
+                'stage': 'initialization',
+                'stage_progress': 0,
+                'details': {}
+            }
+            logger.info(f"Started progress tracking for session {session_id}")
+            self.emit_progress(session_id)
+    
+    def update_progress(self, session_id, **updates):
+        """Update progress for a session"""
+        with self.lock:
+            if session_id in self.sessions:
+                session = self.sessions[session_id]
+                session.update(updates)
+                
+                # Calculate estimated time remaining
+                if session['progress'] > 0 and session['progress'] < 100:
+                    elapsed = time.time() - session['start_time']
+                    total_estimated = elapsed / (session['progress'] / 100)
+                    session['estimated_time'] = max(0, total_estimated - elapsed)
+                
+                self.emit_progress(session_id)
+                logger.debug(f"Progress update for {session_id}: {session['current_task']} "
+                           f"({session['progress']:.1f}%)")
+    
+    def update_chunk_progress(self, session_id, chunk_number, chunk_total, task_description=""):
+        """Update progress based on chunk completion"""
+        if session_id not in self.sessions:
+            return
+            
+        # Calculate overall progress (chunks are 70% of total work)
+        chunk_progress = (chunk_number / chunk_total) * 70 if chunk_total > 0 else 0
+        overall_progress = 20 + chunk_progress  # 20% for initial setup
+        
+        self.update_progress(
+            session_id,
+            current_chunk=chunk_number,
+            chunks_completed=chunk_number,
+            progress=overall_progress,
+            current_task=f"Processing chunk {chunk_number}/{chunk_total}" + 
+                         (f" - {task_description}" if task_description else ""),
+            stage='transcription',
+            stage_progress=chunk_progress
+        )
+    
+    def complete_session(self, session_id, success=True, message="Processing complete!"):
+        """Mark session as completed"""
+        with self.lock:
+            if session_id in self.sessions:
+                self.sessions[session_id].update({
+                    'status': 'completed' if success else 'error',
+                    'progress': 100 if success else self.sessions[session_id]['progress'],
+                    'current_task': message,
+                    'stage': 'completed' if success else 'error'
+                })
+                self.emit_progress(session_id)
+                logger.info(f"Session {session_id} marked as {'completed' if success else 'failed'}")
+    
+    def emit_progress(self, session_id):
+        """Emit progress update via SocketIO"""
+        if session_id in self.sessions:
+            try:
+                progress_data = self.sessions[session_id]
+                logger.debug(f"Emitting progress for session {session_id}: {progress_data.get('progress', 0):.1f}% - {progress_data.get('current_task', 'Unknown')}")
+                socketio.emit('progress_update', progress_data, room=session_id)
+            except Exception as e:
+                logger.warning(f"Failed to emit progress for session {session_id}: {e}")
+    
+    def get_session_progress(self, session_id):
+        """Get current progress for a session"""
+        with self.lock:
+            return self.sessions.get(session_id, None)
+    
+    def cleanup_session(self, session_id):
+        """Remove session from tracking"""
+        with self.lock:
+            if session_id in self.sessions:
+                del self.sessions[session_id]
+                logger.debug(f"Cleaned up progress tracking for session {session_id}")
+
+# Global progress tracker
+progress_tracker = ProgressTracker()
 
 def init_worker():
     """Initialize worker process - now more memory efficient"""
@@ -527,6 +634,16 @@ class VideoTranscriber:
         else:
             return f"{minutes:02d}:{secs:02d}"
     
+    def get_video_duration(self, video_path):
+        """Get video duration in seconds"""
+        try:
+            probe = ffmpeg.probe(video_path)
+            duration = float(probe['streams'][0]['duration'])
+            return duration
+        except Exception as e:
+            logger.warning(f"Could not get video duration: {e}")
+            return 0
+    
     def analyze_content(self, text, segments):
         """Analyze content for keywords, questions, and emphasis cues"""
         analysis = {
@@ -609,105 +726,154 @@ class VideoTranscriber:
             'html_file': None
         }
         
-        # Split video into chunks
-        chunks = self.split_video(video_path, session_dir)
-        
-        all_segments = []
-        all_text = []
-        
-        # Process chunks in parallel
-        chunk_info_list = []
-        for chunk in chunks:
-            audio_path = os.path.join(session_dir, f"{os.path.splitext(chunk['filename'])[0]}.wav")
-            chunk_info_list.append((
-                chunk['path'],
-                audio_path,
-                chunk['start_time'],
-                chunk['filename']
-            ))
-        
-        # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
-        completed_chunks = []
-        
-        # Dynamic memory-aware worker calculation
-        memory_info = memory_manager.get_memory_info()
-        optimal_workers = memory_manager.get_optimal_workers(max_workers=self.max_workers)
-        num_workers = min(optimal_workers, len(chunks))
-        
-        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers "
-                   f"(Memory: {memory_info['system_used_percent']:.1f}% used, "
-                   f"{memory_info['system_available_gb']:.1f}GB available)")
-        
-        with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
-            # Submit all chunk processing tasks
-            futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
+        try:
+            # Split video into chunks
+            chunks = self.split_video(video_path, session_dir)
             
-            # Collect results as they complete with memory monitoring
-            for i, future in enumerate(as_completed(futures)):
-                try:
-                    result = future.result()
-                    if result['success']:
-                        completed_chunks.append(result)
-                        
-                        # Periodic memory monitoring (every 25% of chunks)
-                        if (i + 1) % max(1, len(chunks) // 4) == 0:
-                            current_memory = memory_manager.get_memory_info()
-                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
-                                       f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
-                                       f"{current_memory['system_used_percent']:.1f}% system)")
+            # Initialize progress tracking with complete details
+            progress_tracker.start_session(session_id, 
+                                         total_chunks=len(chunks),
+                                         video_duration=self.get_video_duration(video_path))
+            progress_tracker.update_progress(session_id,
+                                           current_task=f"Video split into {len(chunks)} chunks. Starting transcription...",
+                                           progress=15,
+                                           stage='preparation')
+            
+            all_segments = []
+            all_text = []
+            
+            # Process chunks in parallel
+            chunk_info_list = []
+            for chunk in chunks:
+                audio_path = os.path.join(session_dir, f"{os.path.splitext(chunk['filename'])[0]}.wav")
+                chunk_info_list.append((
+                    chunk['path'],
+                    audio_path,
+                    chunk['start_time'],
+                    chunk['filename']
+                ))
+            
+            # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
+            completed_chunks = []
+            
+            # Dynamic memory-aware worker calculation
+            memory_info = memory_manager.get_memory_info()
+            optimal_workers = memory_manager.get_optimal_workers(max_workers=self.max_workers)
+            num_workers = min(optimal_workers, len(chunks))
+            
+            logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers "
+                       f"(Memory: {memory_info['system_used_percent']:.1f}% used, "
+                       f"{memory_info['system_available_gb']:.1f}GB available)")
+            
+            with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
+                # Submit all chunk processing tasks
+                futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
+                
+                # Collect results as they complete with memory monitoring
+                for i, future in enumerate(as_completed(futures)):
+                    try:
+                        result = future.result()
+                        if result['success']:
+                            completed_chunks.append(result)
                             
-                            # Check for memory pressure
-                            if memory_manager.check_memory_pressure():
-                                logger.warning(f"High memory usage detected: {current_memory['system_used_percent']:.1f}%")
+                            # Update progress for each completed chunk
+                            progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
+                                                                 f"Transcribed {result['filename']}")
+                            
+                            # Periodic memory monitoring (every 25% of chunks)
+                            if (i + 1) % max(1, len(chunks) // 4) == 0:
+                                current_memory = memory_manager.get_memory_info()
+                                logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
+                                           f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
+                                           f"{current_memory['system_used_percent']:.1f}% system)")
+                                
+                                # Check for memory pressure
+                                if memory_manager.check_memory_pressure():
+                                    logger.warning(f"High memory usage detected: {current_memory['system_used_percent']:.1f}%")
+                            else:
+                                logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
                         else:
-                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
-                    else:
-                        logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
-                except Exception as e:
-                    logger.error(f"Exception processing chunk: {e}")
-        
-        # Sort results by start time to maintain order
-        completed_chunks.sort(key=lambda x: x['start_time'])
-        
-        # Combine results
-        for chunk_result in completed_chunks:
-            all_segments.extend(chunk_result['segments'])
-            all_text.append(f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}")
-            results['chunks'].append(chunk_result)
-        
-        # Combine all text
-        results['full_transcript'] = '\n'.join(all_text)
-        
-        # Analyze complete content
-        results['analysis'] = self.analyze_content(results['full_transcript'], all_segments)
-        
-        # Update metadata with final stats
-        metadata.update({
-            'status': 'completed',
-            'total_chunks': len(chunks),
-            'total_words': results['analysis']['total_words'],
-            'keywords_found': len(results['analysis']['keyword_matches']),
-            'questions_found': len(results['analysis']['questions']),
-            'emphasis_cues_found': len(results['analysis']['emphasis_cues']),
-            'processing_time': (datetime.now() - datetime.fromisoformat(metadata['created_at'])).total_seconds()
-        })
-        
-        # Save metadata
-        with open(os.path.join(session_dir, 'metadata.json'), 'w') as f:
-            json.dump(metadata, f, indent=2)
-        
-        # Generate outputs
-        self.save_results(results)
-        results['html_file'] = self.generate_html_transcript(results)
-        results['metadata'] = metadata
-        
-        # Clean up all temporary files using progressive file manager
-        cleanup_stats = file_manager.get_cleanup_stats()
-        logger.info(f"Final cleanup: {cleanup_stats['count']} temp files, "
-                   f"{cleanup_stats['total_size_mb']:.1f}MB")
-        file_manager.cleanup_all()
-        
-        return results
+                            logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
+                            # Update progress even for failed chunks
+                            progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
+                                                                 f"Error in {result['filename']}")
+                    except Exception as e:
+                        logger.error(f"Exception processing chunk: {e}")
+                        # Update progress for exception cases
+                        progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
+                                                             f"Exception processing chunk")
+            
+            # Sort results by start time to maintain order
+            completed_chunks.sort(key=lambda x: x['start_time'])
+            
+            # Update progress for final processing stages
+            progress_tracker.update_progress(session_id,
+                                           current_task="Combining transcription results...",
+                                           progress=85,
+                                           stage='post_processing')
+            
+            # Combine results
+            for chunk_result in completed_chunks:
+                all_segments.extend(chunk_result['segments'])
+                all_text.append(f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}")
+                results['chunks'].append(chunk_result)
+            
+            # Combine all text
+            results['full_transcript'] = '\n'.join(all_text)
+            
+            # Update progress for analysis
+            progress_tracker.update_progress(session_id,
+                                           current_task="Analyzing content for keywords and insights...",
+                                           progress=90,
+                                           stage='analysis')
+            
+            # Analyze complete content
+            results['analysis'] = self.analyze_content(results['full_transcript'], all_segments)
+            
+            # Update metadata with final stats
+            metadata.update({
+                'status': 'completed',
+                'total_chunks': len(chunks),
+                'total_words': results['analysis']['total_words'],
+                'keywords_found': len(results['analysis']['keyword_matches']),
+                'questions_found': len(results['analysis']['questions']),
+                'emphasis_cues_found': len(results['analysis']['emphasis_cues']),
+                'processing_time': (datetime.now() - datetime.fromisoformat(metadata['created_at'])).total_seconds()
+            })
+            
+            # Save metadata
+            with open(os.path.join(session_dir, 'metadata.json'), 'w') as f:
+                json.dump(metadata, f, indent=2)
+            
+            # Update progress for final generation
+            progress_tracker.update_progress(session_id,
+                                           current_task="Generating output files...",
+                                           progress=95,
+                                           stage='finalization')
+            
+            # Generate outputs
+            self.save_results(results)
+            results['html_file'] = self.generate_html_transcript(results)
+            results['metadata'] = metadata
+            
+            # Complete progress tracking
+            progress_tracker.complete_session(session_id, success=True, 
+                                            message=f"Processing complete! Transcribed {len(chunks)} chunks, found {results['analysis']['total_words']} words.")
+            
+            # Clean up all temporary files using progressive file manager
+            cleanup_stats = file_manager.get_cleanup_stats()
+            logger.info(f"Final cleanup: {cleanup_stats['count']} temp files, "
+                       f"{cleanup_stats['total_size_mb']:.1f}MB")
+            file_manager.cleanup_all()
+            
+            return results
+            
+        except Exception as e:
+            # Handle errors and update progress
+            error_message = f"Processing failed: {str(e)}"
+            logger.error(error_message)
+            progress_tracker.complete_session(session_id, success=False, message=error_message)
+            raise
     
     def save_results(self, results):
         """Save transcription results to files"""
@@ -1318,6 +1484,58 @@ def get_memory_info():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# WebSocket event handlers
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    logger.info(f"Client connected: {request.sid}")
+    emit('connection_status', {'status': 'connected', 'message': 'WebSocket connection established'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    logger.info(f"Client disconnected: {request.sid}")
+
+@socketio.on('join_session')
+def handle_join_session(data):
+    """Join a progress tracking session"""
+    session_id = data.get('session_id')
+    if session_id:
+        join_room(session_id)
+        logger.info(f"Client {request.sid} joined session {session_id}")
+        
+        # Send current progress if session exists
+        current_progress = progress_tracker.get_session_progress(session_id)
+        if current_progress:
+            logger.debug(f"Sending existing progress to client {request.sid}: {current_progress.get('progress', 0):.1f}%")
+            emit('progress_update', current_progress)
+        else:
+            logger.debug(f"No existing progress for session {session_id}, sending not_found status")
+            emit('session_status', {'status': 'not_found', 'message': 'Session not found'})
+    else:
+        emit('error', {'message': 'Session ID required'})
+
+@socketio.on('leave_session')
+def handle_leave_session(data):
+    """Leave a progress tracking session"""
+    session_id = data.get('session_id')
+    if session_id:
+        leave_room(session_id)
+        logger.info(f"Client {request.sid} left session {session_id}")
+
+@socketio.on('get_progress')
+def handle_get_progress(data):
+    """Get current progress for a session"""
+    session_id = data.get('session_id')
+    if session_id:
+        current_progress = progress_tracker.get_session_progress(session_id)
+        if current_progress:
+            emit('progress_update', current_progress)
+        else:
+            emit('session_status', {'status': 'not_found', 'message': 'Session not found'})
+    else:
+        emit('error', {'message': 'Session ID required'})
+
 if __name__ == '__main__':
     # Ensure multiprocessing works on all platforms
     try:
@@ -1325,4 +1543,7 @@ if __name__ == '__main__':
     except RuntimeError:
         # Method already set, ignore
         pass
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    
+    # Determine if the environment is development
+    is_development = os.getenv('FLASK_ENV', 'production') == 'development'
+    socketio.run(app, debug=is_development, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=is_development)
