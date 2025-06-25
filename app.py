@@ -770,7 +770,7 @@ def download_file(session_id, filename):
     file_path = os.path.join(session_dir, filename)
     
     # Ensure the file path is within the session directory
-    if not os.path.abspath(file_path).startswith(os.path.abspath(session_dir)):
+    if not is_safe_path(file_path, session_dir):
         return jsonify({'error': 'Access denied'}), 403
     
     if os.path.exists(file_path):
