@@ -357,6 +357,101 @@ class ProgressTracker:
 # Global progress tracker
 progress_tracker = ProgressTracker()
 
+class UserFriendlyError(Exception):
+    """User-friendly error messages with solutions"""
+    
+    ERROR_SOLUTIONS = {
+        'insufficient_memory': {
+            'message': 'Not enough memory available for processing',
+            'solution': 'Try reducing max workers or close other applications',
+            'action': 'Reduce workers in Performance Monitor',
+            'icon': '⚠️'
+        },
+        'large_file_size': {
+            'message': 'File size exceeds recommended limits for optimal processing',
+            'solution': 'Consider splitting the video or reducing quality',
+            'action': 'Use video editing software to compress',
+            'icon': '📁'
+        },
+        'unsupported_format': {
+            'message': 'Video format not supported',
+            'solution': 'Convert to MP4, AVI, or MOV format',
+            'action': 'Use video converter tool like FFmpeg',
+            'icon': '🎥'
+        },
+        'processing_timeout': {
+            'message': 'Video processing took longer than expected',
+            'solution': 'Try processing with fewer workers or smaller chunks',
+            'action': 'Adjust settings in Performance Monitor',
+            'icon': '⏱️'
+        },
+        'network_error': {
+            'message': 'Network connection issue detected',
+            'solution': 'Check your internet connection and try again',
+            'action': 'Refresh page and retry upload',
+            'icon': '🌐'
+        },
+        'storage_full': {
+            'message': 'Insufficient storage space for processing',
+            'solution': 'Free up disk space or process smaller files',
+            'action': 'Clean up old results or temporary files',
+            'icon': '💾'
+        }
+    }
+    
+    def __init__(self, error_type, details=None):
+        self.error_type = error_type
+        self.details = details or {}
+        
+        error_info = self.ERROR_SOLUTIONS.get(error_type, {
+            'message': 'An unexpected error occurred',
+            'solution': 'Please try again or contact support',
+            'action': 'Refresh page and retry',
+            'icon': '❌'
+        })
+        
+        super().__init__(error_info['message'])
+        self.solution = error_info['solution']
+        self.action = error_info['action']
+        self.icon = error_info['icon']
+    
+    def to_dict(self):
+        """Convert error to dictionary for JSON response"""
+        return {
+            'type': 'user_friendly_error',
+            'error_type': self.error_type,
+            'message': str(self),
+            'solution': self.solution,
+            'action': self.action,
+            'icon': self.icon,
+            'details': self.details
+        }
+
+def handle_user_friendly_error(func):
+    """Decorator to handle and convert exceptions to user-friendly errors"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except UserFriendlyError:
+            raise  # Re-raise user-friendly errors as-is
+        except MemoryError:
+            raise UserFriendlyError('insufficient_memory')
+        except FileNotFoundError as e:
+            if 'video' in str(e).lower():
+                raise UserFriendlyError('unsupported_format')
+            raise UserFriendlyError('storage_full')
+        except TimeoutError:
+            raise UserFriendlyError('processing_timeout')
+        except Exception as e:
+            # Log the original error for debugging
+            logger.error(f"Unexpected error in {func.__name__}: {str(e)}")
+            # Convert to generic user-friendly error
+            raise UserFriendlyError('unknown_error', {'original_error': str(e)})
+    
+    return wrapper
+
+# ...existing code...
+
 def init_worker():
     """Initialize worker process - now more memory efficient"""
     logger.info("Worker process initialized (model will be loaded on demand)")
@@ -1074,31 +1169,54 @@ def index():
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
+@handle_user_friendly_error
 def upload_file():
     if 'video' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
+        raise UserFriendlyError('unsupported_format', {'reason': 'No file uploaded'})
     
     file = request.files['video']
     if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
+        raise UserFriendlyError('unsupported_format', {'reason': 'No file selected'})
     
     # Validate file extension
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in ALLOWED_FILE_EXTENSIONS:
-        return jsonify({"error": f"Invalid file type. Allowed types: {', '.join(ALLOWED_FILE_EXTENSIONS)}"}), 400
+        raise UserFriendlyError('unsupported_format', {
+            'current_format': file_ext,
+            'supported_formats': list(ALLOWED_FILE_EXTENSIONS)
+        })
     
-    # Validate file size (500MB limit)
+    # Enhanced file size validation with context
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)  # Reset file pointer
+    
+    file_size_mb = file_size / (1024 * 1024)
     if file_size > 500 * 1024 * 1024:  # 500MB
-        return jsonify({'error': 'File too large. Maximum size is 500MB'}), 400
+        raise UserFriendlyError('large_file_size', {
+            'file_size_mb': f"{file_size_mb:.1f}",
+            'max_size_mb': '500'
+        })
+    
+    # Check available memory before processing
+    memory_info = memory_manager.get_memory_info()
+    if memory_info['system_used_percent'] > 90:
+        raise UserFriendlyError('insufficient_memory', {
+            'current_usage': f"{memory_info['system_used_percent']:.1f}%",
+            'available_gb': f"{memory_info['system_available_gb']:.1f}"
+        })
     
     session_name = request.form.get('session_name', '').strip()
     
     # Validate session name
     if not session_name:
-        return jsonify({"error": "Session name is required and cannot be empty"}), 400
+        return jsonify({
+            "type": "validation_error",
+            "message": "Session name is required and cannot be empty",
+            "solution": "Please enter a descriptive name for your video session",
+            "action": "Fill in the session name field",
+            "icon": "📝"
+        }), 400
     
     # Remove potentially problematic characters
     session_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_name)
@@ -1108,7 +1226,11 @@ def upload_file():
     # Save uploaded file
     filename = secure_filename(file.filename)
     upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(upload_path)
+    
+    try:
+        file.save(upload_path)
+    except IOError:
+        raise UserFriendlyError('storage_full')
     
     try:
         # Process video
@@ -1117,16 +1239,28 @@ def upload_file():
         return jsonify({
             'success': True,
             'session_id': results['session_id'],
-            'message': 'Video processed successfully!'
+            'message': 'Video processed successfully!',
+            'stats': {
+                'chunks': len(results.get('chunks', [])),
+                'words': results.get('analysis', {}).get('total_words', 0),
+                'duration': results.get('metadata', {}).get('processing_time', 0)
+            }
         })
     
+    except UserFriendlyError as e:
+        return jsonify(e.to_dict()), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Upload processing error: {str(e)}")
+        error = UserFriendlyError('processing_timeout', {'original_error': str(e)})
+        return jsonify(error.to_dict()), 500
     
     finally:
         # Clean up uploaded file
         if os.path.exists(upload_path):
-            os.remove(upload_path)
+            try:
+                os.remove(upload_path)
+            except OSError:
+                logger.warning(f"Could not remove uploaded file: {upload_path}")
 
 @app.route('/results/<session_id>')
 def view_results(session_id):

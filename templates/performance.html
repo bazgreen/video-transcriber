@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Performance Monitor - Video Transcriber</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -49,6 +50,74 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
             margin-bottom: 30px;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px 10px;
+            }
+            
+            .header {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px 5px;
+            }
+            
+            .header {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            .header h1 {
+                font-size: 1.7rem;
+            }
+            
+            .card {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            .dashboard-grid {
+                gap: 15px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .card-icon {
+                order: -1;
+            }
         }
 
         .card {
@@ -186,11 +255,29 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-height: 44px; /* Touch-friendly minimum */
+            min-width: 44px;
+            touch-action: manipulation; /* Improve touch response */
         }
 
         .btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        /* Mobile touch enhancements */
+        @media (max-width: 768px) {
+            .btn {
+                padding: 14px 20px;
+                font-size: 1rem;
+                width: 100%;
+                margin-bottom: 10px;
+            }
         }
 
         .recommendations {
@@ -261,6 +348,52 @@
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
+        }
+
+        /* Chart Styles */
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin: 20px 0;
+        }
+
+        .chart-toggle-btn {
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-toggle-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chart-toggle-btn:hover:not(.active) {
+            background: #cbd5e0;
+        }
+
+        .chart-info {
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* Mobile chart adjustments */
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 150px;
+                margin: 15px 0;
+            }
+            
+            .chart-toggle-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
         }
 
         .chart-container {
@@ -442,6 +575,23 @@
             </div>
         </div>
 
+        <!-- Real-time Performance Charts -->
+        <div class="card" style="margin-bottom: 30px;">
+            <div class="card-header">
+                <h3 class="card-title">📈 Real-time Performance</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="chart-toggle-btn active" onclick="toggleChart('memory')" id="memoryChartBtn">Memory</button>
+                    <button class="chart-toggle-btn" onclick="toggleChart('sessions')" id="sessionsChartBtn">Sessions</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="performanceChart" width="400" height="150"></canvas>
+            </div>
+            <div class="chart-info">
+                <small style="color: #718096;">Live data updates every 3 seconds • Last 20 data points shown</small>
+            </div>
+        </div>
+
         <!-- Performance Settings -->
         <div class="settings-panel">
             <h3 class="card-title" style="margin-bottom: 20px;">⚙️ Performance Settings</h3>
@@ -513,6 +663,7 @@
                 if (result.success) {
                     updateLiveMetrics(result.data);
                     updateActiveSessions(result.data.active_sessions);
+                    updatePerformanceChart(result.data); // Add chart update
                 }
             } catch (error) {
                 console.error('Error loading live data:', error);
@@ -694,8 +845,127 @@
             }
         }
 
+        // Chart Management
+        let performanceChart = null;
+        let currentChartType = 'memory';
+
+        function initPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Memory Usage %',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            display: true,
+                            ticks: {
+                                maxTicksLimit: 6
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    animation: {
+                        duration: 300
+                    }
+                }
+            });
+        }
+
+        function updatePerformanceChart(data) {
+            if (!performanceChart) return;
+            
+            const now = new Date().toLocaleTimeString();
+            
+            if (currentChartType === 'memory') {
+                // Update memory chart
+                performanceChart.data.labels.push(now);
+                performanceChart.data.datasets[0].data.push(data.memory.system_used_percent);
+                
+                // Update chart appearance for memory
+                performanceChart.data.datasets[0].label = 'Memory Usage %';
+                performanceChart.data.datasets[0].borderColor = 'rgb(75, 192, 192)';
+                performanceChart.data.datasets[0].backgroundColor = 'rgba(75, 192, 192, 0.1)';
+                performanceChart.options.scales.y.max = 100;
+                performanceChart.options.scales.y.ticks.callback = function(value) {
+                    return value + '%';
+                };
+            } else if (currentChartType === 'sessions') {
+                // Update sessions chart
+                performanceChart.data.labels.push(now);
+                performanceChart.data.datasets[0].data.push(data.active_sessions.length);
+                
+                // Update chart appearance for sessions
+                performanceChart.data.datasets[0].label = 'Active Sessions';
+                performanceChart.data.datasets[0].borderColor = 'rgb(255, 99, 132)';
+                performanceChart.data.datasets[0].backgroundColor = 'rgba(255, 99, 132, 0.1)';
+                performanceChart.options.scales.y.max = 10;
+                performanceChart.options.scales.y.ticks.callback = function(value) {
+                    return value;
+                };
+            }
+            
+            // Keep only last 20 data points
+            if (performanceChart.data.labels.length > 20) {
+                performanceChart.data.labels.shift();
+                performanceChart.data.datasets[0].data.shift();
+            }
+            
+            performanceChart.update('none');
+        }
+
+        function toggleChart(type) {
+            currentChartType = type;
+            
+            // Update button states
+            document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(type + 'ChartBtn').classList.add('active');
+            
+            // Clear current data and reinitialize
+            if (performanceChart) {
+                performanceChart.data.labels = [];
+                performanceChart.data.datasets[0].data = [];
+                performanceChart.update();
+            }
+        }
+
         // Clean up when page is unloaded
         window.addEventListener('beforeunload', stopLiveUpdates);
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initPerformanceChart();
+            loadPerformanceData();
+            startLiveUpdates();
+        });
     </script>
 </body>
 </html>
