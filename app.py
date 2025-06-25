@@ -25,9 +25,21 @@ app.config['RESULTS_FOLDER'] = 'results'
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Security constants
+ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
+
 def is_valid_session_id(session_id):
     """Validate session_id to prevent path traversal attacks"""
     return bool(re.match(r'^[a-zA-Z0-9_-]+$', session_id))
+
+def is_safe_path(file_path, base_dir):
+    """Check if file_path is within base_dir to prevent path traversal"""
+    try:
+        base_path = os.path.abspath(base_dir)
+        requested_path = os.path.abspath(file_path)
+        return requested_path.startswith(base_path)
+    except (OSError, ValueError):
+        return False
 
 # Ensure upload and results directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -328,7 +340,7 @@ class VideoTranscriber:
         }
         
         # Keyword analysis
-        for keyword in ASSESSMENT_KEYWORDS:
+        for keyword in CUSTOM_KEYWORDS:
             pattern = re.compile(r'.{0,50}' + re.escape(keyword) + r'.{0,50}', re.IGNORECASE)
             matches = pattern.findall(text)
             if matches:
@@ -343,7 +355,7 @@ class VideoTranscriber:
         word_freq = Counter(words)
         
         # Filter for relevant keywords
-        for keyword in ASSESSMENT_KEYWORDS:
+        for keyword in CUSTOM_KEYWORDS:
             if keyword.lower() in word_freq:
                 analysis['keyword_frequency'][keyword] = word_freq[keyword.lower()]
         
@@ -608,7 +620,7 @@ class VideoTranscriber:
             
             # Highlight keywords
             text = segment['text']
-            for keyword in ASSESSMENT_KEYWORDS:
+            for keyword in CUSTOM_KEYWORDS:
                 pattern = re.compile(re.escape(keyword), re.IGNORECASE)
                 text = pattern.sub(f'<span class="keyword">{keyword}</span>', text)
                 if pattern.search(segment['text']):
