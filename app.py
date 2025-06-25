@@ -18,6 +18,8 @@ import multiprocessing
 import logging
 import functools
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from typing import Dict, List, Tuple, Optional, Union, Any
+from flask import Response
 
 # Optional memory monitoring
 try:
@@ -149,11 +151,11 @@ if not PSUTIL_AVAILABLE:
     logger.warning("psutil not available - memory monitoring will use conservative estimates")
 
 
-def is_valid_session_id(session_id):
+def is_valid_session_id(session_id: str) -> bool:
     """Validate session_id to prevent path traversal attacks"""
     return bool(re.match(r'^[a-zA-Z0-9_-]+$', session_id))
 
-def is_safe_path(file_path, base_dir):
+def is_safe_path(file_path: str, base_dir: str) -> bool:
     """Check if file_path is within base_dir to prevent path traversal"""
     try:
         base_path = os.path.abspath(base_dir)
@@ -165,14 +167,14 @@ def is_safe_path(file_path, base_dir):
 class MemoryManager:
     """Memory monitoring and management for efficient processing"""
     
-    def __init__(self, max_memory_percent=memory_config.DEFAULT_MEMORY_PERCENT_LIMIT):
+    def __init__(self, max_memory_percent: int = memory_config.DEFAULT_MEMORY_PERCENT_LIMIT) -> None:
         self.max_memory_percent = max_memory_percent
         self.available = PSUTIL_AVAILABLE
         if self.available:
             self.process = psutil.Process()
         self.lock = threading.Lock()
         
-    def get_memory_info(self):
+    def get_memory_info(self) -> Dict[str, float]:
         """Get current memory usage information"""
         if not self.available:
             # Fallback when psutil is not available
@@ -198,7 +200,7 @@ class MemoryManager:
             'process_vms_mb': process_memory.vms / constants.BYTES_PER_MB
         }
     
-    def get_optimal_workers(self, min_workers=performance_config.MIN_WORKERS, max_workers=None):
+    def get_optimal_workers(self, min_workers: int = performance_config.MIN_WORKERS, max_workers: Optional[int] = None) -> int:
         """Calculate optimal number of workers based on available memory"""
         if max_workers is None:
             max_workers = min(multiprocessing.cpu_count(), performance_config.DEFAULT_MAX_WORKERS)
@@ -223,7 +225,7 @@ class MemoryManager:
         
         return optimal_workers
     
-    def check_memory_pressure(self):
+    def check_memory_pressure(self) -> bool:
         """Check if system is under memory pressure"""
         memory_info = self.get_memory_info()
         return memory_info['system_used_percent'] > self.max_memory_percent
@@ -613,7 +615,7 @@ def process_chunk_parallel(chunk_info):
             'success': False
         }
 
-def format_timestamp(seconds):
+def format_timestamp(seconds: float) -> str:
     """Format seconds as HH:MM:SS"""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -621,7 +623,7 @@ def format_timestamp(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 # Load keywords from config file
-def load_keywords():
+def load_keywords() -> List[str]:
     keywords_file = 'config/keywords_config.json'
     try:
         with open(keywords_file, 'r') as f:
@@ -633,7 +635,7 @@ def load_keywords():
         save_keywords(default_keywords)
         return default_keywords
 
-def save_keywords(keywords):
+def save_keywords(keywords: List[str]) -> None:
     keywords_file = 'config/keywords_config.json'
     temp_file = keywords_file + '.tmp'
     
@@ -677,7 +679,7 @@ QUESTION_PATTERNS = [
 ]
 
 class VideoTranscriber:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = None
         # Memory-aware performance tuning
         self.max_workers = memory_manager.get_optimal_workers()
@@ -689,12 +691,12 @@ class VideoTranscriber:
                    f"System memory: {memory_info['system_total_gb']:.1f}GB total, "
                    f"{memory_info['system_available_gb']:.1f}GB available")
         
-    def load_model(self):
+    def load_model(self) -> Any:
         if self.model is None:
             self.model = whisper.load_model("small")
         return self.model
     
-    def split_video(self, input_path, output_dir, chunk_duration=None):
+    def split_video(self, input_path: str, output_dir: str, chunk_duration: Optional[int] = None) -> List[Dict[str, Union[str, int, float]]]:
         """Split video into chunks of specified duration (default 5 minutes) with parallel processing"""
         chunks = []
         
@@ -895,7 +897,7 @@ class VideoTranscriber:
         
         return analysis
     
-    def process_video(self, video_path, session_name="", original_filename=""):
+    def process_video(self, video_path: str, session_name: str = "", original_filename: str = "") -> Dict[str, Any]:
         """Complete video processing pipeline"""
         session_id, session_dir, metadata, results = self._initialize_session(session_name, original_filename)
         
@@ -911,7 +913,7 @@ class VideoTranscriber:
             progress_tracker.complete_session(session_id, success=False, message=error_message)
             raise
     
-    def _initialize_session(self, session_name="", original_filename=""):
+    def _initialize_session(self, session_name: str = "", original_filename: str = "") -> Tuple[str, str, Dict[str, Any], Dict[str, Any]]:
         """Initialize a new processing session"""
         # Create session directory
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -976,7 +978,7 @@ class VideoTranscriber:
                                        stage='analysis')
         results['analysis'] = self.analyze_content(results['full_transcript'], all_segments)
     
-    def _transcribe_chunks_parallel(self, session_id, session_dir, chunks):
+    def _transcribe_chunks_parallel(self, session_id: str, session_dir: str, chunks: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[str]]:
         """Transcribe video chunks in parallel"""
         all_segments = []
         all_text = []
@@ -1198,7 +1200,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 @handle_user_friendly_error
-def upload_file():
+def upload_file() -> Union[Response, Tuple[Response, int]]:
     if 'video' not in request.files:
         raise UserFriendlyError('unsupported_format', {'reason': 'No file uploaded'})
     
