@@ -63,9 +63,144 @@
             background-color: #f8f9ff;
         }
 
-        .upload-area.dragover {
+        .upload-area.dragover, .drag-feedback {
             border-color: #667eea;
             background-color: #f0f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-area.has-files {
+            border-color: #00b894;
+            background-color: #e6f7e6;
+        }
+
+        .file-queue {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .file-queue.visible {
+            display: block;
+        }
+
+        .file-queue h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .file-list {
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e1e5e9;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-right: 12px;
+            color: #667eea;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-preview {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-preview:hover {
+            background: #5a67d8;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+
+        .upload-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #667eea;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-batch {
+            flex: 1;
+            max-width: 150px;
         }
 
         .upload-icon {
@@ -176,6 +311,202 @@
             font-size: 1rem;
         }
 
+        .progress-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        .progress-detail {
+            text-align: center;
+        }
+
+        .progress-detail-label {
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+
+        .progress-detail-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .connection-status {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .connection-status.connected {
+            background: #e6f7e6;
+            color: #00b894;
+        }
+
+        .connection-status.disconnected {
+            background: #ffe6e6;
+            color: #d63031;
+        }
+
+        /* Video Preview Modal */
+        .video-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-preview-modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 800px;
+            max-height: 90vh;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .modal-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: #f1f1f1;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .preview-video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .video-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        .video-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .video-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .video-info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .video-info-value {
+            color: #666;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e1e5e9;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
         .features-section {
             margin-top: 40px;
             padding-top: 30px;
@@ -271,14 +602,33 @@
             <div class="upload-section">
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">📁</div>
-                    <div class="upload-text">Drop your video file here or click to browse</div>
-                    <div class="upload-hint">Supports MP4, AVI, MOV, and other common video formats</div>
-                    <input type="file" id="videoFile" name="video" accept="video/*" required>
+                    <div class="upload-text">Drop your video files here or click to browse</div>
+                    <div class="upload-hint">Supports MP4, AVI, MOV, and other common video formats • Up to 5 files • Max 2GB each</div>
+                    <input type="file" id="videoFile" name="video" accept="video/*" multiple>
                 </div>
                 
-                <div class="file-info" id="fileInfo">
-                    <div class="file-name" id="fileName"></div>
-                    <div class="file-size" id="fileSize"></div>
+                <div class="file-queue" id="fileQueue">
+                    <div class="upload-stats" id="uploadStats">
+                        <span id="fileCount">0 files selected</span>
+                        <span id="totalSize">0 MB total</span>
+                    </div>
+                    
+                    <h4>Upload Queue</h4>
+                    <div class="file-list" id="fileList">
+                        <!-- File items will be added here dynamically -->
+                    </div>
+                    
+                    <div class="batch-actions">
+                        <button type="button" class="submit-btn btn-batch add-files-button" id="addMoreFilesBtn">
+                            ➕ Add More Files
+                        </button>
+                        <button type="button" class="submit-btn btn-batch" id="clearAllBtn">
+                            🗑️ Clear All
+                        </button>
+                        <button type="submit" class="submit-btn btn-batch" id="processAllBtn" disabled>
+                            🚀 Process All Files
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -287,20 +637,78 @@
                 <input type="text" id="sessionName" name="session_name" placeholder="e.g., Week 1 Lecture, Data Analysis Session">
             </div>
             
-            <button type="submit" class="submit-btn" id="submitBtn" disabled>
-                🚀 Start Transcription
-            </button>
+            <!-- Multi-file processing is handled by the file queue buttons -->
         </form>
         
         <div class="progress-section" id="progressSection">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+            <div class="connection-status" id="connectionStatus">
+                🔌 Connecting to server...
+            </div>
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
             </div>
             <div class="status-text" id="statusText">Processing your video...</div>
+            <div class="progress-details" id="progressDetails" style="display: none;">
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Chunks Processed</div>
+                    <div class="progress-detail-value" id="chunksProgress">0/0</div>
+                </div>
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Time Remaining</div>
+                    <div class="progress-detail-value" id="timeRemaining">Calculating...</div>
+                </div>
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Current Stage</div>
+                    <div class="progress-detail-value" id="currentStage">Initializing</div>
+                </div>
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Session ID</div>
+                    <div class="progress-detail-value" id="sessionId">-</div>
+                </div>
+            </div>
         </div>
         
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
+        
+        <!-- Video Preview Modal -->
+        <div class="video-preview-modal" id="videoPreviewModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 id="previewTitle">Video Preview</h4>
+                    <button class="modal-close" id="closePreviewBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <video class="preview-video" id="previewVideo" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-info" id="previewInfo">
+                        <div class="video-info-row">
+                            <span class="video-info-label">Duration:</span>
+                            <span class="video-info-value" id="previewDuration">Loading...</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">File Size:</span>
+                            <span class="video-info-value" id="previewSize">-</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">Format:</span>
+                            <span class="video-info-value" id="previewFormat">-</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">Resolution:</span>
+                            <span class="video-info-value" id="previewResolution">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="cancelPreviewBtn">Close</button>
+                    <button class="btn-primary" id="processFileBtn">Process This File</button>
+                </div>
+            </div>
+        </div>
         
         <div class="features-section">
             <h3 class="features-title">✨ Features</h3>
@@ -329,138 +737,557 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
+        // DOM Elements
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('videoFile');
-        const submitBtn = document.getElementById('submitBtn');
         const uploadForm = document.getElementById('uploadForm');
+        const fileQueue = document.getElementById('fileQueue');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const totalSize = document.getElementById('totalSize');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const processAllBtn = document.getElementById('processAllBtn');
         const progressSection = document.getElementById('progressSection');
         const progressFill = document.getElementById('progressFill');
         const statusText = document.getElementById('statusText');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const progressDetails = document.getElementById('progressDetails');
+        const chunksProgress = document.getElementById('chunksProgress');
+        const timeRemaining = document.getElementById('timeRemaining');
+        const currentStage = document.getElementById('currentStage');
+        const sessionIdElement = document.getElementById('sessionId');
 
-        // File upload area interactions
-        uploadArea.addEventListener('click', () => fileInput.click());
-        
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                fileInput.files = files;
-                handleFileSelect();
+        // Multi-file upload state
+        let selectedFiles = [];
+        let processingQueue = [];
+        let currentlyProcessing = false;
+        let socket = null;
+        let currentSessionId = null;
+
+        // Configuration
+        const MAX_FILES = 5;
+        const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+        const ALLOWED_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
+
+        // Multi-file upload functionality
+        class MultiFileUploader {
+            constructor() {
+                this.setupEventListeners();
+                this.initializeSocket();
             }
-        });
 
-        fileInput.addEventListener('change', handleFileSelect);
-
-        function handleFileSelect() {
-            const file = fileInput.files[0];
-            if (file) {
-                fileName.textContent = file.name;
-                fileSize.textContent = formatFileSize(file.size);
-                fileInfo.style.display = 'block';
-                submitBtn.disabled = false;
-                hideMessages();
-            }
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function hideMessages() {
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            successMessage.style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            errorMessage.style.display = 'none';
-        }
-
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(uploadForm);
-            
-            // Show progress
-            progressSection.style.display = 'block';
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Processing...';
-            hideMessages();
-            
-            // Simulate progress
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 90) progress = 90;
-                progressFill.style.width = progress + '%';
+            setupEventListeners() {
+                // Upload area interactions
+                uploadArea.addEventListener('click', () => fileInput.click());
                 
-                if (progress < 30) {
-                    statusText.textContent = 'Splitting video into chunks...';
-                } else if (progress < 60) {
-                    statusText.textContent = 'Extracting audio from video chunks...';
-                } else if (progress < 85) {
-                    statusText.textContent = 'Transcribing audio with AI...';
-                } else {
-                    statusText.textContent = 'Analyzing content and generating insights...';
-                }
-            }, 500);
-            
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
                 });
                 
-                const result = await response.json();
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
                 
-                clearInterval(progressInterval);
-                progressFill.style.width = '100%';
-                statusText.textContent = 'Complete!';
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                // File input change
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                });
+
+                // Batch actions
+                clearAllBtn.addEventListener('click', () => this.clearAllFiles());
+                uploadForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
                 
-                if (result.success) {
-                    showSuccess(result.message);
-                    setTimeout(() => {
-                        window.location.href = `/results/${result.session_id}`;
-                    }, 2000);
-                } else {
-                    showError(result.error || 'An error occurred while processing your video.');
-                }
-            } catch (error) {
-                clearInterval(progressInterval);
-                showError('Failed to upload file. Please try again.');
-                console.error('Upload error:', error);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '🚀 Start Transcription';
+                // Add more files button
+                document.getElementById('addMoreFilesBtn').addEventListener('click', () => {
+                    fileInput.click();
+                });
             }
-        });
+
+            handleFiles(files) {
+                const filesArray = Array.from(files);
+                
+                for (const file of filesArray) {
+                    if (this.validateFile(file)) {
+                        this.addFile(file);
+                    }
+                }
+                
+                this.updateUI();
+            }
+
+            validateFile(file) {
+                // Check file count limit
+                if (selectedFiles.length >= MAX_FILES) {
+                    this.showError(`Maximum ${MAX_FILES} files allowed. Please remove some files first.`);
+                    return false;
+                }
+
+                // Check file size
+                if (file.size > MAX_FILE_SIZE) {
+                    this.showError(`File "${file.name}" is too large. Maximum size is 2GB.`);
+                    return false;
+                }
+
+                // Check file extension
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                    this.showError(`File "${file.name}" is not a supported video format. Supported: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                    return false;
+                }
+
+                // Check for duplicates
+                if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    this.showError(`File "${file.name}" is already in the queue.`);
+                    return false;
+                }
+
+                return true;
+            }
+
+            addFile(file) {
+                const fileObj = {
+                    id: Date.now() + Math.random(),
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    status: 'pending',
+                    progress: 0
+                };
+                
+                selectedFiles.push(fileObj);
+                this.hideMessages();
+            }
+
+            removeFile(fileId) {
+                selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+                this.updateUI();
+            }
+
+            clearAllFiles() {
+                selectedFiles = [];
+                this.updateUI();
+                this.hideMessages();
+            }
+
+            updateUI() {
+                // Update stats
+                fileCount.textContent = `${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''} selected`;
+                const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+                totalSize.textContent = `${this.formatFileSize(totalBytes)} total`;
+
+                // Show/hide file queue
+                if (selectedFiles.length > 0) {
+                    fileQueue.classList.add('visible');
+                    uploadArea.classList.add('has-files');
+                    processAllBtn.disabled = false;
+                } else {
+                    fileQueue.classList.remove('visible');
+                    uploadArea.classList.remove('has-files');
+                    processAllBtn.disabled = true;
+                }
+
+                // Update file list
+                this.renderFileList();
+            }
+
+            renderFileList() {
+                fileList.innerHTML = selectedFiles.map(fileObj => `
+                    <div class="file-item" data-id="${fileObj.id}">
+                        <div class="file-info">
+                            <div class="file-icon">🎬</div>
+                            <div class="file-details">
+                                <div class="file-name">${fileObj.name}</div>
+                                <div class="file-size">${this.formatFileSize(fileObj.size)}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="btn-preview" onclick="uploader.previewFile('${fileObj.id}')">
+                                👁️ Preview
+                            </button>
+                            <button type="button" class="btn-remove" onclick="uploader.removeFile('${fileObj.id}')" title="Remove file">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            previewFile(fileId) {
+                const fileObj = selectedFiles.find(f => f.id == fileId);
+                if (fileObj) {
+                    this.showVideoPreview(fileObj);
+                }
+            }
+
+            showVideoPreview(fileObj) {
+                const modal = document.getElementById('videoPreviewModal');
+                const previewVideo = document.getElementById('previewVideo');
+                const previewTitle = document.getElementById('previewTitle');
+                const previewSize = document.getElementById('previewSize');
+                const previewFormat = document.getElementById('previewFormat');
+                const previewDuration = document.getElementById('previewDuration');
+                const previewResolution = document.getElementById('previewResolution');
+                const processFileBtn = document.getElementById('processFileBtn');
+
+                // Set up modal content
+                previewTitle.textContent = `Preview: ${fileObj.name}`;
+                previewSize.textContent = this.formatFileSize(fileObj.size);
+                previewFormat.textContent = fileObj.file.type || 'Unknown';
+
+                // Create video URL
+                const videoUrl = URL.createObjectURL(fileObj.file);
+                previewVideo.src = videoUrl;
+
+                // Handle video metadata loading
+                previewVideo.addEventListener('loadedmetadata', () => {
+                    const duration = previewVideo.duration;
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = Math.floor(duration % 60);
+                    previewDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    const width = previewVideo.videoWidth;
+                    const height = previewVideo.videoHeight;
+                    previewResolution.textContent = width && height ? `${width} × ${height}` : 'Unknown';
+                }, { once: true });
+
+                // Set up modal event handlers
+                const closeModal = () => {
+                    modal.classList.remove('visible');
+                    previewVideo.pause();
+                    URL.revokeObjectURL(videoUrl);
+                    previewVideo.src = '';
+                };
+
+                document.getElementById('closePreviewBtn').onclick = closeModal;
+                document.getElementById('cancelPreviewBtn').onclick = closeModal;
+                
+                // Process individual file
+                processFileBtn.onclick = () => {
+                    closeModal();
+                    this.processSingleFile(fileObj);
+                };
+
+                // Close on background click
+                modal.onclick = (e) => {
+                    if (e.target === modal) closeModal();
+                };
+
+                // Show modal
+                modal.classList.add('visible');
+            }
+
+            async processSingleFile(fileObj) {
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+
+                currentlyProcessing = true;
+                this.showProgressSection();
+
+                const sessionName = document.getElementById('sessionName').value || 'single_file_upload';
+                
+                try {
+                    this.updateProgress({
+                        progress: 0,
+                        current_task: `Processing ${fileObj.name}...`,
+                        stage: 'upload',
+                        chunks_completed: 0,
+                        chunks_total: 0
+                    });
+
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('video', fileObj.file);
+                    formData.append('session_name', `${sessionName}_${fileObj.name.split('.')[0]}`);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        currentSessionId = result.session_id;
+                        sessionIdElement.textContent = currentSessionId;
+                        
+                        // Join WebSocket session
+                        if (socket && socket.connected) {
+                            socket.emit('join_session', { session_id: currentSessionId });
+                        }
+
+                        // Remove the processed file from queue
+                        this.removeFile(fileObj.id);
+                        
+                    } else {
+                        this.showError(`Failed to process ${fileObj.name}: ${result.error}`);
+                        this.onProcessingError();
+                    }
+
+                } catch (error) {
+                    this.showError(`Error processing ${fileObj.name}: ${error.message}`);
+                    this.onProcessingError();
+                }
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+            }
+
+            showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+            }
+
+            hideMessages() {
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+            }
+
+            async handleFormSubmit(e) {
+                e.preventDefault();
+                
+                if (selectedFiles.length === 0) {
+                    this.showError('Please select at least one video file.');
+                    return;
+                }
+
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+
+                currentlyProcessing = true;
+                processingQueue = [...selectedFiles];
+                
+                this.showProgressSection();
+                this.processNextFile();
+            }
+
+            showProgressSection() {
+                progressSection.style.display = 'block';
+                progressDetails.style.display = 'grid';
+                connectionStatus.style.display = 'block';
+                processAllBtn.disabled = true;
+                processAllBtn.textContent = '⏳ Processing...';
+                clearAllBtn.disabled = true;
+            }
+
+            async processNextFile() {
+                if (processingQueue.length === 0) {
+                    this.onAllFilesComplete();
+                    return;
+                }
+
+                const fileObj = processingQueue.shift();
+                const sessionName = document.getElementById('sessionName').value || 'multi_file_batch';
+                
+                try {
+                    this.updateProgress({
+                        progress: 0,
+                        current_task: `Starting processing of ${fileObj.name}...`,
+                        stage: 'upload',
+                        chunks_completed: 0,
+                        chunks_total: 0
+                    });
+
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('video', fileObj.file);
+                    formData.append('session_name', `${sessionName}_${fileObj.name.split('.')[0]}`);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        currentSessionId = result.session_id;
+                        sessionIdElement.textContent = currentSessionId;
+                        
+                        // Join WebSocket session
+                        if (socket && socket.connected) {
+                            socket.emit('join_session', { session_id: currentSessionId });
+                        }
+
+                        // Wait for processing to complete before moving to next file
+                        this.waitForCompletion();
+                        
+                    } else {
+                        this.showError(`Failed to process ${fileObj.name}: ${result.error}`);
+                        this.onProcessingError();
+                    }
+
+                } catch (error) {
+                    this.showError(`Error processing ${fileObj.name}: ${error.message}`);
+                    this.onProcessingError();
+                }
+            }
+
+            waitForCompletion() {
+                // This will be handled by WebSocket progress updates
+                // When we receive a 'completed' status, we'll call processNextFile()
+            }
+
+            onFileComplete() {
+                // Process next file in queue
+                setTimeout(() => this.processNextFile(), 1000);
+            }
+
+            onAllFilesComplete() {
+                currentlyProcessing = false;
+                processAllBtn.disabled = false;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+                
+                this.showSuccess(`Successfully processed all ${selectedFiles.length} files!`);
+                
+                // Optionally clear the queue
+                setTimeout(() => {
+                    this.clearAllFiles();
+                }, 3000);
+            }
+
+            onProcessingError() {
+                currentlyProcessing = false;
+                processAllBtn.disabled = false;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+            }
+            }
+
+            // WebSocket integration
+            initializeSocket() {
+                socket = io();
+                
+                socket.on('connect', () => {
+                    console.log('Connected to server');
+                    connectionStatus.textContent = '✅ Connected to server';
+                    connectionStatus.className = 'connection-status connected';
+                    if (progressSection.style.display === 'block') {
+                        connectionStatus.style.display = 'block';
+                    }
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    connectionStatus.textContent = '❌ Connection lost';
+                    connectionStatus.className = 'connection-status disconnected';
+                    connectionStatus.style.display = 'block';
+                });
+
+                socket.on('progress_update', (data) => {
+                    this.updateProgress(data);
+                });
+
+                socket.on('error', (data) => {
+                    console.error('Socket error:', data);
+                    this.showError(data.message || 'WebSocket error occurred');
+                });
+            }
+
+            updateProgress(data) {
+                console.log('Progress update:', data);
+                
+                // Update progress bar
+                if (data.progress !== undefined) {
+                    progressFill.style.width = data.progress + '%';
+                }
+                
+                // Update status text
+                if (data.current_task) {
+                    statusText.textContent = data.current_task;
+                }
+                
+                // Update chunks progress
+                if (data.chunks_total > 0) {
+                    chunksProgress.textContent = `${data.chunks_completed}/${data.chunks_total}`;
+                }
+                
+                // Update time remaining
+                if (data.estimated_time) {
+                    timeRemaining.textContent = this.formatTime(data.estimated_time);
+                } else if (data.progress === 100) {
+                    timeRemaining.textContent = 'Complete!';
+                }
+                
+                // Update current stage
+                if (data.stage) {
+                    currentStage.textContent = this.capitalizeFirst(data.stage.replace('_', ' '));
+                }
+                
+                // Handle completion
+                if (data.status === 'completed') {
+                    this.onFileComplete();
+                } else if (data.status === 'error') {
+                    this.showError(data.current_task || 'Processing failed');
+                    this.onProcessingError();
+                }
+            }
+
+            formatTime(seconds) {
+                if (seconds < 60) {
+                    return `${Math.ceil(seconds)}s`;
+                } else {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = Math.ceil(seconds % 60);
+                    return `${minutes}m ${remainingSeconds}s`;
+                }
+            }
+
+            capitalizeFirst(str) {
+                return str.charAt(0).toUpperCase() + str.slice(1);
+            }
+            
+            // Additional utility functions that tests expect
+            showPreview(fileId) {
+                return this.previewFile(fileId);
+            }
+            
+            processQueue() {
+                // Process all files in the queue
+                if (selectedFiles.length === 0) {
+                    this.showError('No files in queue to process.');
+                    return;
+                }
+                
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+                
+                // Start batch processing
+                this.handleFormSubmit({ preventDefault: () => {} });
+            }
+        }
+
+        // Initialize the multi-file uploader
+        const uploader = new MultiFileUploader();
     </script>
 </body>
 </html>
