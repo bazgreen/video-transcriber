@@ -302,6 +302,7 @@ class TestPerformanceAPI(unittest.TestCase):
         self.assertFalse(data['success'])
         self.assertIn('error', data)
         self.assertIn('Max workers must be between', data['error'])
+        self.assertIn('provided: 50', data['error'])
     
     def test_update_performance_settings_invalid_chunk_duration(self):
         """Test POST /api/performance with invalid chunk_duration"""
@@ -315,7 +316,8 @@ class TestPerformanceAPI(unittest.TestCase):
         self.assertIn('success', data)
         self.assertFalse(data['success'])
         self.assertIn('error', data)
-        self.assertEqual(data['error'], 'Chunk duration must be between 60 and 600 seconds')
+        self.assertIn('Chunk duration must be between 60 and 600 seconds', data['error'])
+        self.assertIn('provided: 30', data['error'])
     
     def test_update_performance_settings_no_data(self):
         """Test POST /api/performance with no data"""

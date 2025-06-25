@@ -1588,7 +1588,7 @@ def update_performance_settings():
             if 60 <= chunk_duration <= 600:  # 1-10 minutes
                 transcriber.chunk_duration = chunk_duration
             else:
-                return jsonify({'success': False, 'error': 'Chunk duration must be between 60 and 600 seconds'}), 400
+                return jsonify({'success': False, 'error': f'Chunk duration must be between 60 and 600 seconds (provided: {chunk_duration})'}), 400
         
         # Update max workers if provided
         if 'max_workers' in data:
@@ -1597,7 +1597,7 @@ def update_performance_settings():
             if 1 <= max_workers <= max_cpu_limit:
                 transcriber.max_workers = max_workers
             else:
-                return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit}'}), 400
+                return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit} (provided: {max_workers})'}), 400
         
         return jsonify({
             'success': True, 
