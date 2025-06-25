@@ -18,6 +18,8 @@ import multiprocessing
 import logging
 import functools
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from typing import Dict, List, Tuple, Optional, Union, Any
+from flask import Response
 
 # Optional memory monitoring
 try:
@@ -26,11 +28,116 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
+# === CONFIGURATION CLASSES ===
+
+class AppConfig:
+    """Centralized application configuration"""
+    
+    # File Upload Configuration
+    MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500MB max file size
+    ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
+    
+    # Directories
+    UPLOAD_FOLDER = 'uploads'
+    RESULTS_FOLDER = 'results'
+    TEMPLATES_FOLDER = 'templates'
+    
+    # Security
+    SECRET_KEY = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')
+
+class MemoryConfig:
+    """Memory management configuration"""
+    
+    # Memory Limits
+    DEFAULT_MEMORY_PERCENT_LIMIT = 75
+    MEMORY_PER_WORKER_GB = 0.6
+    SYSTEM_MEMORY_RESERVE_GB = 2.0
+    
+    # Conservative Fallback Values (when psutil unavailable)
+    CONSERVATIVE_SYSTEM_TOTAL_GB = 8.0
+    CONSERVATIVE_SYSTEM_AVAILABLE_GB = 4.0
+    CONSERVATIVE_SYSTEM_USED_PERCENT = 50.0
+    CONSERVATIVE_PROCESS_RSS_MB = 100.0
+    CONSERVATIVE_PROCESS_VMS_MB = 200.0
+
+class VideoConfig:
+    """Video processing configuration"""
+    
+    # Chunk Duration Settings
+    DEFAULT_CHUNK_DURATION_SECONDS = 300  # 5 minutes
+    MIN_CHUNK_DURATION_SECONDS = 60      # 1 minute
+    MAX_CHUNK_DURATION_SECONDS = 600     # 10 minutes
+    DEFAULT_OVERLAP_SECONDS = 0
+    
+    # Adaptive Chunking Thresholds
+    SHORT_VIDEO_THRESHOLD = 600          # 10 minutes
+    LONG_VIDEO_THRESHOLD = 3600          # 60 minutes
+    SHORT_VIDEO_CHUNK_LIMIT = 180        # 3 minutes for short videos
+    LONG_VIDEO_CHUNK_LIMIT = 420         # 7 minutes for long videos
+    
+    # Audio Processing
+    AUDIO_SAMPLE_RATE = 16000
+    AUDIO_CHANNELS = 1
+    AUDIO_CODEC = 'pcm_s16le'
+    
+    # Whisper Model
+    WHISPER_MODEL = 'small'
+
+class PerformanceConfig:
+    """Performance and parallelization configuration"""
+    
+    # Worker Limits
+    MIN_WORKERS = 1
+    MAX_WORKERS_LIMIT = 14
+    DEFAULT_MAX_WORKERS = 4
+    
+    # Progress Monitoring
+    MEMORY_CHECK_INTERVAL = 4  # Check memory every 25% of chunks (len(chunks) // 4)
+
+class AnalysisConfig:
+    """Content analysis configuration"""
+    
+    # Text Analysis
+    CONTEXT_WINDOW_CHARS = 50
+    MIN_KEYWORD_LENGTH = 2
+    
+    # Pattern Detection
+    QUESTION_PATTERNS = [
+        r'\?',
+        r'\bwhat\b', r'\bhow\b', r'\bwhy\b', r'\bwhen\b', r'\bwhere\b', r'\bwho\b'
+    ]
+    
+    EMPHASIS_PATTERNS = [
+        r'\bmake sure\b', r'\bdon\'t forget\b', r'\bremember\b', r'\bimportant\b',
+        r'\bnote that\b', r'\bpay attention\b', r'\bkeep in mind\b'
+    ]
+
+class Constants:
+    """General constants and conversions"""
+    
+    # Time Conversions
+    SECONDS_PER_MINUTE = 60
+    MINUTES_PER_HOUR = 60
+    MILLISECONDS_PER_SECOND = 1000
+    
+    # Data Size Conversions
+    BYTES_PER_KB = 1024
+    BYTES_PER_MB = 1024 * 1024
+    BYTES_PER_GB = 1024 * 1024 * 1024
+
+# Create global config instances for easy access
+config = AppConfig()
+memory_config = MemoryConfig()
+video_config = VideoConfig()
+performance_config = PerformanceConfig()
+analysis_config = AnalysisConfig()
+constants = Constants()
+
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['RESULTS_FOLDER'] = 'results'
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'video-transcriber-secret-key')  # For SocketIO
+app.config['MAX_CONTENT_LENGTH'] = config.MAX_FILE_SIZE_BYTES
+app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
+app.config['RESULTS_FOLDER'] = config.RESULTS_FOLDER
+app.config['SECRET_KEY'] = config.SECRET_KEY
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -43,14 +150,12 @@ logger = logging.getLogger(__name__)
 if not PSUTIL_AVAILABLE:
     logger.warning("psutil not available - memory monitoring will use conservative estimates")
 
-# Security constants
-ALLOWED_FILE_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
 
-def is_valid_session_id(session_id):
+def is_valid_session_id(session_id: str) -> bool:
     """Validate session_id to prevent path traversal attacks"""
     return bool(re.match(r'^[a-zA-Z0-9_-]+$', session_id))
 
-def is_safe_path(file_path, base_dir):
+def is_safe_path(file_path: str, base_dir: str) -> bool:
     """Check if file_path is within base_dir to prevent path traversal"""
     try:
         base_path = os.path.abspath(base_dir)
@@ -62,23 +167,23 @@ def is_safe_path(file_path, base_dir):
 class MemoryManager:
     """Memory monitoring and management for efficient processing"""
     
-    def __init__(self, max_memory_percent=75):
+    def __init__(self, max_memory_percent: int = memory_config.DEFAULT_MEMORY_PERCENT_LIMIT) -> None:
         self.max_memory_percent = max_memory_percent
         self.available = PSUTIL_AVAILABLE
         if self.available:
             self.process = psutil.Process()
         self.lock = threading.Lock()
         
-    def get_memory_info(self):
+    def get_memory_info(self) -> Dict[str, float]:
         """Get current memory usage information"""
         if not self.available:
             # Fallback when psutil is not available
             return {
-                'system_total_gb': 8.0,  # Conservative estimate
-                'system_available_gb': 4.0,  # Conservative estimate
-                'system_used_percent': 50.0,  # Conservative estimate
-                'process_rss_mb': 100.0,  # Conservative estimate
-                'process_vms_mb': 200.0   # Conservative estimate
+                'system_total_gb': memory_config.CONSERVATIVE_SYSTEM_TOTAL_GB,
+                'system_available_gb': memory_config.CONSERVATIVE_SYSTEM_AVAILABLE_GB,
+                'system_used_percent': memory_config.CONSERVATIVE_SYSTEM_USED_PERCENT,
+                'process_rss_mb': memory_config.CONSERVATIVE_PROCESS_RSS_MB,
+                'process_vms_mb': memory_config.CONSERVATIVE_PROCESS_VMS_MB
             }
             
         # System memory
@@ -88,29 +193,28 @@ class MemoryManager:
         process_memory = self.process.memory_info()
         
         return {
-            'system_total_gb': system_memory.total / (1024**3),
-            'system_available_gb': system_memory.available / (1024**3),
+            'system_total_gb': system_memory.total / constants.BYTES_PER_GB,
+            'system_available_gb': system_memory.available / constants.BYTES_PER_GB,
             'system_used_percent': system_memory.percent,
-            'process_rss_mb': process_memory.rss / (1024**2),
-            'process_vms_mb': process_memory.vms / (1024**2)
+            'process_rss_mb': process_memory.rss / constants.BYTES_PER_MB,
+            'process_vms_mb': process_memory.vms / constants.BYTES_PER_MB
         }
     
-    def get_optimal_workers(self, min_workers=1, max_workers=None):
+    def get_optimal_workers(self, min_workers: int = performance_config.MIN_WORKERS, max_workers: Optional[int] = None) -> int:
         """Calculate optimal number of workers based on available memory"""
         if max_workers is None:
-            max_workers = min(multiprocessing.cpu_count(), 4)
+            max_workers = min(multiprocessing.cpu_count(), performance_config.DEFAULT_MAX_WORKERS)
             
         memory_info = self.get_memory_info()
         
         # Estimate memory per worker (Whisper model + processing overhead)
-        # Conservative estimate: 600MB per worker (500MB model + 100MB overhead)
-        memory_per_worker_gb = 0.6
+        memory_per_worker_gb = memory_config.MEMORY_PER_WORKER_GB
         
-        # Available memory for workers (reserve 2GB for system + main process)
-        available_for_workers_gb = memory_info['system_available_gb'] - 2.0
+        # Available memory for workers (reserve memory for system + main process)
+        available_for_workers_gb = memory_info['system_available_gb'] - memory_config.SYSTEM_MEMORY_RESERVE_GB
         
         # Calculate max workers based on memory
-        memory_based_workers = max(1, int(available_for_workers_gb / memory_per_worker_gb))
+        memory_based_workers = max(performance_config.MIN_WORKERS, int(available_for_workers_gb / memory_per_worker_gb))
         
         # Take minimum of CPU-based and memory-based limits
         optimal_workers = min(max_workers, memory_based_workers, multiprocessing.cpu_count())
@@ -121,7 +225,7 @@ class MemoryManager:
         
         return optimal_workers
     
-    def check_memory_pressure(self):
+    def check_memory_pressure(self) -> bool:
         """Check if system is under memory pressure"""
         memory_info = self.get_memory_info()
         return memory_info['system_used_percent'] > self.max_memory_percent
@@ -150,31 +254,31 @@ class ProgressiveFileManager:
             
             # Progressive cleanup: remove oldest files if we exceed limit
             if len(self.temp_files) > self.max_temp_files:
-                self._cleanup_oldest_files(keep_recent=self.max_temp_files)
+                self._cleanup_oldest_files(keep_recent_count=self.max_temp_files)
     
-    def get_file_size(self, file_path):
+    def get_file_size(self, file_path: str) -> int:
         """Get file size safely"""
         try:
             return os.path.getsize(file_path) if os.path.exists(file_path) else 0
         except OSError:
             return 0
     
-    def _cleanup_oldest_files(self, keep_recent=10):
+    def _cleanup_oldest_files(self, keep_recent_count: int = 10) -> None:
         """Clean up oldest temporary files"""
-        if len(self.temp_files) <= keep_recent:
+        if len(self.temp_files) <= keep_recent_count:
             return
             
         # Sort by timestamp (oldest first)
         self.temp_files.sort(key=lambda x: x['timestamp'])
         
-        files_to_remove = self.temp_files[:-keep_recent]
-        self.temp_files = self.temp_files[-keep_recent:]
+        files_to_remove = self.temp_files[:-keep_recent_count]
+        self.temp_files = self.temp_files[-keep_recent_count:]
         
         # Remove old files
         for file_info in files_to_remove:
             self._safe_remove_file(file_info['path'])
     
-    def _safe_remove_file(self, file_path):
+    def _safe_remove_file(self, file_path: str) -> None:
         """Safely remove a file with logging"""
         try:
             if os.path.exists(file_path):
@@ -185,7 +289,7 @@ class ProgressiveFileManager:
         except OSError as e:
             logger.warning(f"Failed to remove temp file {file_path}: {e}")
     
-    def cleanup_all(self):
+    def cleanup_all(self) -> None:
         """Clean up all tracked temporary files"""
         with self.lock:
             total_size = 0
@@ -473,7 +577,7 @@ def process_chunk_parallel(chunk_info):
         (
             ffmpeg
             .input(chunk_path)
-            .output(audio_path, acodec='pcm_s16le', ac=1, ar='16000')
+            .output(audio_path, acodec=video_config.AUDIO_CODEC, ac=video_config.AUDIO_CHANNELS, ar=str(video_config.AUDIO_SAMPLE_RATE))
             .overwrite_output()
             .run(quiet=True)
         )
@@ -511,7 +615,7 @@ def process_chunk_parallel(chunk_info):
             'success': False
         }
 
-def format_timestamp(seconds):
+def format_timestamp(seconds: float) -> str:
     """Format seconds as HH:MM:SS"""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -519,7 +623,7 @@ def format_timestamp(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 # Load keywords from config file
-def load_keywords():
+def load_keywords() -> List[str]:
     keywords_file = 'config/keywords_config.json'
     try:
         with open(keywords_file, 'r') as f:
@@ -531,7 +635,7 @@ def load_keywords():
         save_keywords(default_keywords)
         return default_keywords
 
-def save_keywords(keywords):
+def save_keywords(keywords: List[str]) -> None:
     keywords_file = 'config/keywords_config.json'
     temp_file = keywords_file + '.tmp'
     
@@ -547,6 +651,41 @@ def save_keywords(keywords):
         if os.path.exists(temp_file):
             os.remove(temp_file)
         raise e
+
+def parse_session_metadata(session_folder: str, session_path: str) -> Dict[str, str]:
+    """Parse session metadata from folder name for legacy sessions without metadata.json
+    
+    Args:
+        session_folder: The session folder name (e.g., 'MySession_20231225_143000')
+        session_path: Full path to the session folder
+        
+    Returns:
+        Dictionary containing session metadata with keys:
+        - session_id, session_name, original_filename, created_at, status
+    """
+    # Legacy session without metadata - try to extract session name from folder
+    session_name = ''
+    original_filename = 'Unknown'
+    
+    # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
+    parts = session_folder.split('_')
+    if len(parts) >= 3:
+        # Check if last two parts look like date and time
+        if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
+            len(parts[-1]) == 6 and parts[-1].isdigit()):
+            # Extract session name (everything except the last two parts)
+            session_name = '_'.join(parts[:-2])
+            # Guess original filename based on session name
+            if session_name:
+                original_filename = f"{session_name.split('_')[-1]}.mp4"
+    
+    return {
+        'session_id': session_folder,
+        'session_name': session_name,
+        'original_filename': original_filename,
+        'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
+        'status': 'completed'
+    }
 
 # Keywords for content analysis
 CUSTOM_KEYWORDS = load_keywords()
@@ -575,11 +714,11 @@ QUESTION_PATTERNS = [
 ]
 
 class VideoTranscriber:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = None
         # Memory-aware performance tuning
         self.max_workers = memory_manager.get_optimal_workers()
-        self.chunk_duration = 300  # 5 minutes default, can be adjusted for performance
+        self.chunk_duration = video_config.DEFAULT_CHUNK_DURATION_SECONDS  # Default chunk duration, can be adjusted for performance
         
         # Log memory and worker configuration
         memory_info = memory_manager.get_memory_info()
@@ -587,12 +726,12 @@ class VideoTranscriber:
                    f"System memory: {memory_info['system_total_gb']:.1f}GB total, "
                    f"{memory_info['system_available_gb']:.1f}GB available")
         
-    def load_model(self):
+    def load_model(self) -> Any:
         if self.model is None:
-            self.model = whisper.load_model("small")
+            self.model = whisper.load_model(video_config.WHISPER_MODEL)
         return self.model
     
-    def split_video(self, input_path, output_dir, chunk_duration=None):
+    def split_video(self, input_path: str, output_dir: str, chunk_duration: Optional[int] = None) -> List[Dict[str, Union[str, int, float]]]:
         """Split video into chunks of specified duration (default 5 minutes) with parallel processing"""
         chunks = []
         
@@ -628,10 +767,10 @@ class VideoTranscriber:
         
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
-        if duration < 600:  # Less than 10 minutes
-            chunk_duration = min(chunk_duration, 180)  # 3 minutes max
-        elif duration > 3600:  # More than 1 hour
-            chunk_duration = min(chunk_duration, 420)  # 7 minutes max
+        if duration < video_config.SHORT_VIDEO_THRESHOLD:
+            chunk_duration = min(chunk_duration, video_config.SHORT_VIDEO_CHUNK_LIMIT)
+        elif duration > video_config.LONG_VIDEO_THRESHOLD:
+            chunk_duration = min(chunk_duration, video_config.LONG_VIDEO_CHUNK_LIMIT)
         
         # Calculate number of chunks
         num_chunks = math.ceil(duration / chunk_duration)
@@ -691,7 +830,7 @@ class VideoTranscriber:
         (
             ffmpeg
             .input(video_path)
-            .output(audio_path, acodec='pcm_s16le', ac=1, ar='16000')
+            .output(audio_path, acodec=video_config.AUDIO_CODEC, ac=video_config.AUDIO_CHANNELS, ar=str(video_config.AUDIO_SAMPLE_RATE))
             .overwrite_output()
             .run(quiet=True)
         )
@@ -751,7 +890,7 @@ class VideoTranscriber:
         
         # Keyword analysis
         for keyword in CUSTOM_KEYWORDS:
-            pattern = re.compile(r'.{0,50}' + re.escape(keyword) + r'.{0,50}', re.IGNORECASE)
+            pattern = re.compile(f'.{{0,{analysis_config.CONTEXT_WINDOW_CHARS}}}' + re.escape(keyword) + f'.{{0,{analysis_config.CONTEXT_WINDOW_CHARS}}}', re.IGNORECASE)
             matches = pattern.findall(text)
             if matches:
                 analysis['keyword_matches'].append({
@@ -793,8 +932,24 @@ class VideoTranscriber:
         
         return analysis
     
-    def process_video(self, video_path, session_name="", original_filename=""):
+    def process_video(self, video_path: str, session_name: str = "", original_filename: str = "") -> Dict[str, Any]:
         """Complete video processing pipeline"""
+        session_id, session_dir, metadata, results = self._initialize_session(session_name, original_filename)
+        
+        try:
+            self._process_video_chunks(video_path, session_id, session_dir, results)
+            self._finalize_session(session_id, session_dir, metadata, results)
+            return results
+            
+        except Exception as e:
+            # Handle errors and update progress
+            error_message = f"Processing failed: {str(e)}"
+            logger.error(error_message)
+            progress_tracker.complete_session(session_id, success=False, message=error_message)
+            raise
+    
+    def _initialize_session(self, session_name: str = "", original_filename: str = "") -> Tuple[str, str, Dict[str, Any], Dict[str, Any]]:
+        """Initialize a new processing session"""
         # Create session directory
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         if session_name:
@@ -821,161 +976,163 @@ class VideoTranscriber:
             'html_file': None
         }
         
-        try:
-            # Initialize progress tracking
-            progress_tracker.start_session(session_id)
-            progress_tracker.update_progress(session_id, 
-                                           current_task="Analyzing video file...", 
-                                           progress=5,
-                                           stage='analysis')
+        return session_id, session_dir, metadata, results
+    
+    def _process_video_chunks(self, video_path, session_id, session_dir, results):
+        """Process video chunks and transcribe them"""
+        # Initialize progress tracking
+        progress_tracker.start_session(session_id)
+        progress_tracker.update_progress(session_id, 
+                                       current_task="Analyzing video file...", 
+                                       progress=5,
+                                       stage='analysis')
+        
+        # Split video into chunks
+        chunks = self.split_video(video_path, session_dir)
+        
+        # Update progress after video splitting
+        progress_tracker.start_session(session_id, 
+                                     total_chunks=len(chunks),
+                                     video_duration=self.get_video_duration(video_path))
+        progress_tracker.update_progress(session_id,
+                                       current_task=f"Video split into {len(chunks)} chunks. Starting transcription...",
+                                       progress=15,
+                                       stage='preparation')
+        
+        # Process chunks and combine results
+        all_segments, all_text = self._transcribe_chunks_parallel(session_id, session_dir, chunks)
+        
+        # Store results
+        results['chunks'] = all_segments
+        results['full_transcript'] = '\n'.join(all_text)
+        
+        # Analyze content
+        progress_tracker.update_progress(session_id,
+                                       current_task="Analyzing content for keywords and insights...",
+                                       progress=90,
+                                       stage='analysis')
+        results['analysis'] = self.analyze_content(results['full_transcript'], all_segments)
+    
+    def _transcribe_chunks_parallel(self, session_id: str, session_dir: str, chunks: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """Transcribe video chunks in parallel"""
+        all_segments = []
+        all_text = []
+        
+        # Process chunks in parallel
+        chunk_info_list = []
+        for chunk in chunks:
+            audio_path = os.path.join(session_dir, f"{os.path.splitext(chunk['filename'])[0]}.wav")
+            chunk_info_list.append((
+                chunk['path'],
+                audio_path,
+                chunk['start_time'],
+                chunk['filename']
+            ))
+        
+        # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
+        completed_chunks = []
+        
+        # Dynamic memory-aware worker calculation
+        memory_info = memory_manager.get_memory_info()
+        optimal_workers = memory_manager.get_optimal_workers(max_workers=self.max_workers)
+        num_workers = min(optimal_workers, len(chunks))
+        
+        logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers "
+                   f"(Memory: {memory_info['system_used_percent']:.1f}% used, "
+                   f"{memory_info['system_available_gb']:.1f}GB available)")
+        
+        with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
+            # Submit all chunk processing tasks
+            futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
             
-            # Split video into chunks
-            chunks = self.split_video(video_path, session_dir)
-            
-            # Update progress after video splitting
-            progress_tracker.start_session(session_id, 
-                                         total_chunks=len(chunks),
-                                         video_duration=self.get_video_duration(video_path))
-            progress_tracker.update_progress(session_id,
-                                           current_task=f"Video split into {len(chunks)} chunks. Starting transcription...",
-                                           progress=15,
-                                           stage='preparation')
-            
-            all_segments = []
-            all_text = []
-            
-            # Process chunks in parallel
-            chunk_info_list = []
-            for chunk in chunks:
-                audio_path = os.path.join(session_dir, f"{os.path.splitext(chunk['filename'])[0]}.wav")
-                chunk_info_list.append((
-                    chunk['path'],
-                    audio_path,
-                    chunk['start_time'],
-                    chunk['filename']
-                ))
-            
-            # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
-            completed_chunks = []
-            
-            # Dynamic memory-aware worker calculation
-            memory_info = memory_manager.get_memory_info()
-            optimal_workers = memory_manager.get_optimal_workers(max_workers=self.max_workers)
-            num_workers = min(optimal_workers, len(chunks))
-            
-            logger.info(f"Processing {len(chunks)} chunks in parallel using {num_workers} workers "
-                       f"(Memory: {memory_info['system_used_percent']:.1f}% used, "
-                       f"{memory_info['system_available_gb']:.1f}GB available)")
-            
-            with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker) as executor:
-                # Submit all chunk processing tasks
-                futures = {executor.submit(process_chunk_parallel, chunk_info): chunk_info for chunk_info in chunk_info_list}
-                
-                # Collect results as they complete with memory monitoring
-                for i, future in enumerate(as_completed(futures)):
-                    try:
-                        result = future.result()
-                        if result['success']:
-                            completed_chunks.append(result)
-                            
-                            # Update progress for each completed chunk
-                            progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
-                                                                 f"Transcribed {result['filename']}")
-                            
-                            # Periodic memory monitoring (every 25% of chunks)
-                            if (i + 1) % max(1, len(chunks) // 4) == 0:
-                                current_memory = memory_manager.get_memory_info()
-                                logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
-                                           f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
-                                           f"{current_memory['system_used_percent']:.1f}% system)")
-                                
-                                # Check for memory pressure
-                                if memory_manager.check_memory_pressure():
-                                    logger.warning(f"High memory usage detected: {current_memory['system_used_percent']:.1f}%")
-                            else:
-                                logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
-                        else:
-                            logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
-                            # Update progress even for failed chunks
-                            progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
-                                                                 f"Error in {result['filename']}")
-                    except Exception as e:
-                        logger.error(f"Exception processing chunk: {e}")
-                        # Update progress for exception cases
+            # Collect results as they complete with memory monitoring
+            for i, future in enumerate(as_completed(futures)):
+                try:
+                    result = future.result()
+                    if result['success']:
+                        completed_chunks.append(result)
+                        
+                        # Update progress for each completed chunk
                         progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
-                                                             f"Exception processing chunk")
-            
-            # Sort results by start time to maintain order
-            completed_chunks.sort(key=lambda x: x['start_time'])
-            
-            # Update progress for final processing stages
-            progress_tracker.update_progress(session_id,
-                                           current_task="Combining transcription results...",
-                                           progress=85,
-                                           stage='post_processing')
-            
-            # Combine results
-            for chunk_result in completed_chunks:
-                all_segments.extend(chunk_result['segments'])
-                all_text.append(f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}")
-                results['chunks'].append(chunk_result)
-            
-            # Combine all text
-            results['full_transcript'] = '\n'.join(all_text)
-            
-            # Update progress for analysis
-            progress_tracker.update_progress(session_id,
-                                           current_task="Analyzing content for keywords and insights...",
-                                           progress=90,
-                                           stage='analysis')
-            
-            # Analyze complete content
-            results['analysis'] = self.analyze_content(results['full_transcript'], all_segments)
-            
-            # Update metadata with final stats
-            metadata.update({
-                'status': 'completed',
-                'total_chunks': len(chunks),
-                'total_words': results['analysis']['total_words'],
-                'keywords_found': len(results['analysis']['keyword_matches']),
-                'questions_found': len(results['analysis']['questions']),
-                'emphasis_cues_found': len(results['analysis']['emphasis_cues']),
-                'processing_time': (datetime.now() - datetime.fromisoformat(metadata['created_at'])).total_seconds()
-            })
-            
-            # Save metadata
-            with open(os.path.join(session_dir, 'metadata.json'), 'w') as f:
-                json.dump(metadata, f, indent=2)
-            
-            # Update progress for final generation
-            progress_tracker.update_progress(session_id,
-                                           current_task="Generating output files...",
-                                           progress=95,
-                                           stage='finalization')
-            
-            # Generate outputs
-            self.save_results(results)
-            results['html_file'] = self.generate_html_transcript(results)
-            results['metadata'] = metadata
-            
-            # Complete progress tracking
-            progress_tracker.complete_session(session_id, success=True, 
-                                            message=f"Processing complete! Transcribed {len(chunks)} chunks, found {results['analysis']['total_words']} words.")
-            
-            # Clean up all temporary files using progressive file manager
-            cleanup_stats = file_manager.get_cleanup_stats()
-            logger.info(f"Final cleanup: {cleanup_stats['count']} temp files, "
-                       f"{cleanup_stats['total_size_mb']:.1f}MB")
-            file_manager.cleanup_all()
-            
-            return results
-            
-        except Exception as e:
-            # Handle errors and update progress
-            error_message = f"Processing failed: {str(e)}"
-            logger.error(error_message)
-            progress_tracker.complete_session(session_id, success=False, message=error_message)
-            raise
+                                                             f"Transcribed {result['filename']}")
+                        
+                        # Periodic memory monitoring (every 25% of chunks)
+                        if (i + 1) % max(1, len(chunks) // 4) == 0:
+                            current_memory = memory_manager.get_memory_info()
+                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
+                                       f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
+                                       f"{current_memory['system_used_percent']:.1f}% system)")
+                            
+                            # Check for memory pressure
+                            if memory_manager.check_memory_pressure():
+                                logger.warning(f"High memory usage detected: {current_memory['system_used_percent']:.1f}%")
+                        else:
+                            logger.info(f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}")
+                    else:
+                        logger.error(f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}")
+                        # Update progress even for failed chunks
+                        progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
+                                                             f"Error in {result['filename']}")
+                except Exception as e:
+                    logger.error(f"Exception processing chunk: {e}")
+                    # Update progress for exception cases
+                    progress_tracker.update_chunk_progress(session_id, i + 1, len(chunks), 
+                                                         f"Exception processing chunk")
+        
+        # Sort results by start time to maintain order
+        completed_chunks.sort(key=lambda x: x['start_time'])
+        
+        # Update progress for final processing stages
+        progress_tracker.update_progress(session_id,
+                                       current_task="Combining transcription results...",
+                                       progress=85,
+                                       stage='post_processing')
+        
+        # Combine results
+        for chunk_result in completed_chunks:
+            all_segments.extend(chunk_result['segments'])
+            all_text.append(f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}")
+        
+        return all_segments, all_text
+    
+    def _finalize_session(self, session_id, session_dir, metadata, results):
+        """Finalize session processing and generate outputs"""
+        # Update metadata with final stats
+        chunks_count = len(results['chunks'])
+        metadata.update({
+            'status': 'completed',
+            'total_chunks': chunks_count,
+            'total_words': results['analysis']['total_words'],
+            'keywords_found': len(results['analysis']['keyword_matches']),
+            'questions_found': len(results['analysis']['questions']),
+            'emphasis_cues_found': len(results['analysis']['emphasis_cues']),
+            'processing_time': (datetime.now() - datetime.fromisoformat(metadata['created_at'])).total_seconds()
+        })
+        
+        # Save metadata
+        with open(os.path.join(session_dir, 'metadata.json'), 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        # Update progress for final generation
+        progress_tracker.update_progress(session_id,
+                                       current_task="Generating output files...",
+                                       progress=95,
+                                       stage='finalization')
+        
+        # Generate outputs
+        self.save_results(results)
+        results['html_file'] = self.generate_html_transcript(results)
+        results['metadata'] = metadata
+        
+        # Complete progress tracking
+        progress_tracker.complete_session(session_id, success=True, 
+                                        message=f"Processing complete! Transcribed {chunks_count} chunks, found {results['analysis']['total_words']} words.")
+        
+        # Clean up all temporary files using progressive file manager
+        cleanup_stats = file_manager.get_cleanup_stats()
+        logger.info(f"Final cleanup: {cleanup_stats['count']} temp files, "
+                   f"{cleanup_stats['total_size_mb']:.1f}MB")
+        file_manager.cleanup_all()
     
     def save_results(self, results):
         """Save transcription results to files"""
@@ -1010,71 +1167,8 @@ class VideoTranscriber:
                 f.write(f"[{cue['timestamp']}] {cue['text']}\n\n")
     
     def generate_html_transcript(self, results):
-        """Generate searchable HTML transcript"""
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Transcript - {results['session_id']}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
-                .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-                .search-box {{ margin-bottom: 20px; }}
-                .search-box input {{ width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }}
-                .filters {{ margin-bottom: 20px; }}
-                .filter-btn {{ padding: 8px 16px; margin: 4px; border: none; border-radius: 4px; cursor: pointer; }}
-                .filter-btn.active {{ background-color: #007bff; color: white; }}
-                .filter-btn:not(.active) {{ background-color: #e9ecef; color: #495057; }}
-                .segment {{ margin-bottom: 15px; padding: 10px; border-left: 3px solid #dee2e6; }}
-                .segment.highlight {{ border-left-color: #ffc107; background-color: #fff3cd; }}
-                .segment.question {{ border-left-color: #17a2b8; background-color: #d1ecf1; }}
-                .segment.emphasis {{ border-left-color: #dc3545; background-color: #f8d7da; }}
-                .timestamp {{ font-weight: bold; color: #6c757d; margin-right: 10px; }}
-                .keyword {{ background-color: #ffeb3b; padding: 2px 4px; border-radius: 2px; }}
-                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }}
-                .stat-card {{ background: #f8f9fa; padding: 15px; border-radius: 4px; text-align: center; }}
-                .hidden {{ display: none; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Video Transcript Analysis</h1>
-                <p><strong>Session:</strong> {results['session_id']}</p>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['keyword_matches'])}</h3>
-                        <p>Keywords Found</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['questions'])}</h3>
-                        <p>Questions Detected</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{len(results['analysis']['emphasis_cues'])}</h3>
-                        <p>Emphasis Cues</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>{results['analysis']['total_words']}</h3>
-                        <p>Total Words</p>
-                    </div>
-                </div>
-                
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search transcript...">
-                </div>
-                
-                <div class="filters">
-                    <button class="filter-btn active" onclick="filterSegments('all')">All</button>
-                    <button class="filter-btn" onclick="filterSegments('keywords')">Keywords</button>
-                    <button class="filter-btn" onclick="filterSegments('questions')">Questions</button>
-                    <button class="filter-btn" onclick="filterSegments('emphasis')">Emphasis</button>
-                </div>
-                
-                <div id="transcript">
-        """
-        
-        # Add all segments
+        """Generate searchable HTML transcript using template"""
+        # Prepare all segments with metadata
         all_segments = []
         for chunk in results['chunks']:
             all_segments.extend(chunk['segments'])
@@ -1086,73 +1180,44 @@ class VideoTranscriber:
         question_times = {q['start'] for q in results['analysis']['questions']}
         emphasis_times = {e['start'] for e in results['analysis']['emphasis_cues']}
         
+        # Process segments for template
+        processed_segments = []
         for segment in all_segments:
             classes = ['segment']
+            types = []
+            
             if segment['start'] in question_times:
                 classes.append('question')
+                types.append('question')
             if segment['start'] in emphasis_times:
                 classes.append('emphasis')
+                types.append('emphasis')
             
             # Highlight keywords
             text = segment['text']
+            has_keywords = False
             for keyword in CUSTOM_KEYWORDS:
                 pattern = re.compile(re.escape(keyword), re.IGNORECASE)
                 text = pattern.sub(f'<span class="keyword">{keyword}</span>', text)
                 if pattern.search(segment['text']):
-                    classes.append('highlight')
+                    has_keywords = True
             
-            html_content += f'''
-                    <div class="{' '.join(classes)}" data-type="{' '.join(classes[1:]) if len(classes) > 1 else 'normal'}">
-                        <span class="timestamp">{segment['timestamp_str']}</span>
-                        {text}
-                    </div>
-            '''
+            if has_keywords:
+                classes.append('highlight')
+                types.append('highlight')
+            
+            processed_segments.append({
+                'classes': classes,
+                'types': types,
+                'timestamp_str': segment['timestamp_str'],
+                'highlighted_text': text
+            })
         
-        html_content += """
-                </div>
-            </div>
-            
-            <script>
-                // Search functionality
-                document.getElementById('searchInput').addEventListener('input', function(e) {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const segments = document.querySelectorAll('.segment');
-                    
-                    segments.forEach(segment => {
-                        const text = segment.textContent.toLowerCase();
-                        if (text.includes(searchTerm) || searchTerm === '') {
-                            segment.style.display = 'block';
-                        } else {
-                            segment.style.display = 'none';
-                        }
-                    });
-                });
-                
-                // Filter functionality
-                let currentFilter = 'all';
-                
-                function filterSegments(type) {
-                    currentFilter = type;
-                    const segments = document.querySelectorAll('.segment');
-                    const buttons = document.querySelectorAll('.filter-btn');
-                    
-                    // Update button states
-                    buttons.forEach(btn => btn.classList.remove('active'));
-                    event.target.classList.add('active');
-                    
-                    segments.forEach(segment => {
-                        const segmentType = segment.getAttribute('data-type');
-                        if (type === 'all' || segmentType.includes(type)) {
-                            segment.style.display = 'block';
-                        } else {
-                            segment.style.display = 'none';
-                        }
-                    });
-                }
-            </script>
-        </body>
-        </html>
-        """
+        # Render template
+        html_content = render_template('transcript.html',
+                                     session_id=results['session_id'],
+                                     analysis=results['analysis'],
+                                     segments=processed_segments)
         
         # Save HTML file
         html_path = os.path.join(results['session_dir'], 'searchable_transcript.html')
@@ -1170,7 +1235,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 @handle_user_friendly_error
-def upload_file():
+def upload_file() -> Union[Response, Tuple[Response, int]]:
     if 'video' not in request.files:
         raise UserFriendlyError('unsupported_format', {'reason': 'No file uploaded'})
     
@@ -1180,10 +1245,10 @@ def upload_file():
     
     # Validate file extension
     file_ext = os.path.splitext(file.filename)[1].lower()
-    if file_ext not in ALLOWED_FILE_EXTENSIONS:
+    if file_ext not in config.ALLOWED_FILE_EXTENSIONS:
         raise UserFriendlyError('unsupported_format', {
             'current_format': file_ext,
-            'supported_formats': list(ALLOWED_FILE_EXTENSIONS)
+            'supported_formats': list(config.ALLOWED_FILE_EXTENSIONS)
         })
     
     # Enhanced file size validation with context
@@ -1345,29 +1410,9 @@ def list_sessions():
                             'status': 'unknown'
                         })
                 else:
-                    # Legacy session without metadata - try to extract session name from folder
-                    session_name = ''
-                    original_filename = 'Unknown'
-                    
-                    # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
-                    parts = session_folder.split('_')
-                    if len(parts) >= 3:
-                        # Check if last two parts look like date and time
-                        if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
-                            len(parts[-1]) == 6 and parts[-1].isdigit()):
-                            # Extract session name (everything except the last two parts)
-                            session_name = '_'.join(parts[:-2])
-                            # Guess original filename based on session name
-                            if session_name:
-                                original_filename = f"{session_name.split('_')[-1]}.mp4"
-                    
-                    sessions.append({
-                        'session_id': session_folder,
-                        'session_name': session_name,
-                        'original_filename': original_filename,
-                        'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
-                        'status': 'completed'
-                    })
+                    # Legacy session without metadata - parse using utility function
+                    metadata = parse_session_metadata(session_folder, session_path)
+                    sessions.append(metadata)
     
     return render_template('sessions.html', sessions=sessions)
 
@@ -1432,29 +1477,8 @@ def search_sessions():
                                 with open(metadata_path, 'r') as f:
                                     metadata = json.load(f)
                             else:
-                                # Legacy session without metadata - try to extract session name from folder
-                                session_name = ''
-                                original_filename = 'Unknown'
-                                
-                                # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
-                                parts = session_folder.split('_')
-                                if len(parts) >= 3:
-                                    # Check if last two parts look like date and time
-                                    if (len(parts[-2]) == 8 and parts[-2].isdigit() and 
-                                        len(parts[-1]) == 6 and parts[-1].isdigit()):
-                                        # Extract session name (everything except the last two parts)
-                                        session_name = '_'.join(parts[:-2])
-                                        # Guess original filename based on session name
-                                        if session_name:
-                                            original_filename = f"{session_name.split('_')[-1]}.mp4"
-                                
-                                metadata = {
-                                    'session_id': session_folder,
-                                    'session_name': session_name,
-                                    'original_filename': original_filename,
-                                    'created_at': datetime.fromtimestamp(os.path.getctime(session_path)).isoformat(),
-                                    'status': 'completed'
-                                }
+                                # Legacy session without metadata - parse using utility function
+                                metadata = parse_session_metadata(session_folder, session_path)
                             sessions.append(metadata)
                     except IOError:
                         pass
@@ -1585,16 +1609,16 @@ def update_performance_settings():
         # Update chunk duration if provided
         if 'chunk_duration' in data:
             chunk_duration = int(data['chunk_duration'])
-            if 60 <= chunk_duration <= 600:  # 1-10 minutes
+            if video_config.MIN_CHUNK_DURATION_SECONDS <= chunk_duration <= video_config.MAX_CHUNK_DURATION_SECONDS:
                 transcriber.chunk_duration = chunk_duration
             else:
-                return jsonify({'success': False, 'error': f'Chunk duration must be between 60 and 600 seconds (provided: {chunk_duration})'}), 400
+                return jsonify({'success': False, 'error': f'Chunk duration must be between {video_config.MIN_CHUNK_DURATION_SECONDS} and {video_config.MAX_CHUNK_DURATION_SECONDS} seconds (provided: {chunk_duration})'}), 400
         
         # Update max workers if provided
         if 'max_workers' in data:
             max_workers = int(data['max_workers'])
-            max_cpu_limit = min(multiprocessing.cpu_count(), 14)  # Allow up to CPU count or 14, whichever is lower
-            if 1 <= max_workers <= max_cpu_limit:
+            max_cpu_limit = min(multiprocessing.cpu_count(), performance_config.MAX_WORKERS_LIMIT)  # Allow up to CPU count or limit, whichever is lower
+            if performance_config.MIN_WORKERS <= max_workers <= max_cpu_limit:
                 transcriber.max_workers = max_workers
             else:
                 return jsonify({'success': False, 'error': f'Max workers must be between 1 and {max_cpu_limit} (provided: {max_workers})'}), 400
@@ -1704,14 +1728,14 @@ def _get_performance_recommendations():
             'type': 'info',
             'category': 'chunking',
             'message': 'Large chunk duration may reduce parallelization benefits.',
-            'action': 'Consider reducing chunk_duration to 300-420 seconds'
+            'action': f'Consider reducing chunk_duration to {video_config.DEFAULT_CHUNK_DURATION_SECONDS}-{video_config.LONG_VIDEO_CHUNK_LIMIT} seconds'
         })
-    elif transcriber.chunk_duration < 180:  # 3 minutes
+    elif transcriber.chunk_duration < video_config.SHORT_VIDEO_CHUNK_LIMIT:
         recommendations.append({
             'type': 'info',
             'category': 'chunking',
             'message': 'Very small chunks may increase overhead.',
-            'action': 'Consider increasing chunk_duration to 180-300 seconds'
+            'action': f'Consider increasing chunk_duration to {video_config.SHORT_VIDEO_CHUNK_LIMIT}-{video_config.DEFAULT_CHUNK_DURATION_SECONDS} seconds'
         })
     
     # File cleanup recommendations
