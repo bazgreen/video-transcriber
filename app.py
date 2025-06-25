@@ -687,7 +687,7 @@ def upload_file():
     allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'}
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in allowed_extensions:
-        return jsonify({'error': f'Invalid file type. Allowed types: {', '.join(allowed_extensions)}'}), 400
+        return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'}), 400
     
     # Validate file size (500MB limit)
     file.seek(0, os.SEEK_END)
@@ -732,11 +732,11 @@ def upload_file():
 def view_results(session_id):
     # Validate session_id to prevent path traversal
     if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
-        return "Invalid session ID", 400
+        return jsonify({'error': 'Invalid session ID'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     if not os.path.exists(session_dir):
-        return "Session not found", 404
+        return jsonify({'error': 'Session not found'}), 404
     
     # Load analysis results
     analysis_path = os.path.join(session_dir, 'analysis.json')
@@ -752,29 +752,29 @@ def view_results(session_id):
 def download_file(session_id, filename):
     # Validate inputs to prevent path traversal
     if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
-        return "Invalid session ID", 400
+        return jsonify({'error': 'Invalid session ID'}), 400
     
     # Validate filename
     if not re.match(r'^[a-zA-Z0-9_.-]+$', filename) or '..' in filename:
-        return "Invalid filename", 400
+        return jsonify({'error': 'Invalid filename'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     file_path = os.path.join(session_dir, filename)
     
     # Ensure the file path is within the session directory
     if not os.path.abspath(file_path).startswith(os.path.abspath(session_dir)):
-        return "Access denied", 403
+        return jsonify({'error': 'Access denied'}), 403
     
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
     else:
-        return "File not found", 404
+        return jsonify({'error': 'File not found'}), 404
 
 @app.route('/transcript/<session_id>')
 def view_transcript(session_id):
     # Validate session_id to prevent path traversal
     if not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
-        return "Invalid session ID", 400
+        return jsonify({'error': 'Invalid session ID'}), 400
     
     session_dir = os.path.join(app.config['RESULTS_FOLDER'], session_id)
     html_path = os.path.join(session_dir, 'searchable_transcript.html')
@@ -782,7 +782,7 @@ def view_transcript(session_id):
     if os.path.exists(html_path):
         return send_file(html_path)
     else:
-        return "Transcript not found", 404
+        return jsonify({'error': 'Transcript not found'}), 404
 
 @app.route('/sessions')
 def list_sessions():
