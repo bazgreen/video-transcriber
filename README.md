@@ -256,10 +256,39 @@ python video_transcriber_customizer.py
 ### Environment Variables
 
 ```bash
+# Application Configuration
 FLASK_ENV=production          # Set to 'development' for debug mode
+DEBUG=false                   # Enable debug mode (true/false)
 MAX_CONTENT_LENGTH=500MB      # Maximum upload file size
 WHISPER_MODEL=small           # Whisper model size (tiny/small/medium/large)
+
+# Security Configuration
+SECRET_KEY=your-secret-key    # Flask secret key for sessions
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com  # Production CORS origins
 ```
+
+### CORS Security Configuration
+
+The application implements secure CORS (Cross-Origin Resource Sharing) configuration:
+
+**Development Mode** (`DEBUG=true`):
+- Automatically allows common development origins:
+  - `http://localhost:3000` (React dev server)
+  - `http://localhost:5000` (Flask alt port)
+  - `http://localhost:5001` (Main Flask server)
+  - `http://127.0.0.1:5001` (Localhost IP variant)
+
+**Production Mode** (`DEBUG=false`):
+- Only allows origins specified in `CORS_ALLOWED_ORIGINS`
+- Multiple origins can be specified, comma-separated
+- Example: `CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com`
+- ⚠️ **Never use `*` (wildcard) in production** - this is a security risk
+
+**Security Best Practices**:
+- Always set specific domains in production
+- Use HTTPS origins in production
+- Regularly review and update allowed origins
+- Monitor CORS logs for unauthorized access attempts
 
 ### Whisper Models
 

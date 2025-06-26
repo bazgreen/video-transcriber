@@ -44,6 +44,65 @@ class AppConfig:
     # Application Settings
     DEFAULT_HOST: str = "0.0.0.0"  # nosec B104 - Intended for development/container use
     DEFAULT_PORT: int = 5001
+
+    @classmethod
+    def is_debug(cls) -> bool:
+        """Check if application is in debug mode."""
+        return os.getenv("DEBUG", "False").lower() == "true"
+
+    @classmethod
+    def is_using_default_secret(cls) -> bool:
+        """Check if application is using the default secret key."""
+        return cls.SECRET_KEY == "video-transcriber-secret-key"
+
+    @classmethod
+    def validate_security_config(cls) -> List[str]:
+        """Validate security configuration and return warnings."""
+        warnings = []
+
+        if cls.is_using_default_secret():
+            warnings.append(
+                "⚠️  Using default SECRET_KEY. Set SECRET_KEY environment variable for production!"
+            )
+
+        if not cls.is_debug():
+            cors_origins = cls.get_cors_origins()
+            if "*" in cors_origins:
+                warnings.append(
+                    "⚠️  CORS allows all origins (*). Set CORS_ALLOWED_ORIGINS for production!"
+                )
+
+        return warnings
+
+    @classmethod
+    def get_cors_origins(cls) -> List[str]:
+        """
+        Get CORS allowed origins as a list.
+
+        For development, allows common localhost ports.
+        For production, should be set via CORS_ALLOWED_ORIGINS environment variable.
+
+        Returns:
+            List of allowed CORS origins
+        """
+        if cls.is_debug():
+            # In debug mode, allow common development origins
+            return [
+                "http://localhost:3000",  # React dev server
+                "http://localhost:5000",  # Flask dev server alt port
+                "http://localhost:5001",  # Main Flask server
+                "http://127.0.0.1:5001",  # Localhost IP variant
+            ]
+        else:
+            # In production, only allow explicitly configured origins
+            cors_origins = os.getenv(
+                "CORS_ALLOWED_ORIGINS",
+                "http://localhost:5001",  # Default fallback for production
+            )
+            origins = cors_origins.split(",")
+            return [origin.strip() for origin in origins if origin.strip()]
+
+    # Legacy property for backwards compatibility
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
 
 
