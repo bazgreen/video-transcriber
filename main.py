@@ -55,9 +55,12 @@ def create_app() -> Tuple[Flask, SocketIO]:
     )
 
     # Initialize SocketIO with security considerations
+    cors_origins = AppConfig.get_cors_origins()
+    logging.info(f"Configuring CORS for origins: {cors_origins}")
+
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",  # TODO: Restrict in production
+        cors_allowed_origins=cors_origins,
         logger=False,  # Disable socketio logging to reduce noise
         engineio_logger=False,
     )
