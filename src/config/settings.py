@@ -51,6 +51,30 @@ class AppConfig:
         return os.getenv("DEBUG", "False").lower() == "true"
 
     @classmethod
+    def is_using_default_secret(cls) -> bool:
+        """Check if application is using the default secret key."""
+        return cls.SECRET_KEY == "video-transcriber-secret-key"
+
+    @classmethod
+    def validate_security_config(cls) -> List[str]:
+        """Validate security configuration and return warnings."""
+        warnings = []
+
+        if cls.is_using_default_secret():
+            warnings.append(
+                "⚠️  Using default SECRET_KEY. Set SECRET_KEY environment variable for production!"
+            )
+
+        if not cls.is_debug():
+            cors_origins = cls.get_cors_origins()
+            if "*" in cors_origins:
+                warnings.append(
+                    "⚠️  CORS allows all origins (*). Set CORS_ALLOWED_ORIGINS for production!"
+                )
+
+        return warnings
+
+    @classmethod
     def get_cors_origins(cls) -> List[str]:
         """
         Get CORS allowed origins as a list.

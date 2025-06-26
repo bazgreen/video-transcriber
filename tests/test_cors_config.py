@@ -120,6 +120,22 @@ class TestCORSConfiguration(unittest.TestCase):
             origins = AppConfig.get_cors_origins()
             self.assertNotIn("*", origins)
 
+    @patch.dict(os.environ, {"SECRET_KEY": "video-transcriber-secret-key"}, clear=False)
+    def test_security_validation_default_secret(self):
+        """Test security validation detects default secret key."""
+        warnings = AppConfig.validate_security_config()
+        self.assertTrue(any("default SECRET_KEY" in warning for warning in warnings))
+
+    @patch.dict(os.environ, {"SECRET_KEY": "custom-secure-key"}, clear=False)
+    def test_security_validation_custom_secret(self):
+        """Test security validation passes with custom secret key."""
+        # Force AppConfig to reload the environment variable
+        with patch.object(AppConfig, "SECRET_KEY", "custom-secure-key"):
+            warnings = AppConfig.validate_security_config()
+            self.assertFalse(
+                any("default SECRET_KEY" in warning for warning in warnings)
+            )
+
 
 def run_cors_tests():
     """Run CORS configuration tests."""

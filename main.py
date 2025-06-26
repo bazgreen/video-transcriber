@@ -9,7 +9,7 @@ import logging
 import os
 from typing import Any, Dict, Tuple
 
-from flask import Flask, jsonify
+from flask import Flask
 from flask_socketio import SocketIO
 
 # Import modular components
@@ -50,7 +50,7 @@ def create_app() -> Tuple[Flask, SocketIO]:
             "UPLOAD_FOLDER": config.UPLOAD_FOLDER,
             "RESULTS_FOLDER": config.RESULTS_FOLDER,
             "SECRET_KEY": config.SECRET_KEY,
-            "DEBUG": False,  # Should be controlled by environment
+            "DEBUG": config.is_debug(),
         }
     )
 
@@ -230,6 +230,13 @@ def main() -> None:
         # Configuration
         config = AppConfig()
 
+        # Check for security warnings
+        security_warnings = config.validate_security_config()
+        if security_warnings:
+            logger.warning("Security configuration warnings:")
+            for warning in security_warnings:
+                logger.warning(f"  {warning}")
+
         # Create application
         app, socketio = create_app()
 
@@ -257,13 +264,15 @@ def main() -> None:
 
         # Start application
         logger.info("Starting modularized video transcriber application...")
-        logger.info(f"Access the application at: http://localhost:5001")
+        logger.info(
+            f"Access the application at: http://{config.DEFAULT_HOST}:{config.DEFAULT_PORT}"
+        )
 
         socketio.run(
             app,
-            debug=False,  # Should be controlled by environment
-            host="0.0.0.0",
-            port=5001,
+            debug=config.is_debug(),
+            host=config.DEFAULT_HOST,
+            port=config.DEFAULT_PORT,
             use_reloader=False,  # Disable reloader in production
         )
 

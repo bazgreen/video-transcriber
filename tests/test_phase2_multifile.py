@@ -152,9 +152,7 @@ def create_multiple_test_videos():
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 video_files.append(temp_file.name)
-                print(
-                    f"✅ Created test video {i+1}: {os.path.basename(temp_file.name)}"
-                )
+                print(f"✅ Created test video {i+1}: {os.path.basename(temp_file.name)}")
             else:
                 print(f"❌ Failed to create test video {i+1}")
 
@@ -229,7 +227,7 @@ def test_websocket_integration():
     connection_established = False
     progress_updates = []
 
-    # Create test videos first as suggested by Copilot
+    # Create test videos first for WebSocket testing
     video_files = create_multiple_test_videos()
     if not video_files:
         print("⚠️  Skipping WebSocket integration test (no test videos created)")
