@@ -18,7 +18,8 @@ class AppConfig:
     """
 
     # File Upload Configuration
-    MAX_FILE_SIZE_BYTES: int = 500 * 1024 * 1024  # 500MB max file size
+    MAX_FILE_SIZE_BYTES: int = 1024 * 1024 * 1024  # 1GB max file size (optimized)
+    CHUNK_UPLOAD_SIZE: int = 50 * 1024 * 1024  # 50MB chunks for large file streaming
     ALLOWED_FILE_EXTENSIONS: Set[str] = {
         ".mp4",
         ".avi",
@@ -176,19 +177,26 @@ class PerformanceConfig:
     Contains settings for worker management and performance monitoring.
     """
 
-    # Worker Limits
-    MIN_WORKERS: int = 1
-    MAX_WORKERS_LIMIT: int = 14
-    DEFAULT_MAX_WORKERS: int = 4
+    # Worker Limits (Enhanced for better performance)
+    MIN_WORKERS: int = 2  # Increased minimum for better throughput
+    MAX_WORKERS_LIMIT: int = 16  # Increased for high-performance systems
+    DEFAULT_MAX_WORKERS: int = 6  # Optimized default
 
-    # Progress Monitoring
-    MEMORY_CHECK_INTERVAL: int = (
-        4  # Check memory every 25% of chunks (len(chunks) // 4)
-    )
+    # Memory-Aware Configuration
+    MEMORY_SAFETY_FACTOR: float = 0.8  # Use 80% of available memory
+    HIGH_MEMORY_THRESHOLD_GB: int = 8  # Systems with 8GB+ get more workers
 
-    # Processing Timeouts (in seconds)
-    CHUNK_PROCESSING_TIMEOUT: int = 300  # 5 minutes per chunk
-    TOTAL_PROCESSING_TIMEOUT: int = 3600  # 1 hour total
+    # Progress Monitoring (Optimized)
+    MEMORY_CHECK_INTERVAL: int = 3  # Check memory more frequently
+    CHUNK_SIZE_OPTIMIZATION: bool = True  # Enable dynamic chunk sizing
+
+    # Processing Timeouts (in seconds) - Optimized for performance
+    CHUNK_PROCESSING_TIMEOUT: int = 600  # 10 minutes per chunk (increased)
+    TOTAL_PROCESSING_TIMEOUT: int = 7200  # 2 hours total (increased)
+
+    # Performance Features
+    ENABLE_PARALLEL_UPLOAD: bool = True  # Enable parallel chunk uploads
+    ENABLE_MEMORY_CLEANUP: bool = True  # Enable aggressive memory cleanup
 
 
 class AnalysisConfig:

@@ -32,6 +32,7 @@ from src.config import AnalysisConfig, VideoConfig
 from src.models import MemoryManager, ModelManager, ProgressiveFileManager
 from src.models.exceptions import UserFriendlyError
 from src.utils import format_timestamp, load_keywords
+from src.utils.performance_optimizer import performance_optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -268,46 +269,46 @@ class VideoTranscriber:
         """
         chunks = []
 
-        # Use instance default if not specified
-        if chunk_duration is None:
-            chunk_duration = self.chunk_duration
+        # Get file size for performance optimization
+        file_size_mb = os.path.getsize(input_path) / (1024 * 1024)
 
-        # Get video info with proper error handling
+        # Get video info first to determine duration
         try:
             probe = ffmpeg.probe(input_path)
-            # Check if streams exist and have duration
-            if "streams" not in probe or len(probe["streams"]) == 0:
-                raise ValueError(f"No streams found in video file: {input_path}")
+            video_info = next(
+                (stream for stream in probe["streams"] if stream["codec_type"] == "video"),
+                None,
+            )
+            if not video_info:
+                raise UserFriendlyError(
+                    f"Unable to analyze video file: {os.path.basename(input_path)}. Please ensure it's a valid video format."
+                )
 
-            # Find video stream with duration
-            duration = None
-            for stream in probe["streams"]:
-                if "duration" in stream:
-                    duration = float(stream["duration"])
-                    break
-
-            if duration is None:
-                # Try to get duration from format
-                if "format" in probe and "duration" in probe["format"]:
-                    duration = float(probe["format"]["duration"])
-                else:
-                    raise ValueError(
-                        f"Could not determine video duration for: {input_path}"
-                    )
+            duration = float(video_info["duration"])
 
         except ffmpeg.Error as e:
-            logger.error(f"FFmpeg error while probing video file {input_path}: {e}")
+            logger.error(f"FFmpeg error analyzing video: {e}")
             raise UserFriendlyError(
                 f"Unable to analyze video file: {os.path.basename(input_path)}. Please ensure it's a valid video format."
-            )
-        except Exception as e:
-            logger.error(
-                f"Unexpected error analyzing video file {input_path}: {e}",
-                exc_info=True,
-            )
+            ) from e
+        except (KeyError, ValueError, TypeError) as e:
+            logger.error(f"Error parsing video metadata: {e}")
             raise UserFriendlyError(
                 f"Error analyzing video file: {os.path.basename(input_path)}. Please try again or use a different file."
+            ) from e
+
+        # Use performance optimizer for optimal settings
+        if chunk_duration is None:
+            chunk_duration = performance_optimizer.get_optimal_chunk_size(
+                duration, file_size_mb
             )
+
+        optimal_workers = performance_optimizer.get_optimal_worker_count(file_size_mb)
+
+        logger.info(
+            f"Video processing optimization: {file_size_mb:.1f}MB file, "
+            f"{duration:.1f}s duration, {chunk_duration}s chunks, {optimal_workers} workers"
+        )
 
         # Adaptive chunk sizing for better performance
         # For shorter videos, use smaller chunks for faster parallel processing
@@ -343,8 +344,9 @@ class VideoTranscriber:
             )
 
         # Process chunks in parallel using ThreadPoolExecutor (I/O bound for ffmpeg)
+        # Use optimized worker count
         with ThreadPoolExecutor(
-            max_workers=min(self.max_workers, num_chunks)
+            max_workers=min(optimal_workers, num_chunks)
         ) as executor:
             futures = []
             for task in chunk_tasks:

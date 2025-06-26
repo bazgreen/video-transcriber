@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2025-06-26T14:39:17Z",
+  "generated_at": "2025-06-26T22:08:45Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 0,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 1,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 2815,
+      "loc": 3204,
       "nosec": 0,
       "skipped_tests": 1
     },
@@ -50,7 +50,7 @@
       "SEVERITY.LOW": 1,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 221,
+      "loc": 225,
       "nosec": 0,
       "skipped_tests": 1
     },
@@ -154,7 +154,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 292,
+      "loc": 362,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -206,7 +206,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 698,
+      "loc": 707,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -288,6 +288,19 @@
       "nosec": 0,
       "skipped_tests": 0
     },
+    "src/utils/performance_optimizer.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 306,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
     "src/utils/session.py": {
       "CONFIDENCE.HIGH": 0,
       "CONFIDENCE.LOW": 0,
@@ -317,7 +330,7 @@
   },
   "results": [
     {
-      "code": "55         \"\"\"Check if application is using the default secret key.\"\"\"\n56         return cls.SECRET_KEY == \"video-transcriber-secret-key\"\n57 \n",
+      "code": "56         \"\"\"Check if application is using the default secret key.\"\"\"\n57         return cls.SECRET_KEY == \"video-transcriber-secret-key\"\n58 \n",
       "col_offset": 33,
       "end_col_offset": 63,
       "filename": "src/config/settings.py",
@@ -328,9 +341,9 @@
       },
       "issue_severity": "LOW",
       "issue_text": "Possible hardcoded password: 'video-transcriber-secret-key'",
-      "line_number": 56,
+      "line_number": 57,
       "line_range": [
-        56
+        57
       ],
       "more_info": "https://bandit.readthedocs.io/en/0.0.0/plugins/b105_hardcoded_password_string.html",
       "test_id": "B105",

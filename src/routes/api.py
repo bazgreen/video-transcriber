@@ -9,11 +9,12 @@ import logging
 import multiprocessing
 import os
 import time
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, Response, jsonify, request
 
-from src.config import PerformanceConfig, VideoConfig
+from src.config import AppConfig, Constants, PerformanceConfig, VideoConfig
 from src.models.exceptions import UserFriendlyError
 from src.utils import (
     handle_user_friendly_error,
@@ -353,3 +354,93 @@ def get_performance_history():
             "data": [],
         }
     )
+
+
+@api_bp.route("/performance/optimization", methods=["GET"])
+def get_performance_optimization():
+    """Get performance optimization recommendations and current settings"""
+    try:
+        from src.utils.performance_optimizer import performance_optimizer
+
+        # Get current system recommendations
+        recommendations = performance_optimizer.get_performance_recommendations()
+
+        # Get performance summary
+        summary = performance_optimizer.get_performance_summary()
+
+        # Get current configuration
+        current_config = {
+            "max_file_size_mb": AppConfig.MAX_FILE_SIZE_BYTES / Constants.BYTES_PER_MB,
+            "chunk_upload_size_mb": getattr(
+                AppConfig, "CHUNK_UPLOAD_SIZE", 50 * 1024 * 1024
+            )
+            / Constants.BYTES_PER_MB,
+            "min_workers": PerformanceConfig.MIN_WORKERS,
+            "max_workers_limit": PerformanceConfig.MAX_WORKERS_LIMIT,
+            "default_max_workers": PerformanceConfig.DEFAULT_MAX_WORKERS,
+            "memory_safety_factor": getattr(
+                PerformanceConfig, "MEMORY_SAFETY_FACTOR", 0.8
+            ),
+            "high_memory_threshold_gb": getattr(
+                PerformanceConfig, "HIGH_MEMORY_THRESHOLD_GB", 8
+            ),
+            "parallel_upload_enabled": getattr(
+                PerformanceConfig, "ENABLE_PARALLEL_UPLOAD", True
+            ),
+            "memory_cleanup_enabled": getattr(
+                PerformanceConfig, "ENABLE_MEMORY_CLEANUP", True
+            ),
+            "chunk_size_optimization": getattr(
+                PerformanceConfig, "CHUNK_SIZE_OPTIMIZATION", True
+            ),
+        }
+
+        return jsonify(
+            {
+                "status": "success",
+                "recommendations": recommendations,
+                "performance_summary": summary,
+                "current_configuration": current_config,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting performance optimization data: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/performance/optimize", methods=["POST"])
+def optimize_performance():
+    """Apply performance optimizations based on current system state"""
+    try:
+        from src.utils.performance_optimizer import performance_optimizer
+
+        data = request.get_json() or {}
+        force_memory_cleanup = data.get("force_memory_cleanup", False)
+
+        # Perform memory optimization
+        memory_result = performance_optimizer.optimize_memory_usage(
+            force=force_memory_cleanup
+        )
+
+        # Get updated recommendations
+        recommendations = performance_optimizer.get_performance_recommendations()
+
+        # Get optimal settings for current state
+        optimal_workers = performance_optimizer.get_optimal_worker_count()
+
+        return jsonify(
+            {
+                "status": "success",
+                "message": "Performance optimization completed",
+                "memory_optimization": memory_result,
+                "recommendations": recommendations,
+                "optimal_workers": optimal_workers,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error during performance optimization: {e}")
+        return jsonify({"error": str(e)}), 500
