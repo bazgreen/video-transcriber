@@ -276,7 +276,11 @@ class VideoTranscriber:
         try:
             probe = ffmpeg.probe(input_path)
             video_info = next(
-                (stream for stream in probe["streams"] if stream["codec_type"] == "video"),
+                (
+                    stream
+                    for stream in probe["streams"]
+                    if stream["codec_type"] == "video"
+                ),
                 None,
             )
             if not video_info:
