@@ -169,7 +169,8 @@ class MemoryManager:
         optimal_workers = self.get_optimal_workers()
         if optimal_workers < multiprocessing.cpu_count():
             recommendations["worker_limit"] = (
-                f"Memory constrains workers to {optimal_workers} (CPU has {multiprocessing.cpu_count()} cores)"
+                f"Memory constrains workers to {optimal_workers} "
+                f"(CPU has {multiprocessing.cpu_count()} cores)"
             )
 
         return recommendations

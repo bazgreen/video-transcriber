@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import re
-from typing import Dict, Optional
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 

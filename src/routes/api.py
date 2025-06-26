@@ -7,21 +7,15 @@ performance monitoring, and system status information.
 
 import logging
 import multiprocessing
-import os
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from flask import Blueprint, Response, jsonify, request
 
 from src.config import AppConfig, Constants, PerformanceConfig, VideoConfig
 from src.models.exceptions import UserFriendlyError
-from src.utils import (
-    handle_user_friendly_error,
-    is_valid_session_id,
-    load_keywords,
-    save_keywords,
-)
+from src.utils import handle_user_friendly_error, load_keywords, save_keywords
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
@@ -219,7 +213,10 @@ def update_performance_settings():
             or chunk_duration > VideoConfig.MAX_CHUNK_DURATION_SECONDS
         ):
             raise UserFriendlyError(
-                f"Chunk duration must be between {VideoConfig.MIN_CHUNK_DURATION_SECONDS} and {VideoConfig.MAX_CHUNK_DURATION_SECONDS} seconds, got: {chunk_duration}"
+                f"Chunk duration must be between "
+                f"{VideoConfig.MIN_CHUNK_DURATION_SECONDS} and "
+                f"{VideoConfig.MAX_CHUNK_DURATION_SECONDS} seconds, "
+                f"got: {chunk_duration}"
             )
         PerformanceConfig.current_chunk_duration = int(chunk_duration)
 
@@ -232,13 +229,18 @@ def update_performance_settings():
             or max_workers > PerformanceConfig.MAX_WORKERS_LIMIT
         ):
             raise UserFriendlyError(
-                f"Max workers must be between {PerformanceConfig.MIN_WORKERS} and {PerformanceConfig.MAX_WORKERS_LIMIT}, got: {max_workers}"
+                f"Max workers must be between {PerformanceConfig.MIN_WORKERS} "
+                f"and {PerformanceConfig.MAX_WORKERS_LIMIT}, got: {max_workers}"
             )
         PerformanceConfig.current_max_workers = max_workers
 
+    chunk_duration_val = getattr(
+        PerformanceConfig, "current_chunk_duration", "unchanged"
+    )
+    max_workers_val = getattr(PerformanceConfig, "current_max_workers", "unchanged")
     logger.info(
-        f"Updated performance settings: chunk_duration={getattr(PerformanceConfig, 'current_chunk_duration', 'unchanged')}, "
-        f"max_workers={getattr(PerformanceConfig, 'current_max_workers', 'unchanged')}"
+        f"Updated performance settings: "
+        f"chunk_duration={chunk_duration_val}, max_workers={max_workers_val}"
     )
 
     return jsonify(
@@ -282,7 +284,8 @@ def get_memory_status():
 
     if optimal_workers < multiprocessing.cpu_count():
         recommendations.append(
-            f"Memory limits optimal workers to {optimal_workers} (CPU cores: {multiprocessing.cpu_count()})"
+            f"Memory limits optimal workers to {optimal_workers} "
+            f"(CPU cores: {multiprocessing.cpu_count()})"
         )
 
     return jsonify(
@@ -318,8 +321,9 @@ def get_live_performance():
                     "current_task": session_data.get("current_task", ""),
                     "chunks_completed": session_data.get("chunks_completed", 0),
                     "chunks_total": session_data.get("chunks_total", 0),
-                    "elapsed_time": time.time()
-                    - session_data.get("start_time", time.time()),
+                    "elapsed_time": (
+                        time.time() - session_data.get("start_time", time.time())
+                    ),
                 }
             )
 
@@ -370,11 +374,13 @@ def get_performance_optimization():
 
         # Get current configuration
         current_config = {
-            "max_file_size_mb": AppConfig.MAX_FILE_SIZE_BYTES / Constants.BYTES_PER_MB,
-            "chunk_upload_size_mb": getattr(
-                AppConfig, "CHUNK_UPLOAD_SIZE", 50 * 1024 * 1024
-            )
-            / Constants.BYTES_PER_MB,
+            "max_file_size_mb": (
+                AppConfig.MAX_FILE_SIZE_BYTES / Constants.BYTES_PER_MB
+            ),
+            "chunk_upload_size_mb": (
+                getattr(AppConfig, "CHUNK_UPLOAD_SIZE", 50 * 1024 * 1024)
+                / Constants.BYTES_PER_MB
+            ),
             "min_workers": PerformanceConfig.MIN_WORKERS,
             "max_workers_limit": PerformanceConfig.MAX_WORKERS_LIMIT,
             "default_max_workers": PerformanceConfig.DEFAULT_MAX_WORKERS,

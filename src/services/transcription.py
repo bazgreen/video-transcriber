@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import whisper
@@ -104,7 +104,8 @@ def process_chunk_parallel(chunk_info: Tuple[str, str, float, str]) -> Dict[str,
     """
     if not isinstance(chunk_info, tuple) or len(chunk_info) != 4:
         raise ValueError(
-            "Invalid chunk_info format. Expected a tuple with 4 elements: (chunk_path, audio_path, start_time, filename)."
+            "Invalid chunk_info format. Expected a tuple with 4 elements: "
+            "(chunk_path, audio_path, start_time, filename)."
         )
 
     try:
@@ -249,7 +250,8 @@ class VideoTranscriber:
         Args:
             input_path: Path to the input video file
             output_dir: Directory where video chunks will be saved
-            chunk_duration: Duration of each chunk in seconds (uses instance default if None)
+            chunk_duration: Duration of each chunk in seconds (uses instance
+                          default if None)
 
         Returns:
             List of chunk information dictionaries, each containing:
@@ -285,7 +287,8 @@ class VideoTranscriber:
             )
             if not video_info:
                 raise UserFriendlyError(
-                    f"Unable to analyze video file: {os.path.basename(input_path)}. Please ensure it's a valid video format."
+                    f"Unable to analyze video file: {os.path.basename(input_path)}. "
+                    f"Please ensure it's a valid video format."
                 )
 
             duration = float(video_info["duration"])
@@ -293,12 +296,14 @@ class VideoTranscriber:
         except ffmpeg.Error as e:
             logger.error(f"FFmpeg error analyzing video: {e}")
             raise UserFriendlyError(
-                f"Unable to analyze video file: {os.path.basename(input_path)}. Please ensure it's a valid video format."
+                f"Unable to analyze video file: {os.path.basename(input_path)}. "
+                f"Please ensure it's a valid video format."
             ) from e
         except (KeyError, ValueError, TypeError) as e:
             logger.error(f"Error parsing video metadata: {e}")
             raise UserFriendlyError(
-                f"Error analyzing video file: {os.path.basename(input_path)}. Please try again or use a different file."
+                f"Error analyzing video file: {os.path.basename(input_path)}. "
+                f"Please try again or use a different file."
             ) from e
 
         # Use performance optimizer for optimal settings
@@ -311,7 +316,8 @@ class VideoTranscriber:
 
         logger.info(
             f"Video processing optimization: {file_size_mb:.1f}MB file, "
-            f"{duration:.1f}s duration, {chunk_duration}s chunks, {optimal_workers} workers"
+            f"{duration:.1f}s duration, {chunk_duration}s chunks, "
+            f"{optimal_workers} workers"
         )
 
         # Adaptive chunk sizing for better performance
@@ -382,13 +388,13 @@ class VideoTranscriber:
         except ffmpeg.Error as e:
             logger.error(f"FFmpeg error splitting chunk {chunk_name}: {e}")
             raise UserFriendlyError(
-                f"Failed to split video chunk. Please check video format compatibility."
+                "Failed to split video chunk. Please check video format compatibility."
             )
         except Exception as e:
             logger.error(
                 f"Unexpected error splitting chunk {chunk_name}: {e}", exc_info=True
             )
-            raise UserFriendlyError(f"Error processing video chunk. Please try again.")
+            raise UserFriendlyError("Error processing video chunk. Please try again.")
 
     def extract_audio(self, video_path, audio_path):
         """Extract audio from video"""
@@ -623,7 +629,9 @@ class VideoTranscriber:
         )
         self.progress_tracker.update_progress(
             session_id,
-            current_task=f"Video split into {len(chunks)} chunks. Starting transcription...",
+            current_task=(
+                f"Video split into {len(chunks)} chunks. Starting transcription..."
+            ),
             progress=15,
             stage="preparation",
         )
@@ -665,7 +673,8 @@ class VideoTranscriber:
                 (chunk["path"], audio_path, chunk["start_time"], chunk["filename"])
             )
 
-        # Use ProcessPoolExecutor for CPU-intensive transcription work with memory monitoring
+        # Use ProcessPoolExecutor for CPU-intensive transcription work with
+        # memory monitoring
         completed_chunks = []
 
         # Dynamic memory-aware worker calculation
@@ -709,23 +718,27 @@ class VideoTranscriber:
                         if (i + 1) % max(1, len(chunks) // 4) == 0:
                             current_memory = self.memory_manager.get_memory_info()
                             logger.info(
-                                f"Completed chunk {i+1}/{len(chunks)}: {result['filename']} "
-                                f"(Memory: {current_memory['process_rss_mb']:.0f}MB process, "
+                                f"Completed chunk {i + 1}/{len(chunks)}: "
+                                f"{result['filename']} (Memory: "
+                                f"{current_memory['process_rss_mb']:.0f}MB process, "
                                 f"{current_memory['system_used_percent']:.1f}% system)"
                             )
 
                             # Check for memory pressure
                             if self.memory_manager.check_memory_pressure():
                                 logger.warning(
-                                    f"High memory usage detected: {current_memory['system_used_percent']:.1f}%"
+                                    f"High memory usage detected: "
+                                    f"{current_memory['system_used_percent']:.1f}%"
                                 )
                         else:
                             logger.info(
-                                f"Completed chunk {i+1}/{len(chunks)}: {result['filename']}"
+                                f"Completed chunk {i + 1}/{len(chunks)}: "
+                                f"{result['filename']}"
                             )
                     else:
                         logger.error(
-                            f"Error processing chunk {result['filename']}: {result.get('error', 'Unknown error')}"
+                            f"Error processing chunk {result['filename']}: "
+                            f"{result.get('error', 'Unknown error')}"
                         )
                         # Update progress even for failed chunks
                         self.progress_tracker.update_chunk_progress(
@@ -738,7 +751,7 @@ class VideoTranscriber:
                     logger.error(f"Exception processing chunk: {e}")
                     # Update progress for exception cases
                     self.progress_tracker.update_chunk_progress(
-                        session_id, i + 1, len(chunks), f"Exception processing chunk"
+                        session_id, i + 1, len(chunks), "Exception processing chunk"
                     )
 
         # Sort results by start time to maintain order
@@ -756,7 +769,9 @@ class VideoTranscriber:
         for chunk_result in completed_chunks:
             all_segments.extend(chunk_result["segments"])
             all_text.append(
-                f"\n\n--- {chunk_result['filename']} [{format_timestamp(chunk_result['start_time'])}] ---\n\n{chunk_result['transcription']}"
+                f"\n\n--- {chunk_result['filename']} "
+                f"[{format_timestamp(chunk_result['start_time'])}] ---\n\n"
+                f"{chunk_result['transcription']}"
             )
 
         return all_segments, all_text
@@ -800,7 +815,10 @@ class VideoTranscriber:
         self.progress_tracker.complete_session(
             session_id,
             success=True,
-            message=f"Processing complete! Transcribed {chunks_count} chunks, found {results['analysis']['total_words']} words.",
+            message=(
+                f"Processing complete! Transcribed {chunks_count} chunks, "
+                f"found {results['analysis']['total_words']} words."
+            ),
         )
 
         # Clean up all temporary files using progressive file manager

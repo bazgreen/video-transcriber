@@ -12,7 +12,7 @@ import gc
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 try:
     import psutil
@@ -22,7 +22,6 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 from src.config import Constants, PerformanceConfig
-from src.utils.memory import check_memory_constraints
 
 
 def get_safe_memory_status() -> Dict[str, Any]:
@@ -153,7 +152,8 @@ class PerformanceOptimizer:
 
     def get_optimal_chunk_size(self, video_duration: float, file_size_mb: float) -> int:
         """
-        Calculate optimal chunk size based on video characteristics and system resources.
+        Calculate optimal chunk size based on video characteristics and system
+        resources.
 
         Args:
             video_duration: Duration of video in seconds
@@ -270,36 +270,44 @@ class PerformanceOptimizer:
             # Memory recommendations
             if used_percent > 85:
                 recommendations.append(
-                    "⚠️ High memory usage detected - consider processing smaller files or reducing worker count"
+                    "⚠️ High memory usage detected - consider processing smaller "
+                    "files or reducing worker count"
                 )
             elif available_gb < 2:
                 recommendations.append(
-                    "💡 Low available memory - enable memory cleanup and use smaller chunk sizes"
+                    "💡 Low available memory - enable memory cleanup and use "
+                    "smaller chunk sizes"
                 )
             elif available_gb > 8:
                 recommendations.append(
-                    "✅ Abundant memory available - you can increase worker count for faster processing"
+                    "✅ Abundant memory available - you can increase worker count "
+                    "for faster processing"
                 )
 
             # CPU recommendations
             if cpu_count >= 8:
+                max_recommended = min(cpu_count, PerformanceConfig.MAX_WORKERS_LIMIT)
                 recommendations.append(
-                    f"🚀 High-performance system detected ({cpu_count} cores) - consider increasing max workers to {min(cpu_count, PerformanceConfig.MAX_WORKERS_LIMIT)}"
+                    f"🚀 High-performance system detected ({cpu_count} cores) - "
+                    f"consider increasing max workers to {max_recommended}"
                 )
             elif cpu_count <= 2:
                 recommendations.append(
-                    "⚠️ Limited CPU cores - use conservative worker settings for stability"
+                    "⚠️ Limited CPU cores - use conservative worker settings "
+                    "for stability"
                 )
 
             # Performance features
             if PerformanceConfig.ENABLE_PARALLEL_UPLOAD:
                 recommendations.append(
-                    "✅ Parallel upload enabled - large files will be processed more efficiently"
+                    "✅ Parallel upload enabled - large files will be processed "
+                    "more efficiently"
                 )
 
             if PerformanceConfig.CHUNK_SIZE_OPTIMIZATION:
                 recommendations.append(
-                    "✅ Dynamic chunk sizing enabled - processing will adapt to video characteristics"
+                    "✅ Dynamic chunk sizing enabled - processing will adapt to "
+                    "video characteristics"
                 )
 
             if not recommendations:

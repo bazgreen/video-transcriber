@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def handle_user_friendly_error(func):
-    """Decorator to handle UserFriendlyError exceptions and return appropriate JSON responses"""
+    """
+    Decorator to handle UserFriendlyError exceptions and return appropriate
+    JSON responses.
+    """
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

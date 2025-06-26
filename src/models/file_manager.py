@@ -98,7 +98,7 @@ class ProgressiveFileManager:
         if files_to_remove:
             logger.info(
                 f"Progressive cleanup: removed {len(files_to_remove)} files "
-                f"({total_removed_size / (1024*1024):.1f}MB)"
+                f"({total_removed_size / (1024 * 1024):.1f}MB)"
             )
 
     def _safe_remove_file(self, file_path: str) -> None:
@@ -114,7 +114,7 @@ class ProgressiveFileManager:
                 os.remove(file_path)
                 logger.debug(
                     f"Cleaned up temp file: {os.path.basename(file_path)} "
-                    f"({file_size / (1024*1024):.1f}MB)"
+                    f"({file_size / (1024 * 1024):.1f}MB)"
                 )
         except OSError as e:
             logger.warning(f"Failed to remove temp file {file_path}: {e}")
@@ -133,8 +133,9 @@ class ProgressiveFileManager:
 
             if self.temp_files:
                 logger.info(
-                    f"Final cleanup: removed {files_removed}/{len(self.temp_files)} temp files "
-                    f"({total_size / (1024*1024):.1f}MB total)"
+                    f"Final cleanup: removed {files_removed}/"
+                    f"{len(self.temp_files)} temp files "
+                    f"({total_size / (1024 * 1024):.1f}MB total)"
                 )
 
             self.temp_files.clear()
@@ -183,5 +184,5 @@ class ProgressiveFileManager:
             if files_to_remove:
                 logger.info(
                     f"Cleaned up {len(files_to_remove)} {file_type} files "
-                    f"({total_size / (1024*1024):.1f}MB)"
+                    f"({total_size / (1024 * 1024):.1f}MB)"
                 )

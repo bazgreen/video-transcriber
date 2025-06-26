@@ -6,7 +6,7 @@ to eliminate duplicate code across services and routes.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from src.config import MemoryConfig
 
@@ -70,19 +70,22 @@ def check_memory_constraints(
     recommendations = []
     if memory_pressure:
         recommendations.append(
-            f"System under memory pressure: {memory_info['system_used_percent']:.1f}% used"
+            f"System under memory pressure: "
+            f"{memory_info['system_used_percent']:.1f}% used"
         )
 
     if low_memory:
         recommendations.append(
-            f"Low available memory: {memory_info['system_available_gb']:.1f}GB available"
+            f"Low available memory: "
+            f"{memory_info['system_available_gb']:.1f}GB available"
         )
 
     if memory_manager:
         optimal_workers = memory_manager.get_optimal_workers()
         if optimal_workers < 4:  # Assuming normal expectation is 4+ workers
             recommendations.append(
-                f"Memory limits workers to {optimal_workers} (consider reducing concurrent operations)"
+                f"Memory limits workers to {optimal_workers} "
+                f"(consider reducing concurrent operations)"
             )
 
     return {

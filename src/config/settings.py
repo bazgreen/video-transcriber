@@ -63,14 +63,16 @@ class AppConfig:
 
         if cls.is_using_default_secret():
             warnings.append(
-                "⚠️  Using default SECRET_KEY. Set SECRET_KEY environment variable for production!"
+                "⚠️  Using default SECRET_KEY. Set SECRET_KEY environment variable "
+                "for production!"
             )
 
         if not cls.is_debug():
             cors_origins = cls.get_cors_origins()
             if "*" in cors_origins:
                 warnings.append(
-                    "⚠️  CORS allows all origins (*). Set CORS_ALLOWED_ORIGINS for production!"
+                    "⚠️  CORS allows all origins (*). Set CORS_ALLOWED_ORIGINS "
+                    "for production!"
                 )
 
         return warnings
@@ -132,7 +134,8 @@ class VideoConfig:
     """
     Video processing configuration.
 
-    Contains settings for video chunking, audio processing, and Whisper model configuration.
+    Contains settings for video chunking, audio processing, and Whisper model
+    configuration.
     """
 
     # Chunk Duration Settings (in seconds)
