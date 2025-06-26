@@ -199,3 +199,8 @@ ffmpeg*.log
 *.tar.gz
 *.rar
 *.7z
+
+# Security reports and analysis (should not be committed)
+bandit-report.json
+security-report.*
+*.security
