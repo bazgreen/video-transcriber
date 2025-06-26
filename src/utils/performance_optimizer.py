@@ -105,7 +105,7 @@ class PerformanceOptimizer:
             # Get system information
             cpu_count = os.cpu_count() or 4
             memory_status = get_safe_memory_status()
-            available_gb = memory_status.get("available_gb", 4)
+            available_gb = memory_status.get("system_available_gb", 4)
 
             # Base calculation on CPU cores
             cpu_workers = min(cpu_count, PerformanceConfig.MAX_WORKERS_LIMIT)
@@ -185,7 +185,7 @@ class PerformanceOptimizer:
 
             # Consider available memory
             memory_status = get_safe_memory_status()
-            available_gb = memory_status.get("available_gb", 4)
+            available_gb = memory_status.get("system_available_gb", 4)
 
             if available_gb < 4:
                 # Reduce chunk size for memory-constrained systems
@@ -263,8 +263,8 @@ class PerformanceOptimizer:
         try:
             # Get system info
             memory_status = get_safe_memory_status()
-            available_gb = memory_status.get("available_gb", 0)
-            used_percent = memory_status.get("percent", 0)
+            available_gb = memory_status.get("system_available_gb", 0)
+            used_percent = memory_status.get("system_used_percent", 0)
             cpu_count = os.cpu_count() or 4
 
             # Memory recommendations
