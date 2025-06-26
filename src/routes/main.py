@@ -115,7 +115,6 @@ def search_sessions():
                 or query in metadata.get("original_filename", "").lower()
                 or query in session_folder.lower()
             ):
-
                 matching_sessions.append(metadata)
                 continue
 
