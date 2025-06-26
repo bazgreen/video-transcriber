@@ -194,6 +194,11 @@ Thumbs.db
 # FFmpeg logs (project-specific)
 ffmpeg*.log
 
+# Security scanning reports
+bandit-report.json
+*.bandit
+*.security-report
+
 # Large files
 *.zip
 *.tar.gz

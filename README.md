@@ -100,8 +100,7 @@ That's it! The script will:
 
 ### Manual Installation (Advanced)
 
-<details>
-<summary>Click for manual setup instructions</summary>
+**Click to expand manual setup instructions:**
 
 1. **Create and activate virtual environment**
 
@@ -127,8 +126,7 @@ That's it! The script will:
    python app.py
    ```
 
-</details>
-
+```
 ## 📖 Usage Guide
 
 ### Web Interface (Recommended)
@@ -167,22 +165,27 @@ The system can be customized for various industries and use cases through keywor
 **Example Use Cases:**
 
 **🎓 Education & Training:**
+
 - Lectures, workshops, online courses
 - Keywords: assignment, assessment, homework, exam, grade
 
 **💼 Business & Corporate:**
+
 - Meetings, presentations, training sessions
 - Keywords: action items, deadline, budget, KPI, ROI
 
 **🎙️ Media & Podcasts:**
+
 - Interviews, podcasts, webinars
 - Keywords: guest, sponsor, announcement, call-to-action
 
 **🔬 Research & Academia:**
+
 - Research presentations, thesis defenses
 - Keywords: hypothesis, methodology, results, conclusion
 
 **🏥 Healthcare & Medical:**
+
 - Medical training, patient consultations
 - Keywords: diagnosis, treatment, symptoms, medication
 
@@ -202,6 +205,7 @@ For advanced keyword management, external customization scripts are available:
 **Location:** `/Users/barrygreen/video_transcriber_customizer.py`
 
 **Features:**
+
 - **7+ Predefined Industry Sets** - Education, Business, Media, Research, Healthcare, Legal, Technology
 - **Interactive CLI Interface** - Easy-to-use command-line management
 - **Backup & Restore** - Automatic backup before changes with easy restore
@@ -209,6 +213,7 @@ For advanced keyword management, external customization scripts are available:
 - **Automatic Detection** - Finds your transcriber installation automatically
 
 **Quick Launch:**
+
 ```bash
 # macOS/Linux
 ./customize_transcriber.sh
@@ -221,6 +226,7 @@ python video_transcriber_customizer.py
 ```
 
 **Example Usage:**
+
 ```bash
 # Apply business keyword set
 python video_transcriber_customizer.py
@@ -272,6 +278,7 @@ CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com  # Produc
 The application implements secure CORS (Cross-Origin Resource Sharing) configuration:
 
 **Development Mode** (`DEBUG=true`):
+
 - Automatically allows common development origins:
   - `http://localhost:3000` (React dev server)
   - `http://localhost:5000` (Flask alt port)
@@ -279,12 +286,14 @@ The application implements secure CORS (Cross-Origin Resource Sharing) configura
   - `http://127.0.0.1:5001` (Localhost IP variant)
 
 **Production Mode** (`DEBUG=false`):
+
 - Only allows origins specified in `CORS_ALLOWED_ORIGINS`
 - Multiple origins can be specified, comma-separated
 - Example: `CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com`
 - ⚠️ **Never use `*` (wildcard) in production** - this is a security risk
 
 **Security Best Practices**:
+
 - Always set specific domains in production
 - Use HTTPS origins in production
 - Regularly review and update allowed origins

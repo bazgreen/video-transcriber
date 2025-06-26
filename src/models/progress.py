@@ -89,8 +89,8 @@ class ProgressTracker:
 
             self.emit_progress(session_id)
             logger.debug(
-                f"Progress update for {session_id}: {session.get('current_task', 'Unknown')} "
-                f"({progress:.1f}%)"
+                f"Progress update for {session_id}: "
+                f"{session.get('current_task', 'Unknown')} ({progress:.1f}%)"
             )
 
     def update_chunk_progress(

@@ -6,7 +6,7 @@ import re
 import shutil
 from typing import Any, Dict, Tuple
 
-from flask import jsonify, request
+from flask import request
 from werkzeug.utils import secure_filename
 
 from src.config import AppConfig, Constants
@@ -34,7 +34,8 @@ def process_upload(
     file_ext = os.path.splitext(file.filename)[1].lower()
     if file_ext not in config.ALLOWED_FILE_EXTENSIONS:
         raise UserFriendlyError(
-            f"Unsupported format: {file_ext}. Supported formats: {list(config.ALLOWED_FILE_EXTENSIONS)}"
+            f"Unsupported format: {file_ext}. "
+            f"Supported formats: {list(config.ALLOWED_FILE_EXTENSIONS)}"
         )
 
     # Enhanced file size validation with context
@@ -46,14 +47,16 @@ def process_upload(
     if file_size > config.MAX_FILE_SIZE_BYTES:
         max_size_mb = config.MAX_FILE_SIZE_BYTES / Constants.BYTES_PER_MB
         raise UserFriendlyError(
-            f"File too large: {file_size_mb:.1f}MB. Maximum allowed: {max_size_mb:.0f}MB"
+            f"File too large: {file_size_mb:.1f}MB. "
+            f"Maximum allowed: {max_size_mb:.0f}MB"
         )
 
     # Check available memory before processing
     memory_info = memory_manager.get_memory_info()
     if memory_info["system_used_percent"] > config.MEMORY_PRESSURE_THRESHOLD:
         raise UserFriendlyError(
-            f'Insufficient memory: {memory_info["system_used_percent"]:.1f}% used, {memory_info["system_available_gb"]:.1f}GB available'
+            f'Insufficient memory: {memory_info["system_used_percent"]:.1f}% used, '
+            f'{memory_info["system_available_gb"]:.1f}GB available'
         )
 
     session_name = request.form.get("session_name", "").strip()

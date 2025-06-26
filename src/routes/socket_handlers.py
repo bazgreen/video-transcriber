@@ -90,7 +90,9 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             return
 
         join_room(session_id)
-        logger.debug(f"Client {request.sid} joined session {session_id}")  # type: ignore
+        logger.debug(
+            f"Client {request.sid} joined session {session_id}"  # type: ignore
+        )
         emit("joined_session", {"session_id": session_id})
 
         # Send current progress if available
