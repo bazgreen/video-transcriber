@@ -1,18 +1,23 @@
-import whisper
-import ffmpeg
 import os
 import re
+
+import ffmpeg
+import whisper
+
 
 # Configuration
 class ScriptConfig:
     """Configuration for the standalone transcription script"""
+
     CONTEXT_WINDOW_CHARS = 50
     AUDIO_SAMPLE_RATE = 16000
     AUDIO_CHANNELS = 1
-    AUDIO_CODEC = 'pcm_s16le'
-    WHISPER_MODEL = 'small'
+    AUDIO_CODEC = "pcm_s16le"
+    WHISPER_MODEL = "small"
+
 
 config = ScriptConfig()
+
 
 def prompt_path():
     print("🔍 Enter the relative path to the folder with your video chunks:")
@@ -22,20 +27,41 @@ def prompt_path():
         raise FileNotFoundError(f"❌ Directory not found: {full_path}")
     return full_path
 
+
 def extract_audio_ffmpeg(video_path, audio_path):
     (
-        ffmpeg
-        .input(video_path)
-        .output(audio_path, acodec=config.AUDIO_CODEC, ac=config.AUDIO_CHANNELS, ar=str(config.AUDIO_SAMPLE_RATE))
+        ffmpeg.input(video_path)
+        .output(
+            audio_path,
+            acodec=config.AUDIO_CODEC,
+            ac=config.AUDIO_CHANNELS,
+            ar=str(config.AUDIO_SAMPLE_RATE),
+        )
         .overwrite_output()
         .run(quiet=True)
     )
 
+
 def transcribe_directory(video_dir):
     keywords = [
-        "assignment", "submission", "deadline", "notebook", "python", "ipython",
-        "output", "reference", "proof of concept", "automate", "RO1", "RO2", "RO3",
-        "assessment", "grading", "criteria", "format", "feedback"
+        "assignment",
+        "submission",
+        "deadline",
+        "notebook",
+        "python",
+        "ipython",
+        "output",
+        "reference",
+        "proof of concept",
+        "automate",
+        "RO1",
+        "RO2",
+        "RO3",
+        "assessment",
+        "grading",
+        "criteria",
+        "format",
+        "feedback",
     ]
 
     model = whisper.load_model(config.WHISPER_MODEL)
@@ -63,14 +89,21 @@ def transcribe_directory(video_dir):
 
             highlights = []
             for kw in keywords:
-                pattern = re.compile(f".{{0,{config.CONTEXT_WINDOW_CHARS}}}" + re.escape(kw) + f".{{0,{config.CONTEXT_WINDOW_CHARS}}}", re.IGNORECASE)
+                pattern = re.compile(
+                    f".{{0,{config.CONTEXT_WINDOW_CHARS}}}"
+                    + re.escape(kw)
+                    + f".{{0,{config.CONTEXT_WINDOW_CHARS}}}",
+                    re.IGNORECASE,
+                )
                 matches = pattern.findall(transcript)
                 if matches:
                     highlights.append(f"\n🔹 Keyword: **{kw}**")
                     highlights.extend(matches)
 
             if highlights:
-                all_highlights.append(f"\n\n--- {base_name} ---\n" + "\n".join(highlights))
+                all_highlights.append(
+                    f"\n\n--- {base_name} ---\n" + "\n".join(highlights)
+                )
 
             print(f"✅ Done: {file}")
 
@@ -80,7 +113,11 @@ def transcribe_directory(video_dir):
 
     # Save assessment-related highlights
     with open(os.path.join(output_dir, "assessment_mentions.txt"), "w") as f:
-        f.write("\n".join(all_highlights) if all_highlights else "No assessment-related content found.")
+        f.write(
+            "\n".join(all_highlights)
+            if all_highlights
+            else "No assessment-related content found."
+        )
 
     # Generate basic summary
     summary_points = set()
@@ -97,10 +134,10 @@ def transcribe_directory(video_dir):
     print(f"\n📄 Outputs saved to: {output_dir}")
     print("🟢 Process completed.\n")
 
+
 if __name__ == "__main__":
     try:
         base_dir = prompt_path()
         transcribe_directory(base_dir)
     except Exception as e:
         print(f"\n❌ Error: {e}")
-

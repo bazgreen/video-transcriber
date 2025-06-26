@@ -1,0 +1,18 @@
+black>=23.7.0
+coverage>=7.3.0
+factory-boy>=3.3.0  # For test data generation
+flake8>=6.0.0
+freezegun>=1.2.0  # For mocking time in tests
+isort>=5.12.0
+mypy>=1.5.0
+pre-commit>=3.3.0
+# Development and testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+pytest-cov>=4.1.0
+pytest-flask>=1.2.0
+pytest-mock>=3.11.0
+requests>=2.31.0  # For API testing
+responses>=0.23.0  # For mocking HTTP requests
+tox>=4.6.0

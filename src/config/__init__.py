@@ -1,19 +1,21 @@
 """Configuration module for the video transcriber application."""
 
 from .settings import (
-    AppConfig,
-    MemoryConfig,
-    VideoConfig,
-    PerformanceConfig,
     AnalysisConfig,
-    Constants
+    AppConfig,
+    Constants,
+    MemoryConfig,
+    PerformanceConfig,
+    VideoConfig,
+    validate_configurations,
 )
 
 __all__ = [
-    'AppConfig',
-    'MemoryConfig', 
-    'VideoConfig',
-    'PerformanceConfig',
-    'AnalysisConfig',
-    'Constants'
+    "AppConfig",
+    "MemoryConfig",
+    "VideoConfig",
+    "PerformanceConfig",
+    "AnalysisConfig",
+    "Constants",
+    "validate_configurations",
 ]
