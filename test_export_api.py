@@ -56,7 +56,8 @@ def test_export_endpoints():
 
     if not results_folder.exists():
         print(
-            "❌ No results folder found. Run a transcription first to test download endpoints."
+            "❌ No results folder found. Run a transcription first to test "
+            "download endpoints."
         )
         return
 
@@ -84,7 +85,8 @@ def test_export_endpoints():
             download_results[format_name] = response.status_code
             if response.status_code == 200:
                 print(
-                    f"   ✅ {format_name} download successful ({len(response.content)} bytes)"
+                    f"   ✅ {format_name} download successful "
+                    f"({len(response.content)} bytes)"
                 )
             elif response.status_code == 404:
                 print(f"   ⚠️  {format_name} file not found (may need to be generated)")
@@ -118,9 +120,10 @@ def test_export_endpoints():
             headers={"Content-Type": "application/json"},
         )
 
-        assert (
-            response.status_code == 200
-        ), f"Export generation failed with status {response.status_code}: {response.text}"
+        assert response.status_code == 200, (
+            f"Export generation failed with status {response.status_code}: "
+            f"{response.text}"
+        )
 
         data = response.json()
         assert data.get(

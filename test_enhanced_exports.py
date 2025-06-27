@@ -3,6 +3,7 @@
 Test the enhanced export service integration.
 """
 
+import copy
 import os
 import tempfile
 
@@ -93,7 +94,7 @@ def test_enhanced_export_service():
         print(f"📁 Using temporary directory: {temp_dir}")
 
         # Update mock results with temp directory
-        test_results = MOCK_RESULTS.copy()
+        test_results = copy.deepcopy(MOCK_RESULTS)
         test_results["session_dir"] = temp_dir
 
         # Test 1: Check available formats
@@ -133,9 +134,10 @@ def test_enhanced_export_service():
             ), "Exported files should be a dictionary"
 
             # Assert that at least basic text is available
-            assert (
-                "basic_txt" in exported_files
-            ), f"Basic text format should always be available. Available formats: {list(exported_files.keys())}"
+            assert "basic_txt" in exported_files, (
+                f"Basic text format should always be available. "
+                f"Available formats: {list(exported_files.keys())}"
+            )
 
             # Assert that all files have valid paths
             for format_name, file_path in exported_files.items():
@@ -155,7 +157,8 @@ def test_enhanced_export_service():
                 if os.path.exists(file_path):
                     file_size = os.path.getsize(file_path)
                     print(
-                        f"   ✅ {format_name}: {os.path.basename(file_path)} ({file_size} bytes)"
+                        f"   ✅ {format_name}: {os.path.basename(file_path)} "
+                        f"({file_size} bytes)"
                     )
                     # Assert that file has content
                     assert file_size > 0, f"{format_name} file should not be empty"
@@ -223,7 +226,8 @@ def test_integration():
         print("✅ VideoTranscriber imported successfully")
 
         # Test if the save_results method includes export functionality
-        # Instead of instantiating (which requires many args), just check the class methods
+        # Instead of instantiating (which requires many args),
+        # just check the class methods
         if hasattr(VideoTranscriber, "save_results"):
             print("✅ save_results method exists")
 
@@ -232,10 +236,11 @@ def test_integration():
 
             source = inspect.getsource(VideoTranscriber.save_results)
             if "EnhancedExportService" in source:
-                print("✅ save_results method includes enhanced export integration")
+                print("✅ save_results method includes enhanced export " "integration")
             else:
                 print(
-                    "⚠️  save_results method may not be integrated with enhanced exports"
+                    "⚠️  save_results method may not be integrated with "
+                    "enhanced exports"
                 )
         else:
             print("❌ save_results method not found")

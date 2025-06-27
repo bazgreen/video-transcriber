@@ -3,7 +3,7 @@
 
 # Core dependencies
 -r requirements.txt
+python-docx>=1.1.0        # DOCX export support
 
 # Optional export format dependencies
 reportlab>=4.0.0          # PDF export support
-python-docx>=1.1.0        # DOCX export support

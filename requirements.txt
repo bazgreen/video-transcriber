@@ -9,25 +9,25 @@ torch>=2.0.0
 # ========================================
 # OPTIONAL DEPENDENCIES FOR EXPORT FORMATS
 # ========================================
-# 
+#
 # The following dependencies enable additional export formats:
 # - PDF Reports: Professional analysis documents
 # - DOCX Documents: Microsoft Word format
 #
 # INSTALLATION OPTIONS:
-# 
+#
 # Option 1: Install all optional dependencies
 # pip install reportlab python-docx
 #
 # Option 2: Install only PDF support
 # pip install reportlab
 #
-# Option 3: Install only DOCX support  
+# Option 3: Install only DOCX support
 # pip install python-docx
 #
 # Option 4: Add to requirements (uncomment lines below)
 # reportlab>=4.0.0
 # python-docx>=1.1.0
 #
-# NOTE: Core export formats (SRT, VTT, Enhanced Text, JSON, HTML) 
+# NOTE: Core export formats (SRT, VTT, Enhanced Text, JSON, HTML)
 # work without these dependencies

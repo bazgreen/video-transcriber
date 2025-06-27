@@ -8,7 +8,6 @@ documents (PDF/DOCX), and enhanced text outputs.
 
 import logging
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 # Optional dependencies for enhanced export formats
@@ -24,7 +23,6 @@ except ImportError:
 
 try:
     import docx
-    from docx.shared import Inches
 
     DOCX_AVAILABLE = True
 except ImportError:

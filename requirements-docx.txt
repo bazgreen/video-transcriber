@@ -1,4 +1,4 @@
-# DOCX export only dependencies  
+# DOCX export only dependencies
 # Use: pip install -r requirements-docx.txt
 
 # Core dependencies

@@ -5,7 +5,6 @@ This script checks the code structure without requiring Flask dependencies.
 """
 
 import ast
-import os
 from pathlib import Path
 
 
@@ -63,7 +62,8 @@ def validate_export_service():
         # Check for optional dependency handling using AST
         optional_dependencies = ["REPORTLAB_AVAILABLE", "DOCX_AVAILABLE"]
         defined_variables = [
-            node.id for node in ast.walk(tree) 
+            node.id
+            for node in ast.walk(tree)
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
         ]
         missing_dependencies = [

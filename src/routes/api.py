@@ -525,7 +525,8 @@ def download_export_format(session_id: str, export_format: str):
 
     if not os.path.exists(file_path):
         raise UserFriendlyError(
-            f"File not found: {filename}. This format may not have been generated for this session."
+            f"File not found: {filename}. This format may not have been "
+            f"generated for this session."
         )
 
     return send_file(file_path, as_attachment=True)

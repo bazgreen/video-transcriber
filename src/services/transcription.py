@@ -840,8 +840,6 @@ class VideoTranscriber:
         - Professional documents (PDF, DOCX)
         - Enhanced structured text
         """
-        session_dir = results["session_dir"]
-
         # Initialize enhanced export service
         export_service = EnhancedExportService()
 
