@@ -137,6 +137,16 @@ class EnhancedExportService:
             except Exception as e:
                 logger.error(f"Failed to export enhanced text: {e}")
 
+        # Export basic text format (always available)
+        if export_options.get("basic_txt", True):
+            try:
+                basic_txt_path = os.path.join(session_dir, "transcript.txt")
+                self.export_basic_text(results, basic_txt_path)
+                exported_files["basic_txt"] = basic_txt_path
+                logger.info(f"Exported basic text: {basic_txt_path}")
+            except Exception as e:
+                logger.error(f"Failed to export basic text: {e}")
+
         return exported_files
 
     def export_to_srt(self, segments: List[Dict[str, Any]], output_path: str) -> None:
@@ -475,6 +485,22 @@ class EnhancedExportService:
                 f.write(f"[{segment['timestamp_str']}] {segment['text']}\n")
 
         logger.info(f"Exported enhanced text: {output_path}")
+
+    def export_basic_text(self, results: Dict[str, Any], output_path: str) -> None:
+        """
+        Export basic plain text transcript.
+
+        Args:
+            results: Transcription results
+            output_path: Path where text file will be saved
+        """
+        with open(output_path, "w", encoding="utf-8") as f:
+            # Simple transcript
+            all_segments = self._get_all_segments(results)
+            for segment in all_segments:
+                f.write(f"{segment['text']}\n")
+
+        logger.info(f"Exported basic text: {output_path}")
 
     def _get_all_segments(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract and sort all segments from results."""
