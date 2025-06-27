@@ -85,63 +85,68 @@ class EnhancedExportService:
         # Get all segments for subtitle formats
         all_segments = self._get_all_segments(results)
 
-        # Define formats and their handlers
+        # Define all format handlers with consistent filenames
         format_handlers = {
-            "srt": ("subtitles.srt", self.export_to_srt),
-            "vtt": ("subtitles.vtt", self.export_to_vtt),
-            "pdf": ("report.pdf", self.export_to_pdf if REPORTLAB_AVAILABLE else None),
-            "docx": ("document.docx", self.export_to_docx if DOCX_AVAILABLE else None),
-            "enhanced_txt": ("enhanced.txt", self.export_to_enhanced_txt),
+            # Subtitle formats (require segments)
+            "srt": (
+                "subtitles.srt",
+                lambda segments, path: self.export_to_srt(segments, path),
+            ),
+            "vtt": (
+                "subtitles.vtt",
+                lambda segments, path: self.export_to_vtt(segments, path),
+            ),
+            # Document formats (require full results)
+            "pdf": (
+                "analysis_report.pdf",
+                lambda results, path: (
+                    self.export_to_pdf(results, path) if REPORTLAB_AVAILABLE else None
+                ),
+            ),
+            "docx": (
+                "transcript_report.docx",
+                lambda results, path: (
+                    self.export_to_docx(results, path) if DOCX_AVAILABLE else None
+                ),
+            ),
+            # Text formats (require full results)
+            "enhanced_txt": (
+                "transcript_enhanced.txt",
+                lambda results, path: self.export_enhanced_text(results, path),
+            ),
+            "basic_txt": (
+                "transcript.txt",
+                lambda results, path: self.export_basic_text(results, path),
+            ),
+            # Data formats (require full results)
+            "json": (
+                "analysis.json",
+                lambda results, path: self.export_to_json(results, path),
+            ),
+            "html": (
+                "searchable_transcript.html",
+                lambda results, path: self.export_to_html(results, path),
+            ),
         }
 
-        # Iterate over formats and export
+        # Single consolidated export loop
         for format_name, (file_name, handler) in format_handlers.items():
             if export_options.get(format_name, True) and handler:
                 try:
                     file_path = os.path.join(session_dir, file_name)
-                    handler(all_segments, file_path)
+
+                    # Determine the correct input based on format type
+                    if format_name in ["srt", "vtt"]:
+                        # Subtitle formats need segments
+                        handler(all_segments, file_path)
+                    else:
+                        # All other formats need full results
+                        handler(results, file_path)
+
                     exported_files[format_name] = file_path
                     logger.info(f"Exported {format_name.upper()} to {file_path}")
                 except Exception as e:
                     logger.error(f"Failed to export {format_name.upper()}: {e}")
-        if export_options.get("pdf", True) and REPORTLAB_AVAILABLE:
-            try:
-                pdf_path = os.path.join(session_dir, "analysis_report.pdf")
-                self.export_to_pdf(results, pdf_path)
-                exported_files["pdf"] = pdf_path
-                logger.info(f"Exported PDF report: {pdf_path}")
-            except Exception as e:
-                logger.error(f"Failed to export PDF: {e}")
-
-        # Export DOCX document
-        if export_options.get("docx", True) and DOCX_AVAILABLE:
-            try:
-                docx_path = os.path.join(session_dir, "transcript_report.docx")
-                self.export_to_docx(results, docx_path)
-                exported_files["docx"] = docx_path
-                logger.info(f"Exported DOCX document: {docx_path}")
-            except Exception as e:
-                logger.error(f"Failed to export DOCX: {e}")
-
-        # Export enhanced text format
-        if export_options.get("enhanced_txt", True):
-            try:
-                enhanced_txt_path = os.path.join(session_dir, "transcript_enhanced.txt")
-                self.export_enhanced_text(results, enhanced_txt_path)
-                exported_files["enhanced_txt"] = enhanced_txt_path
-                logger.info(f"Exported enhanced text: {enhanced_txt_path}")
-            except Exception as e:
-                logger.error(f"Failed to export enhanced text: {e}")
-
-        # Export basic text format (always available)
-        if export_options.get("basic_txt", True):
-            try:
-                basic_txt_path = os.path.join(session_dir, "transcript.txt")
-                self.export_basic_text(results, basic_txt_path)
-                exported_files["basic_txt"] = basic_txt_path
-                logger.info(f"Exported basic text: {basic_txt_path}")
-            except Exception as e:
-                logger.error(f"Failed to export basic text: {e}")
 
         return exported_files
 
@@ -497,6 +502,179 @@ class EnhancedExportService:
                 f.write(f"{segment['text']}\n")
 
         logger.info(f"Exported basic text: {output_path}")
+
+    def export_to_json(self, results: Dict[str, Any], output_path: str) -> None:
+        """
+        Export complete analysis results to JSON format.
+
+        Args:
+            results: Complete transcription and analysis results
+            output_path: Path where JSON file should be saved
+        """
+        try:
+            import json
+
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(results, f, indent=2, ensure_ascii=False)
+            logger.info(f"JSON export completed: {output_path}")
+        except Exception as e:
+            logger.error(f"Failed to export JSON: {e}")
+            raise
+
+    def export_to_html(self, results: Dict[str, Any], output_path: str) -> None:
+        """
+        Export interactive searchable transcript to HTML format.
+
+        Args:
+            results: Complete transcription and analysis results
+            output_path: Path where HTML file should be saved
+        """
+        try:
+            # Extract transcript segments
+            segments = results.get("segments", [])
+            metadata = results.get("metadata", {})
+            filename = metadata.get("filename", "Unknown")
+
+            html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Searchable Transcript - {filename}</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }}
+        .header {{
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        .search-box {{
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }}
+        .segment {{
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 3px solid #007acc;
+            background-color: #f9f9f9;
+        }}
+        .timestamp {{
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 5px;
+        }}
+        .text {{
+            margin-bottom: 5px;
+        }}
+        .highlight {{
+            background-color: yellow;
+        }}
+        .metadata {{
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Searchable Transcript</h1>
+        <h2>{filename}</h2>
+    </div>
+
+    <div class="metadata">
+        <h3>File Information</h3>
+        <p><strong>Duration:</strong> {metadata.get('duration', 'Unknown')}</p>
+        <p><strong>Created:</strong> {metadata.get('created_date', 'Unknown')}</p>
+    </div>
+
+    <input type="text" class="search-box" id="searchInput" placeholder="Search transcript...">
+
+    <div id="transcript">
+"""
+
+            # Add transcript segments
+            for i, segment in enumerate(segments):
+                start_time = self._format_timestamp(segment.get("start", 0))
+                end_time = self._format_timestamp(segment.get("end", 0))
+                text = segment.get("text", "").strip()
+
+                html_content += f"""
+        <div class="segment" data-text="{text.lower()}">
+            <div class="timestamp">[{start_time} - {end_time}]</div>
+            <div class="text">{text}</div>
+        </div>
+"""
+
+            # Add JavaScript for search functionality
+            html_content += """
+    </div>
+
+    <script>
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const segments = document.querySelectorAll('.segment');
+
+            segments.forEach(segment => {
+                const text = segment.getAttribute('data-text');
+                const textDiv = segment.querySelector('.text');
+
+                if (searchTerm === '' || text.includes(searchTerm)) {
+                    segment.style.display = 'block';
+
+                    // Highlight search term
+                    if (searchTerm !== '') {
+                        const originalText = textDiv.textContent;
+                        const highlightedText = originalText.replace(
+                            new RegExp(searchTerm, 'gi'),
+                            '<span class="highlight">$&</span>'
+                        );
+                        textDiv.innerHTML = highlightedText;
+                    } else {
+                        textDiv.innerHTML = textDiv.textContent;
+                    }
+                } else {
+                    segment.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            logger.info(f"HTML export completed: {output_path}")
+        except Exception as e:
+            logger.error(f"Failed to export HTML: {e}")
+            raise
+
+    def _format_timestamp(self, seconds: float) -> str:
+        """
+        Format seconds as HH:MM:SS timestamp.
+
+        Args:
+            seconds: Time in seconds
+
+        Returns:
+            Formatted timestamp string
+        """
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
     def _get_all_segments(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract and sort all segments from results."""
