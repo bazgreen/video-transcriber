@@ -3,10 +3,8 @@
 Test the enhanced export service integration.
 """
 
-import json
 import os
 import tempfile
-from pathlib import Path
 
 # Mock session data for testing
 MOCK_RESULTS = {
@@ -125,6 +123,29 @@ def test_enhanced_export_service():
         print("\n3. Testing export all formats...")
         try:
             exported_files = export_service.export_all_formats(test_results)
+
+            # Assert that exported_files is a dictionary
+            assert isinstance(
+                exported_files, dict
+            ), "Exported files should be a dictionary"
+
+            # Assert that at least basic text is available
+            assert (
+                "txt" in exported_files
+            ), "Basic text format should always be available"
+
+            # Assert that all files have valid paths
+            for format_name, file_path in exported_files.items():
+                assert (
+                    file_path is not None
+                ), f"File path for {format_name} should not be None"
+                assert isinstance(
+                    file_path, str
+                ), f"File path for {format_name} should be a string"
+                assert (
+                    len(file_path) > 0
+                ), f"File path for {format_name} should not be empty"
+
             print(f"✅ Export completed! Generated {len(exported_files)} files:")
 
             for format_name, file_path in exported_files.items():
@@ -133,8 +154,11 @@ def test_enhanced_export_service():
                     print(
                         f"   ✅ {format_name}: {os.path.basename(file_path)} ({file_size} bytes)"
                     )
+                    # Assert that file has content
+                    assert file_size > 0, f"{format_name} file should not be empty"
                 else:
                     print(f"   ❌ {format_name}: File not found at {file_path}")
+                    assert False, f"{format_name} file should exist at {file_path}"
 
         except Exception as e:
             print(f"❌ Failed to export formats: {e}")
@@ -148,38 +172,38 @@ def test_enhanced_export_service():
         if os.path.exists(srt_path):
             with open(srt_path, "r", encoding="utf-8") as f:
                 srt_content = f.read()
-                if "00:00:00,000 --> 00:00:03,500" in srt_content:
-                    print("   ✅ SRT file has correct timestamp format")
-                else:
-                    print("   ⚠️  SRT file format may be incorrect")
+                assert (
+                    "00:00:00,000 --> 00:00:03,500" in srt_content
+                ), "SRT file should have correct timestamp format"
+                print("   ✅ SRT file has correct timestamp format")
 
         # Check VTT file
         vtt_path = os.path.join(temp_dir, "subtitles.vtt")
         if os.path.exists(vtt_path):
             with open(vtt_path, "r", encoding="utf-8") as f:
                 vtt_content = f.read()
-                if (
+                assert (
                     "WEBVTT" in vtt_content
-                    and "00:00:00.000 --> 00:00:03.500" in vtt_content
-                ):
-                    print("   ✅ VTT file has correct format")
-                else:
-                    print("   ⚠️  VTT file format may be incorrect")
+                ), "VTT file should start with WEBVTT header"
+                assert (
+                    "00:00:00.000 --> 00:00:03.500" in vtt_content
+                ), "VTT file should have correct timestamp format"
+                print("   ✅ VTT file has correct format")
 
         # Check enhanced text file
         enhanced_txt_path = os.path.join(temp_dir, "transcript_enhanced.txt")
         if os.path.exists(enhanced_txt_path):
             with open(enhanced_txt_path, "r", encoding="utf-8") as f:
                 enhanced_content = f.read()
-                if (
+                assert (
                     "📋 SESSION INFORMATION" in enhanced_content
-                    and "📊 SUMMARY STATISTICS" in enhanced_content
-                ):
-                    print("   ✅ Enhanced text file has structured format")
-                else:
-                    print("   ⚠️  Enhanced text file format may be incorrect")
+                ), "Enhanced text should have session information section"
+                assert (
+                    "📊 SUMMARY STATISTICS" in enhanced_content
+                ), "Enhanced text should have summary statistics section"
+                print("   ✅ Enhanced text file has structured format")
 
-        print(f"\n🎉 Export service test completed successfully!")
+        print("\n🎉 Export service test completed successfully!")
         print(f"📁 Test files created in: {temp_dir}")
         return True
 

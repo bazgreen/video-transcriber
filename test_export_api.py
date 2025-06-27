@@ -4,8 +4,6 @@ Test script for enhanced export API endpoints.
 Tests the new export format capabilities without requiring a full transcription.
 """
 
-import json
-import os
 import sys
 from pathlib import Path
 
@@ -23,20 +21,32 @@ def test_export_endpoints():
     print("1. Testing export formats endpoint...")
     try:
         response = requests.get(f"{base_url}/api/export/formats")
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("success"):
-                print("✅ Export formats endpoint working")
-                print("📋 Available formats:")
-                for format_name, info in data["formats"].items():
-                    status = "✅" if info["available"] else "❌"
-                    print(f"   {status} {format_name}: {info['description']}")
-            else:
-                print(f"❌ API returned error: {data.get('error', 'Unknown error')}")
-        else:
-            print(f"❌ HTTP {response.status_code}: {response.text}")
+        assert (
+            response.status_code == 200
+        ), f"Export formats endpoint failed with status {response.status_code}"
+
+        data = response.json()
+        assert data.get(
+            "success"
+        ), f"API returned error: {data.get('error', 'Unknown error')}"
+        assert "formats" in data, "Response missing 'formats' key"
+
+        print("✅ Export formats endpoint working")
+        print("📋 Available formats:")
+        for format_name, info in data["formats"].items():
+            status = "✅" if info["available"] else "❌"
+            print(f"   {status} {format_name}: {info['description']}")
+
+        # Assert that core formats are present
+        expected_formats = ["srt", "vtt", "enhanced_txt", "json", "html"]
+        for fmt in expected_formats:
+            assert (
+                fmt in data["formats"]
+            ), f"Required format '{fmt}' missing from API response"
+
     except requests.RequestException as e:
         print(f"❌ Request failed: {e}")
+        raise AssertionError(f"Failed to connect to export formats endpoint: {e}")
 
     print()
 
@@ -64,12 +74,14 @@ def test_export_endpoints():
 
     # Test 3: Test individual format downloads
     print("\n3. Testing individual format downloads...")
-    formats_to_test = ["srt", "vtt", "enhanced_txt", "pdf", "docx"]
+    formats_to_test = ["srt", "vtt", "enhanced_txt", "pdf", "docx", "json", "html"]
 
+    download_results = {}
     for format_name in formats_to_test:
         print(f"   Testing {format_name} download...")
         try:
             response = requests.get(f"{base_url}/api/export/{session_id}/{format_name}")
+            download_results[format_name] = response.status_code
             if response.status_code == 200:
                 print(
                     f"   ✅ {format_name} download successful ({len(response.content)} bytes)"
@@ -80,6 +92,12 @@ def test_export_endpoints():
                 print(f"   ❌ {format_name} failed: HTTP {response.status_code}")
         except requests.RequestException as e:
             print(f"   ❌ {format_name} request failed: {e}")
+            download_results[format_name] = "error"
+
+    # Assert that at least basic formats are testable
+    assert any(
+        download_results[fmt] in [200, 404] for fmt in ["srt", "vtt", "enhanced_txt"]
+    ), "Basic export formats should be accessible via API"
 
     # Test 4: Test export generation
     print("\n4. Testing export generation...")
@@ -100,21 +118,27 @@ def test_export_endpoints():
             headers={"Content-Type": "application/json"},
         )
 
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("success"):
-                print("✅ Export generation successful")
-                print(
-                    f"📦 Generated files: {', '.join(data.get('exported_files', {}).keys())}"
-                )
-            else:
-                print(
-                    f"❌ Export generation failed: {data.get('error', 'Unknown error')}"
-                )
-        else:
-            print(f"❌ Export generation HTTP {response.status_code}: {response.text}")
+        assert (
+            response.status_code == 200
+        ), f"Export generation failed with status {response.status_code}: {response.text}"
+
+        data = response.json()
+        assert data.get(
+            "success"
+        ), f"Export generation failed: {data.get('error', 'Unknown error')}"
+        assert "exported_files" in data, "Response missing 'exported_files' key"
+
+        print("✅ Export generation successful")
+        print(f"📦 Generated files: {', '.join(data.get('exported_files', {}).keys())}")
+
+        # Assert that at least some files were generated
+        assert (
+            len(data.get("exported_files", {})) > 0
+        ), "No files were generated during export"
+
     except requests.RequestException as e:
         print(f"❌ Export generation request failed: {e}")
+        raise AssertionError(f"Failed to connect to export generation endpoint: {e}")
 
     print("\n" + "=" * 50)
     print("🏁 Export API testing complete!")
