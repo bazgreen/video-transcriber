@@ -55,7 +55,9 @@ class TestVideoProcessingPerformance:
         def split_video_operation():
             with patch("src.services.transcription.ffmpeg.probe") as mock_probe:
                 mock_probe.return_value = {
-                    "streams": [{"duration": "300.0"}],  # 5 minutes
+                    "streams": [
+                        {"codec_type": "video", "duration": "300.0"}
+                    ],  # 5 minutes
                     "format": {"duration": "300.0"},
                 }
 
@@ -104,7 +106,7 @@ class TestVideoProcessingPerformance:
                     "start": i * 0.1,
                     "end": (i + 100) * 0.1,
                     "text": segment_text,
-                    "timestamp_str": f"{i//600:02d}:{(i//10)%60:02d}:{(i%10)*10:02d}",
+                    "timestamp_str": f"{i//600:02d}:{(i//10) % 60:02d}:{(i % 10)*10:02d}",
                 }
             )
 
@@ -165,7 +167,7 @@ class TestSessionManagementPerformance:
             metadata = {
                 "session_id": session_id,
                 "session_name": f"Benchmark Session {i}",
-                "created_at": f"2024-01-01T{i%24:02d}:00:00",
+                "created_at": f"2024-01-01T{i % 24:02d}:00:00",
                 "status": "completed",
             }
 
@@ -200,7 +202,7 @@ class TestSessionManagementPerformance:
                 try:
                     validate_session_access(session_id, results_folder)
                     valid_count += 1
-                except:
+                except Exception:
                     pass
             return valid_count
 
@@ -244,7 +246,7 @@ class TestValidationPerformance:
                 try:
                     validate_request_data(request_data, required_fields)
                     valid_count += 1
-                except:
+                except Exception:
                     pass
             return valid_count
 
@@ -281,7 +283,7 @@ class TestValidationPerformance:
                     result = validate_file_upload(mock_file)
                     if result:
                         valid_count += 1
-                except:
+                except Exception:
                     pass
             return valid_count
 
@@ -438,7 +440,7 @@ class TestScalabilityBenchmarks:
                     "session_id": session_id,
                     "thread_id": thread_id,
                     "session_index": i,
-                    "created_at": f"2024-01-01T{(thread_id*sessions_per_thread + i)%24:02d}:00:00",
+                    "created_at": f"2024-01-01T{(thread_id*sessions_per_thread + i) % 24:02d}:00:00",
                 }
 
                 metadata_file = os.path.join(session_dir, "metadata.json")
