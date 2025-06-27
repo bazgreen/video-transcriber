@@ -60,11 +60,19 @@ def validate_export_service():
             print(f"❌ Missing methods: {missing_methods}")
             return False
 
-        # Check for optional dependency handling
-        if "REPORTLAB_AVAILABLE" in content and "DOCX_AVAILABLE" in content:
+        # Check for optional dependency handling using AST
+        optional_dependencies = ["REPORTLAB_AVAILABLE", "DOCX_AVAILABLE"]
+        defined_variables = [
+            node.id for node in ast.walk(tree) 
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+        ]
+        missing_dependencies = [
+            dep for dep in optional_dependencies if dep not in defined_variables
+        ]
+        if not missing_dependencies:
             print("✅ Optional dependency handling implemented")
         else:
-            print("❌ Optional dependency handling missing")
+            print(f"❌ Missing optional dependencies: {missing_dependencies}")
             return False
 
         return True
