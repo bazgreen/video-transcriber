@@ -81,21 +81,49 @@ README.md                      # ✅ ENHANCED: Export documentation
 ## 🔧 Installation & Dependencies
 
 ### Core Dependencies (Always Available)
+All standard export formats work without additional dependencies:
+- **SRT/VTT Subtitles** - Uses built-in Python libraries
+- **Enhanced Text** - Standard file operations  
+- **JSON Data** - Built-in json module
+- **Searchable HTML** - Template-based generation
+
+### Optional Dependencies (Professional Formats)
+
+#### Option 1: Full Installation (Recommended)
 ```bash
-# Standard Python libraries - no additional installation needed
-- os, json, datetime, logging
+pip install -r requirements-full.txt
 ```
 
-### Optional Dependencies (Enhanced Formats)
+#### Option 2: Selective Installation
 ```bash
-# For PDF export
+# PDF support only
 pip install reportlab>=4.0.0
 
-# For DOCX export  
+# DOCX support only  
 pip install python-docx>=1.1.0
 
-# Install both
+# Both formats
 pip install reportlab python-docx
+```
+
+#### Option 3: Individual Requirements Files
+```bash
+# PDF export only
+pip install -r requirements-pdf.txt
+
+# DOCX export only
+pip install -r requirements-docx.txt
+```
+
+### 🔍 Dependency Verification
+```python
+from src.services.export import EnhancedExportService
+export_service = EnhancedExportService()
+
+# Check which formats are available
+available = export_service.get_available_formats()
+print(available)
+# {'srt': True, 'vtt': True, 'pdf': False, 'docx': False, ...}
 ```
 
 ## 🚀 Usage Examples

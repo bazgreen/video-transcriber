@@ -270,8 +270,11 @@ def main():
         print("   • Run the application: python app.py")
         print("   • Process a video to test the full workflow")
         print("   • Check the results page for new export options")
-        print("   • Install optional dependencies for PDF/DOCX exports:")
-        print("     pip install reportlab python-docx")
+        print("\n📄 Enable additional export formats:")
+        print("   • Full installation: pip install -r requirements-full.txt")
+        print("   • PDF only: pip install reportlab")
+        print("   • DOCX only: pip install python-docx")
+        print("   • Both: pip install reportlab python-docx")
     else:
         print("❌ Some tests failed. Please check the error messages above.")
 

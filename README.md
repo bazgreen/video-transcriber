@@ -122,22 +122,44 @@ That's it! The script will:
 2. **Install dependencies**
 
    ```bash
+   # Basic installation (includes SRT, VTT, Enhanced Text, JSON, HTML export)
    pip install -r requirements.txt
    ```
 
-3. **Optional: Install enhanced export dependencies**
+3. **Optional: Enhanced Export Formats**
 
-   For PDF and DOCX export formats:
+   Enable additional professional export formats:
+
+   **Option A: Full Feature Installation (Recommended)**
    ```bash
-   # For PDF export support
+   pip install -r requirements-full.txt
+   ```
+
+   **Option B: Selective Installation**
+   ```bash
+   # PDF export only (professional reports)
    pip install reportlab
    
-   # For Word document export support  
+   # DOCX export only (Microsoft Word documents)
    pip install python-docx
    
-   # Or install both at once
+   # Both PDF and DOCX
    pip install reportlab python-docx
    ```
+
+   **Option C: Individual Requirements Files**
+   ```bash
+   # PDF support only
+   pip install -r requirements-pdf.txt
+   
+   # DOCX support only
+   pip install -r requirements-docx.txt
+   ```
+
+   **Available Export Formats:**
+   - ✅ **Always Available:** SRT, VTT, Enhanced Text, JSON, HTML
+   - 📄 **With reportlab:** Professional PDF reports 
+   - 📝 **With python-docx:** Microsoft Word documents
 
 4. **Install FFmpeg** (if not already installed)
    - **macOS**: `brew install ffmpeg`
