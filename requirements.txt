@@ -1,7 +1,12 @@
-openai-whisper>=20231117
 ffmpeg-python>=0.2.0
 flask>=3.0.0
 flask-socketio>=5.5.0
+numpy>=1.20.0,<2.0.0
+openai-whisper>=20231117
 psutil>=7.0.0
 torch>=2.0.0
-numpy>=1.20.0,<2.0.0
+
+# Optional dependencies for enhanced export formats
+# Install with: pip install reportlab python-docx
+# reportlab>=4.0.0  # for PDF export
+# python-docx>=1.1.0  # for DOCX export

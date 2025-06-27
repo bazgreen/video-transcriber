@@ -16,7 +16,17 @@ A powerful Python web application that transforms videos into searchable, analyz
 - **⏱️ Timestamped Transcripts** - Precise timing for each segment with clickable timestamps
 - **🔍 Smart Content Analysis** - Detects questions, emphasis cues, and custom keywords
 - **📱 Interactive HTML Transcripts** - Searchable, filterable browser-based transcript viewer
-- **📊 Multiple Export Formats** - TXT, JSON, and HTML outputs for maximum flexibility
+- **📊 Multiple Export Formats** - Text, JSON, HTML, subtitles (SRT/VTT), PDF reports, and DOCX documents
+
+### 📥 Enhanced Export Formats
+
+- **📝 SubRip Subtitles (SRT)** - Standard format for video players with precise timestamps
+- **🌐 WebVTT Subtitles (VTT)** - Web-based video player format with styling support
+- **📄 PDF Reports** - Professional analysis documents with statistics and highlights
+- **📝 Word Documents (DOCX)** - Microsoft Word format with structured content and tables
+- **📋 Enhanced Text** - Improved plain text with better formatting and analysis sections
+- **💾 JSON Data** - Complete analysis results for integration with other tools
+- **🔍 Searchable HTML** - Interactive web-based transcript with filters and highlights
 
 ### 🔍 Advanced Analysis
 
@@ -115,12 +125,26 @@ That's it! The script will:
    pip install -r requirements.txt
    ```
 
-3. **Install FFmpeg** (if not already installed)
+3. **Optional: Install enhanced export dependencies**
+
+   For PDF and DOCX export formats:
+   ```bash
+   # For PDF export support
+   pip install reportlab
+   
+   # For Word document export support  
+   pip install python-docx
+   
+   # Or install both at once
+   pip install reportlab python-docx
+   ```
+
+4. **Install FFmpeg** (if not already installed)
    - **macOS**: `brew install ffmpeg`
    - **Ubuntu/Debian**: `sudo apt update && sudo apt install ffmpeg`
    - **Windows**: Download from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
 
-4. **Run the application**
+5. **Run the application**
 
    ```bash
    python app.py

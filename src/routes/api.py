@@ -7,15 +7,23 @@ performance monitoring, and system status information.
 
 import logging
 import multiprocessing
+import os
 import time
 from datetime import datetime
 from typing import Any, Optional
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, jsonify, request, send_file
 
 from src.config import AppConfig, Constants, PerformanceConfig, VideoConfig
 from src.models.exceptions import UserFriendlyError
-from src.utils import handle_user_friendly_error, load_keywords, save_keywords
+from src.utils import (
+    handle_user_friendly_error,
+    is_safe_path,
+    is_valid_session_id,
+    load_keywords,
+    load_session_metadata,
+    save_keywords,
+)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
@@ -450,3 +458,150 @@ def optimize_performance():
     except Exception as e:
         logger.error(f"Error during performance optimization: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/export/formats", methods=["GET"])
+@handle_user_friendly_error
+def get_export_formats():
+    """Get available export formats and their descriptions"""
+    try:
+        from src.services.export import EnhancedExportService
+
+        export_service = EnhancedExportService()
+        available_formats = export_service.get_available_formats()
+        format_descriptions = export_service.get_format_descriptions()
+
+        return jsonify(
+            {
+                "success": True,
+                "formats": {
+                    format_name: {
+                        "available": available,
+                        "description": format_descriptions.get(format_name, ""),
+                    }
+                    for format_name, available in available_formats.items()
+                },
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error getting export formats: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/export/<session_id>/<export_format>", methods=["GET"])
+@handle_user_friendly_error
+def download_export_format(session_id: str, export_format: str):
+    """Download a specific export format for a session"""
+
+    if not is_valid_session_id(session_id):
+        raise UserFriendlyError("Invalid session ID")
+
+    config = AppConfig()
+    session_path = os.path.join(config.RESULTS_FOLDER, session_id)
+
+    if not os.path.exists(session_path):
+        raise UserFriendlyError(f"Session '{session_id}' not found")
+
+    # Map export formats to filenames
+    format_filenames = {
+        "srt": "subtitles.srt",
+        "vtt": "subtitles.vtt",
+        "pdf": "analysis_report.pdf",
+        "docx": "transcript_report.docx",
+        "enhanced_txt": "transcript_enhanced.txt",
+        "basic_txt": "full_transcript.txt",
+        "json": "analysis.json",
+        "html": "searchable_transcript.html",
+    }
+
+    if export_format not in format_filenames:
+        raise UserFriendlyError(f"Unsupported export format: {export_format}")
+
+    filename = format_filenames[export_format]
+    file_path = os.path.join(session_path, filename)
+
+    if not is_safe_path(file_path, config.RESULTS_FOLDER):
+        raise UserFriendlyError("Invalid file path")
+
+    if not os.path.exists(file_path):
+        raise UserFriendlyError(
+            f"File not found: {filename}. This format may not have been generated for this session."
+        )
+
+    return send_file(file_path, as_attachment=True)
+
+
+@api_bp.route("/export/<session_id>/generate", methods=["POST"])
+@handle_user_friendly_error
+def generate_export_formats(session_id: str):
+    """Generate export formats for a session"""
+
+    if not is_valid_session_id(session_id):
+        raise UserFriendlyError("Invalid session ID")
+
+    config = AppConfig()
+    session_path = os.path.join(config.RESULTS_FOLDER, session_id)
+
+    if not os.path.exists(session_path):
+        raise UserFriendlyError(f"Session '{session_id}' not found")
+
+    # Load session results
+    try:
+        metadata = load_session_metadata(session_id, session_path)
+
+        # Load analysis data
+        analysis_file = os.path.join(session_path, "analysis.json")
+        if os.path.exists(analysis_file):
+            import json
+
+            with open(analysis_file, "r", encoding="utf-8") as f:
+                analysis = json.load(f)
+        else:
+            analysis = {}
+
+        # Load full transcript
+        transcript_file = os.path.join(session_path, "full_transcript.txt")
+        full_transcript = ""
+        if os.path.exists(transcript_file):
+            with open(transcript_file, "r", encoding="utf-8") as f:
+                full_transcript = f.read()
+
+        # Prepare results dictionary
+        results = {
+            "session_id": session_id,
+            "session_dir": session_path,
+            "metadata": metadata,
+            "analysis": analysis,
+            "full_transcript": full_transcript,
+        }
+
+        # Get export options from request
+        data = request.get_json() or {}
+        export_options = data.get(
+            "formats",
+            {
+                "srt": True,
+                "vtt": True,
+                "pdf": True,
+                "docx": True,
+                "enhanced_txt": True,
+            },
+        )
+
+        # Generate exports
+        from src.services.export import EnhancedExportService
+
+        export_service = EnhancedExportService()
+        exported_files = export_service.export_all_formats(results, export_options)
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Generated {len(exported_files)} export formats",
+                "exported_files": exported_files,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating export formats for session {session_id}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
