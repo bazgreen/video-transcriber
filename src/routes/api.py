@@ -509,7 +509,7 @@ def download_export_format(session_id: str, export_format: str):
         "pdf": "analysis_report.pdf",
         "docx": "transcript_report.docx",
         "enhanced_txt": "transcript_enhanced.txt",
-        "basic_txt": "full_transcript.txt",
+        "basic_txt": "transcript.txt",
         "json": "analysis.json",
         "html": "searchable_transcript.html",
     }
