@@ -85,27 +85,25 @@ class EnhancedExportService:
         # Get all segments for subtitle formats
         all_segments = self._get_all_segments(results)
 
-        # Export SRT subtitles
-        if export_options.get("srt", True):
-            try:
-                srt_path = os.path.join(session_dir, "subtitles.srt")
-                self.export_to_srt(all_segments, srt_path)
-                exported_files["srt"] = srt_path
-                logger.info(f"Exported SRT subtitles: {srt_path}")
-            except Exception as e:
-                logger.error(f"Failed to export SRT: {e}")
+        # Define formats and their handlers
+        format_handlers = {
+            "srt": ("subtitles.srt", self.export_to_srt),
+            "vtt": ("subtitles.vtt", self.export_to_vtt),
+            "pdf": ("report.pdf", self.export_to_pdf if REPORTLAB_AVAILABLE else None),
+            "docx": ("document.docx", self.export_to_docx if DOCX_AVAILABLE else None),
+            "enhanced_txt": ("enhanced.txt", self.export_to_enhanced_txt),
+        }
 
-        # Export VTT subtitles
-        if export_options.get("vtt", True):
-            try:
-                vtt_path = os.path.join(session_dir, "subtitles.vtt")
-                self.export_to_vtt(all_segments, vtt_path)
-                exported_files["vtt"] = vtt_path
-                logger.info(f"Exported VTT subtitles: {vtt_path}")
-            except Exception as e:
-                logger.error(f"Failed to export VTT: {e}")
-
-        # Export PDF report
+        # Iterate over formats and export
+        for format_name, (file_name, handler) in format_handlers.items():
+            if export_options.get(format_name, True) and handler:
+                try:
+                    file_path = os.path.join(session_dir, file_name)
+                    handler(all_segments, file_path)
+                    exported_files[format_name] = file_path
+                    logger.info(f"Exported {format_name.upper()} to {file_path}")
+                except Exception as e:
+                    logger.error(f"Failed to export {format_name.upper()}: {e}")
         if export_options.get("pdf", True) and REPORTLAB_AVAILABLE:
             try:
                 pdf_path = os.path.join(session_dir, "analysis_report.pdf")
