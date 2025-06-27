@@ -6,9 +6,10 @@ supporting various professional formats including subtitles (SRT/VTT),
 documents (PDF/DOCX), and enhanced text outputs.
 """
 
+import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # Optional dependencies for enhanced export formats
 try:
@@ -86,47 +87,20 @@ class EnhancedExportService:
         all_segments = self._get_all_segments(results)
 
         # Define all format handlers with consistent filenames
-        format_handlers = {
+        # Mixed signature handlers: some take segments, others take full results
+        format_handlers: Dict[str, tuple[str, Callable]] = {
             # Subtitle formats (require segments)
-            "srt": (
-                "subtitles.srt",
-                lambda segments, path: self.export_to_srt(segments, path),
-            ),
-            "vtt": (
-                "subtitles.vtt",
-                lambda segments, path: self.export_to_vtt(segments, path),
-            ),
+            "srt": ("subtitles.srt", self.export_to_srt),
+            "vtt": ("subtitles.vtt", self.export_to_vtt),
             # Document formats (require full results)
-            "pdf": (
-                "analysis_report.pdf",
-                lambda results, path: (
-                    self.export_to_pdf(results, path) if REPORTLAB_AVAILABLE else None
-                ),
-            ),
-            "docx": (
-                "transcript_report.docx",
-                lambda results, path: (
-                    self.export_to_docx(results, path) if DOCX_AVAILABLE else None
-                ),
-            ),
+            "pdf": ("analysis_report.pdf", self._export_pdf_wrapper),
+            "docx": ("transcript_report.docx", self._export_docx_wrapper),
             # Text formats (require full results)
-            "enhanced_txt": (
-                "transcript_enhanced.txt",
-                lambda results, path: self.export_enhanced_text(results, path),
-            ),
-            "basic_txt": (
-                "transcript.txt",
-                lambda results, path: self.export_basic_text(results, path),
-            ),
+            "enhanced_txt": ("transcript_enhanced.txt", self.export_enhanced_text),
+            "basic_txt": ("transcript.txt", self.export_basic_text),
             # Data formats (require full results)
-            "json": (
-                "analysis.json",
-                lambda results, path: self.export_to_json(results, path),
-            ),
-            "html": (
-                "searchable_transcript.html",
-                lambda results, path: self.export_to_html(results, path),
-            ),
+            "json": ("analysis.json", self.export_to_json),
+            "html": ("searchable_transcript.html", self.export_to_html),
         }
 
         # Single consolidated export loop
@@ -141,12 +115,15 @@ class EnhancedExportService:
                         handler(all_segments, file_path)
                     else:
                         # All other formats need full results
-                        handler(results, file_path)
+                        result = handler(results, file_path)
+                        # Skip if handler returned None (unavailable format)
+                        if result is None and format_name in ["pdf", "docx"]:
+                            continue
 
                     exported_files[format_name] = file_path
-                    logger.info(f"Exported {format_name.upper()} to {file_path}")
+                    logger.info("Exported %s to %s", format_name.upper(), file_path)
                 except Exception as e:
-                    logger.error(f"Failed to export {format_name.upper()}: {e}")
+                    logger.error("Failed to export %s: %s", format_name.upper(), e)
 
         return exported_files
 
@@ -176,7 +153,7 @@ class EnhancedExportService:
                 f.write(f"{start_time} --> {end_time}\n")
                 f.write(f"{segment['text'].strip()}\n\n")
 
-        logger.info(f"Exported {len(segments)} segments to SRT: {output_path}")
+        logger.info("Exported %d segments to SRT: %s", len(segments), output_path)
 
     def export_to_vtt(self, segments: List[Dict[str, Any]], output_path: str) -> None:
         """
@@ -205,7 +182,7 @@ class EnhancedExportService:
                 f.write(f"{start_time} --> {end_time}\n")
                 f.write(f"{segment['text'].strip()}\n\n")
 
-        logger.info(f"Exported {len(segments)} segments to VTT: {output_path}")
+        logger.info("Exported %d segments to VTT: %s", len(segments), output_path)
 
     def export_to_pdf(self, results: Dict[str, Any], output_path: str) -> None:
         """
@@ -321,7 +298,7 @@ class EnhancedExportService:
 
         # Build PDF
         doc.build(story)
-        logger.info(f"Exported PDF report: {output_path}")
+        logger.info("Exported PDF report: %s", output_path)
 
     def export_to_docx(self, results: Dict[str, Any], output_path: str) -> None:
         """
@@ -410,7 +387,7 @@ class EnhancedExportService:
 
         # Save document
         doc.save(output_path)
-        logger.info(f"Exported DOCX document: {output_path}")
+        logger.info("Exported DOCX document: %s", output_path)
 
     def export_enhanced_text(self, results: Dict[str, Any], output_path: str) -> None:
         """
@@ -485,7 +462,7 @@ class EnhancedExportService:
             for segment in all_segments:
                 f.write(f"[{segment['timestamp_str']}] {segment['text']}\n")
 
-        logger.info(f"Exported enhanced text: {output_path}")
+        logger.info("Exported enhanced text: %s", output_path)
 
     def export_basic_text(self, results: Dict[str, Any], output_path: str) -> None:
         """
@@ -501,7 +478,7 @@ class EnhancedExportService:
             for segment in all_segments:
                 f.write(f"{segment['text']}\n")
 
-        logger.info(f"Exported basic text: {output_path}")
+        logger.info("Exported basic text: %s", output_path)
 
     def export_to_json(self, results: Dict[str, Any], output_path: str) -> None:
         """
@@ -512,13 +489,11 @@ class EnhancedExportService:
             output_path: Path where JSON file should be saved
         """
         try:
-            import json
-
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
-            logger.info(f"JSON export completed: {output_path}")
+            logger.info("JSON export completed: %s", output_path)
         except Exception as e:
-            logger.error(f"Failed to export JSON: {e}")
+            logger.error("Failed to export JSON: %s", e)
             raise
 
     def export_to_html(self, results: Dict[str, Any], output_path: str) -> None:
@@ -605,7 +580,7 @@ class EnhancedExportService:
 """
 
             # Add transcript segments
-            for i, segment in enumerate(segments):
+            for segment in segments:
                 start_time = self._format_timestamp(segment.get("start", 0))
                 end_time = self._format_timestamp(segment.get("end", 0))
                 text = segment.get("text", "").strip()
@@ -656,9 +631,9 @@ class EnhancedExportService:
 
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
-            logger.info(f"HTML export completed: {output_path}")
+            logger.info("HTML export completed: %s", output_path)
         except Exception as e:
-            logger.error(f"Failed to export HTML: {e}")
+            logger.error("Failed to export HTML: %s", e)
             raise
 
     def _format_timestamp(self, seconds: float) -> str:
@@ -745,3 +720,15 @@ class EnhancedExportService:
             "json": "Complete analysis data in JSON format",
             "html": "Interactive searchable transcript",
         }
+
+    def _export_pdf_wrapper(self, results: Dict[str, Any], path: str) -> Optional[None]:
+        """Wrapper for PDF export with availability check."""
+        if REPORTLAB_AVAILABLE:
+            return self.export_to_pdf(results, path)
+        return None
+
+    def _export_docx_wrapper(self, results: Dict[str, Any], path: str) -> Optional[None]:
+        """Wrapper for DOCX export with availability check."""
+        if DOCX_AVAILABLE:
+            return self.export_to_docx(results, path)
+        return None
