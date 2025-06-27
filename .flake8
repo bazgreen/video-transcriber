@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503, E231
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv*,
+    .tox,
+    .eggs,
+    *.egg,
+    build,
+    dist
+per-file-ignores =
+    # Ignore certain errors in existing files to focus on new feature
+    src/services/transcription.py: E231, W1203, R0914, R0913, W0718, W1514
+    src/routes/api.py: E231, W1203, R1705, W0603, C0415, W0718, R0914
+    # Allow our new test files to have more flexibility
+    test_*.py: R0914, R0915, R0912, C0415, W0718
+    validate_*.py: W0718, W1514
+    install_*.py: R0912, R0915, W0718, W1510, R1705, W0612
