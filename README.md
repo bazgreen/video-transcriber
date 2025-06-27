@@ -16,7 +16,17 @@ A powerful Python web application that transforms videos into searchable, analyz
 - **⏱️ Timestamped Transcripts** - Precise timing for each segment with clickable timestamps
 - **🔍 Smart Content Analysis** - Detects questions, emphasis cues, and custom keywords
 - **📱 Interactive HTML Transcripts** - Searchable, filterable browser-based transcript viewer
-- **📊 Multiple Export Formats** - TXT, JSON, and HTML outputs for maximum flexibility
+- **📊 Multiple Export Formats** - Text, JSON, HTML, subtitles (SRT/VTT), PDF reports, and DOCX documents
+
+### 📥 Enhanced Export Formats
+
+- **📝 SubRip Subtitles (SRT)** - Standard format for video players with precise timestamps
+- **🌐 WebVTT Subtitles (VTT)** - Web-based video player format with styling support
+- **📄 PDF Reports** - Professional analysis documents with statistics and highlights
+- **📝 Word Documents (DOCX)** - Microsoft Word format with structured content and tables
+- **📋 Enhanced Text** - Improved plain text with better formatting and analysis sections
+- **💾 JSON Data** - Complete analysis results for integration with other tools
+- **🔍 Searchable HTML** - Interactive web-based transcript with filters and highlights
 
 ### 🔍 Advanced Analysis
 
@@ -112,15 +122,51 @@ That's it! The script will:
 2. **Install dependencies**
 
    ```bash
+   # Basic installation (includes SRT, VTT, Enhanced Text, JSON, HTML export)
    pip install -r requirements.txt
    ```
 
-3. **Install FFmpeg** (if not already installed)
+3. **Optional: Enhanced Export Formats**
+
+   Enable additional professional export formats:
+
+   **Option A: Full Feature Installation (Recommended)**
+   ```bash
+   pip install -r requirements-full.txt
+   ```
+
+   **Option B: Selective Installation**
+   ```bash
+   # PDF export only (professional reports)
+   pip install reportlab
+   
+   # DOCX export only (Microsoft Word documents)
+   pip install python-docx
+   
+   # Both PDF and DOCX
+   pip install reportlab python-docx
+   ```
+
+   **Option C: Individual Requirements Files**
+   ```bash
+   # PDF support only
+   pip install -r requirements-pdf.txt
+   
+   # DOCX support only
+   pip install -r requirements-docx.txt
+   ```
+
+   **Available Export Formats:**
+   - ✅ **Always Available:** SRT, VTT, Enhanced Text, JSON, HTML
+   - 📄 **With reportlab:** Professional PDF reports 
+   - 📝 **With python-docx:** Microsoft Word documents
+
+4. **Install FFmpeg** (if not already installed)
    - **macOS**: `brew install ffmpeg`
    - **Ubuntu/Debian**: `sudo apt update && sudo apt install ffmpeg`
    - **Windows**: Download from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
 
-4. **Run the application**
+5. **Run the application**
 
    ```bash
    python app.py

@@ -31,6 +31,7 @@ from flask import render_template
 from src.config import AnalysisConfig, VideoConfig
 from src.models import MemoryManager, ModelManager, ProgressiveFileManager
 from src.models.exceptions import UserFriendlyError
+from src.services.export import EnhancedExportService
 from src.utils import format_timestamp, load_keywords
 from src.utils.performance_optimizer import performance_optimizer
 
@@ -830,7 +831,40 @@ class VideoTranscriber:
         self.file_manager.cleanup_all()
 
     def save_results(self, results):
-        """Save transcription results to files"""
+        """
+        Save transcription results to files using enhanced export service.
+
+        This method now supports multiple output formats including:
+        - Traditional text files (full_transcript.txt, questions.txt, etc.)
+        - Subtitle formats (SRT, VTT)
+        - Professional documents (PDF, DOCX)
+        - Enhanced structured text
+        """
+        # Initialize enhanced export service
+        export_service = EnhancedExportService()
+
+        # Save traditional formats (for backward compatibility)
+        self._save_traditional_formats(results)
+
+        # Export enhanced formats
+        try:
+            exported_files = export_service.export_all_formats(results)
+
+            # Add exported file paths to results for reference
+            results["exported_files"] = exported_files
+
+            # Log successful exports
+            for format_name, file_path in exported_files.items():
+                logger.info(
+                    f"Exported {format_name.upper()}: {os.path.basename(file_path)}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Some enhanced export formats failed: {e}")
+            # Continue with traditional formats only
+
+    def _save_traditional_formats(self, results):
+        """Save traditional text-based output formats for backward compatibility."""
         session_dir = results["session_dir"]
 
         # Save full transcript
