@@ -304,6 +304,390 @@
         .generate-exports-btn:hover {
             background: #38a169;
         }
+
+        /* Video Player Styles */
+        .video-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            position: relative;
+        }
+
+        .video-player-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #videoPlayer {
+            display: block;
+            max-height: 70vh;
+        }
+
+        .chapter-markers {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .chapter-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ffd700;
+            cursor: pointer;
+            pointer-events: all;
+            transition: width 0.2s ease;
+        }
+
+        .chapter-marker:hover {
+            width: 4px;
+            background: #ffed4a;
+        }
+
+        .chapter-marker::after {
+            content: attr(data-title);
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .chapter-marker:hover::after {
+            opacity: 1;
+        }
+
+        .progress-indicators {
+            position: absolute;
+            bottom: 45px;
+            left: 0;
+            right: 0;
+            height: 12px;
+            pointer-events: none;
+        }
+
+        .keyword-indicators,
+        .question-indicators {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+        }
+
+        .question-indicators {
+            top: 6px;
+        }
+
+        .indicator-mark {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            border-radius: 1px;
+            cursor: pointer;
+            pointer-events: all;
+            transition: transform 0.2s ease;
+        }
+
+        .indicator-mark:hover {
+            transform: scaleY(1.5);
+        }
+
+        .keyword-mark {
+            background: #667eea;
+        }
+
+        .question-mark {
+            background: #48bb78;
+        }
+
+        .emphasis-mark {
+            background: #ed8936;
+        }
+
+        .video-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .control-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .chapter-navigation {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .chapter-navigation h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .chapter-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .chapter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .chapter-item:hover {
+            background: #e9ecef;
+        }
+
+        .chapter-item.current {
+            background: #667eea;
+            color: white;
+        }
+
+        .chapter-title {
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .chapter-time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .chapter-item.current .chapter-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Transcript Section Styles */
+        .transcript-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .transcript-container {
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transcript-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #f8f9ff;
+        }
+
+        .transcript-header h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        .transcript-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .transcript-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 25px;
+        }
+
+        .transcript-segment {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid #f8f9fa;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .transcript-segment:hover {
+            background: #f8f9ff;
+        }
+
+        .transcript-segment.current {
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            margin: 2px 0;
+            padding: 12px;
+        }
+
+        .transcript-segment.highlight {
+            border-left: 4px solid #ffd700;
+            padding-left: 16px;
+        }
+
+        .transcript-segment.question {
+            border-left: 4px solid #48bb78;
+            padding-left: 16px;
+        }
+
+        .transcript-segment.emphasis {
+            border-left: 4px solid #ed8936;
+            padding-left: 16px;
+        }
+
+        .segment-time {
+            flex: 0 0 80px;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-right: 15px;
+        }
+
+        .transcript-segment.current .segment-time {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .segment-text {
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        .keyword-highlight {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 2px;
+            color: #333;
+        }
+
+        .transcript-segment.current .keyword-highlight {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .video-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .control-group {
+                justify-content: center;
+            }
+
+            .transcript-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-buttons {
+                justify-content: center;
+            }
+
+            .transcript-segment {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .segment-time {
+                flex: none;
+                margin-right: 0;
+            }
+
+            .chapter-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -349,6 +733,13 @@
                 </button>
             </div>
             <div class="actions-grid">
+                <div class="action-card">
+                    <div class="action-icon">🎬</div>
+                    <div class="action-title">Synchronized Video Player</div>
+                    <div class="action-desc">Watch video with interactive transcript and chapter navigation</div>
+                    <button onclick="showVideoPlayer()" class="action-btn">Open Player</button>
+                </div>
+
                 <div class="action-card">
                     <div class="action-icon">🔍</div>
                     <div class="action-title">Interactive Transcript</div>
@@ -429,6 +820,72 @@
             </div>
         </div>
 
+        <!-- Video Player Section -->
+        <div class="video-section" id="videoSection" style="display: none;">
+            <div class="video-container">
+                <div class="video-player-wrapper">
+                    <video id="videoPlayer" controls preload="metadata" style="width: 100%; height: auto; border-radius: 8px;">
+                        <source src="/api/video/{{ session_id }}" type="video/mp4">
+                        <track kind="subtitles" src="/api/export/{{ session_id }}/vtt" srclang="en" label="English" default>
+                        Your browser does not support the video tag.
+                    </video>
+
+                    <!-- Chapter Markers Overlay -->
+                    <div class="chapter-markers" id="chapterMarkers"></div>
+
+                    <!-- Progress Indicators -->
+                    <div class="progress-indicators">
+                        <div class="keyword-indicators" id="keywordIndicators"></div>
+                        <div class="question-indicators" id="questionIndicators"></div>
+                    </div>
+                </div>
+
+                <!-- Video Controls -->
+                <div class="video-controls">
+                    <div class="control-group">
+                        <button id="playPauseBtn" class="control-btn">⏯️</button>
+                        <span id="currentTime">00:00</span>
+                        <span>/</span>
+                        <span id="duration">00:00</span>
+                    </div>
+
+                    <div class="control-group">
+                        <button id="syncBtn" class="control-btn active" title="Sync with transcript">🔗</button>
+                        <button id="speedBtn" class="control-btn" title="Playback speed">1x</button>
+                        <button id="chaptersBtn" class="control-btn" title="Show chapters">📚</button>
+                    </div>
+                </div>
+
+                <!-- Chapter Navigation -->
+                <div class="chapter-navigation" id="chapterNavigation" style="display: none;">
+                    <h4>📚 Chapters</h4>
+                    <div class="chapter-list" id="chapterList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Synchronized Transcript Section -->
+        <div class="transcript-section" id="transcriptSection" style="display: none;">
+            <div class="transcript-container">
+                <div class="transcript-header">
+                    <h3>📝 Interactive Transcript</h3>
+                    <div class="transcript-controls">
+                        <input type="text" id="transcriptSearch" placeholder="Search transcript..." class="search-input">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="keywords">Keywords</button>
+                            <button class="filter-btn" data-filter="questions">Questions</button>
+                            <button class="filter-btn" data-filter="emphasis">Emphasis</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="transcript-content" id="transcriptContent">
+                    <!-- Transcript segments will be loaded here -->
+                </div>
+            </div>
+        </div>
+
         <div class="details-section">
             <div class="detail-card">
                 <h3 class="detail-title">🔤 Keywords Found</h3>
@@ -504,8 +961,59 @@
     </div>
 
     <script>
+        // Global variables for video player
+        let videoPlayer = null;
+        let videoMetadata = null;
+        let transcriptData = null;
+        let currentChapter = 0;
+        let syncEnabled = true;
+        let playbackSpeed = 1;
+
+        // DOM element cache for performance
+        const elements = {
+            videoSection: null,
+            transcriptSection: null,
+            videoPlayer: null,
+            chapterMarkers: null,
+            keywordIndicators: null,
+            questionIndicators: null,
+            chapterNavigation: null,
+            chapterList: null,
+            transcriptContent: null,
+            playPauseBtn: null,
+            syncBtn: null,
+            speedBtn: null,
+            chaptersBtn: null,
+            currentTime: null,
+            duration: null,
+            transcriptSearch: null
+        };
+
+        // Cache DOM elements on initialization
+        function cacheElements() {
+            elements.videoSection = document.getElementById('videoSection');
+            elements.transcriptSection = document.getElementById('transcriptSection');
+            elements.videoPlayer = document.getElementById('videoPlayer');
+            elements.chapterMarkers = document.getElementById('chapterMarkers');
+            elements.keywordIndicators = document.getElementById('keywordIndicators');
+            elements.questionIndicators = document.getElementById('questionIndicators');
+            elements.chapterNavigation = document.getElementById('chapterNavigation');
+            elements.chapterList = document.getElementById('chapterList');
+            elements.transcriptContent = document.getElementById('transcriptContent');
+            elements.playPauseBtn = document.getElementById('playPauseBtn');
+            elements.syncBtn = document.getElementById('syncBtn');
+            elements.speedBtn = document.getElementById('speedBtn');
+            elements.chaptersBtn = document.getElementById('chaptersBtn');
+            elements.currentTime = document.getElementById('currentTime');
+            elements.duration = document.getElementById('duration');
+            elements.transcriptSearch = document.getElementById('transcriptSearch');
+        }
+
         // Add some interactivity
         document.addEventListener('DOMContentLoaded', function() {
+            // Cache DOM elements for better performance
+            cacheElements();
+
             // Animate stat numbers
             const statNumbers = document.querySelectorAll('.stat-number');
             statNumbers.forEach(stat => {
@@ -537,7 +1045,446 @@
 
             // Check export format availability
             checkExportFormats();
+
+            // Check if video is available
+            checkVideoAvailability();
         });
+
+        // Check if video file is available for this session
+        async function checkVideoAvailability() {
+            try {
+                const response = await fetch(`/api/video/{{ session_id }}/metadata`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.video_available) {
+                        // Video is available, show the video player action card
+                        const videoCard = document.querySelector('.action-card button[onclick="showVideoPlayer()"]')?.closest('.action-card');
+                        if (videoCard) {
+                            videoCard.style.display = 'block';
+                        }
+                    } else {
+                        console.log('Video not available:', data.error || 'No video file found');
+                    }
+                } else {
+                    console.log('Video metadata check failed:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('Video availability check failed:', error);
+                // Optionally show user-friendly message
+                // showUserMessage('Unable to check video availability. Some features may be limited.', 'info');
+            }
+        }
+
+        // Show video player and transcript
+        async function showVideoPlayer() {
+            try {
+                // Show loading state
+                if (elements.videoSection && elements.transcriptSection) {
+                    elements.videoSection.style.display = 'block';
+                    elements.transcriptSection.style.display = 'block';
+
+                    // Add loading indicator
+                    const loadingDiv = document.createElement('div');
+                    loadingDiv.id = 'videoLoading';
+                    loadingDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #667eea;">Loading video player...</div>';
+                    elements.videoSection.insertBefore(loadingDiv, elements.videoSection.firstChild);
+                }
+
+                // Load video metadata
+                const metadataResponse = await fetch(`/api/video/{{ session_id }}/metadata`);
+                if (!metadataResponse.ok) {
+                    throw new Error(`Failed to load video metadata: ${metadataResponse.status} ${metadataResponse.statusText}`);
+                }
+
+                videoMetadata = await metadataResponse.json();
+                if (!videoMetadata.success) {
+                    throw new Error(videoMetadata.error || 'Video not available');
+                }
+
+                // Remove loading indicator
+                const loadingDiv = document.getElementById('videoLoading');
+                if (loadingDiv) {
+                    loadingDiv.remove();
+                }
+
+                // Initialize video player
+                initializeVideoPlayer();
+
+                // Load transcript data
+                await loadTranscriptData();
+
+                // Setup synchronization
+                setupVideoSync();
+
+                // Scroll to video section
+                if (elements.videoSection) {
+                    elements.videoSection.scrollIntoView({ behavior: 'smooth' });
+                }
+
+            } catch (error) {
+                console.error('Failed to load video player:', error);
+
+                // Remove loading indicator if present
+                const loadingDiv = document.getElementById('videoLoading');
+                if (loadingDiv) {
+                    loadingDiv.remove();
+                }
+
+                // Show user-friendly error message
+                alert(`Failed to load video player: ${error.message}`);
+
+                // Hide video sections if they were shown
+                if (elements.videoSection) elements.videoSection.style.display = 'none';
+                if (elements.transcriptSection) elements.transcriptSection.style.display = 'none';
+            }
+        }
+
+        // Initialize video player
+        function initializeVideoPlayer() {
+            videoPlayer = elements.videoPlayer;
+
+            if (!videoPlayer) {
+                console.error('Video player element not found');
+                return;
+            }
+
+            // Setup video event listeners
+            videoPlayer.addEventListener('loadedmetadata', function() {
+                if (elements.duration) {
+                    elements.duration.textContent = formatTime(videoPlayer.duration);
+                }
+                createChapterMarkers();
+                createProgressIndicators();
+            });
+
+            videoPlayer.addEventListener('timeupdate', function() {
+                if (elements.currentTime) {
+                    elements.currentTime.textContent = formatTime(videoPlayer.currentTime);
+                }
+                updateCurrentChapter();
+                if (syncEnabled) {
+                    highlightCurrentTranscriptSegment();
+                }
+            });
+
+            videoPlayer.addEventListener('error', function(e) {
+                console.error('Video player error:', e);
+                const errorMsg = 'Video playback error. Please check your connection and try again.';
+                alert(errorMsg);
+            });
+
+            // Setup control buttons
+            setupVideoControls();
+        }
+
+        // Setup video controls
+        function setupVideoControls() {
+            if (!elements.playPauseBtn || !elements.syncBtn || !elements.speedBtn || !elements.chaptersBtn) {
+                console.error('Video control elements not found');
+                return;
+            }
+
+            elements.playPauseBtn.addEventListener('click', function() {
+                if (videoPlayer.paused) {
+                    videoPlayer.play();
+                } else {
+                    videoPlayer.pause();
+                }
+            });
+
+            elements.syncBtn.addEventListener('click', function() {
+                syncEnabled = !syncEnabled;
+                elements.syncBtn.classList.toggle('active', syncEnabled);
+                elements.syncBtn.title = syncEnabled ? 'Sync enabled' : 'Sync disabled';
+            });
+
+            elements.speedBtn.addEventListener('click', function() {
+                const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+                const currentIndex = speeds.indexOf(playbackSpeed);
+                const nextIndex = (currentIndex + 1) % speeds.length;
+                playbackSpeed = speeds[nextIndex];
+                videoPlayer.playbackRate = playbackSpeed;
+                elements.speedBtn.textContent = `${playbackSpeed}x`;
+            });
+
+            elements.chaptersBtn.addEventListener('click', function() {
+                if (!elements.chapterNavigation) return;
+
+                const isVisible = elements.chapterNavigation.style.display !== 'none';
+                elements.chapterNavigation.style.display = isVisible ? 'none' : 'block';
+                elements.chaptersBtn.classList.toggle('active', !isVisible);
+            });
+        }
+
+        // Create chapter markers on video timeline
+        function createChapterMarkers() {
+            if (!videoMetadata.chapters || !elements.chapterMarkers) return;
+
+            // Clear existing markers
+            elements.chapterMarkers.innerHTML = '';
+
+            const duration = videoPlayer.duration;
+
+            videoMetadata.chapters.forEach((chapter, index) => {
+                const marker = document.createElement('div');
+                marker.className = 'chapter-marker';
+                marker.style.left = `${(chapter.start_time / duration) * 100}%`;
+                marker.setAttribute('data-title', chapter.title);
+                marker.addEventListener('click', () => seekToChapter(index));
+                elements.chapterMarkers.appendChild(marker);
+            });
+
+            // Create chapter list
+            createChapterList();
+        }
+
+        // Create chapter list
+        function createChapterList() {
+            if (!videoMetadata.chapters || !elements.chapterList) return;
+
+            elements.chapterList.innerHTML = '';
+
+            videoMetadata.chapters.forEach((chapter, index) => {
+                const item = document.createElement('div');
+                item.className = 'chapter-item';
+                item.innerHTML = `
+                    <div class="chapter-title">${chapter.title}</div>
+                    <div class="chapter-time">${formatTime(chapter.start_time)}</div>
+                `;
+                item.addEventListener('click', () => seekToChapter(index));
+                elements.chapterList.appendChild(item);
+            });
+        }
+
+        // Create progress indicators for keywords and questions
+        function createProgressIndicators() {
+            const duration = videoPlayer.duration;
+            createKeywordIndicators(duration);
+            createQuestionIndicators(duration);
+        }
+
+        function createKeywordIndicators(duration) {
+            if (!videoMetadata.keywords || !elements.keywordIndicators) return;
+
+            // Clear existing indicators
+            elements.keywordIndicators.innerHTML = '';
+
+            videoMetadata.keywords.forEach(keyword => {
+                keyword.timestamps.forEach(timestamp => {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'indicator-mark keyword-mark';
+                    indicator.style.left = `${(timestamp / duration) * 100}%`;
+                    indicator.title = `Keyword: ${keyword.keyword}`;
+                    indicator.addEventListener('click', () => seekToTime(timestamp));
+                    elements.keywordIndicators.appendChild(indicator);
+                });
+            });
+        }
+
+        function createQuestionIndicators(duration) {
+            if (!videoMetadata.questions || !elements.questionIndicators) return;
+
+            // Clear existing indicators
+            elements.questionIndicators.innerHTML = '';
+
+            videoMetadata.questions.forEach(question => {
+                const indicator = document.createElement('div');
+                indicator.className = 'indicator-mark question-mark';
+                indicator.style.left = `${(question.start / duration) * 100}%`;
+                indicator.title = `Question: ${question.text.substring(0, 50)}...`;
+                indicator.addEventListener('click', () => seekToTime(question.start));
+                elements.questionIndicators.appendChild(indicator);
+            });
+        }
+
+        // Load transcript data for synchronized display
+        async function loadTranscriptData() {
+            // For now, use the analysis data to create transcript segments
+            // In a full implementation, this would load detailed segment data
+            transcriptData = createTranscriptSegments();
+            renderTranscript();
+        }
+
+        function createTranscriptSegments() {
+            const segments = [];
+
+            // Add question segments
+            if (videoMetadata.questions) {
+                videoMetadata.questions.forEach(question => {
+                    segments.push({
+                        start_time: question.start,
+                        end_time: question.start + 10, // Approximate duration
+                        text: question.text,
+                        type: 'question'
+                    });
+                });
+            }
+
+            // Add keyword segments
+            if (videoMetadata.keywords) {
+                videoMetadata.keywords.forEach(keyword => {
+                    keyword.timestamps.forEach(timestamp => {
+                        segments.push({
+                            start_time: timestamp,
+                            end_time: timestamp + 5, // Approximate duration
+                            text: `[${keyword.keyword}] related content`,
+                            type: 'keyword'
+                        });
+                    });
+                });
+            }
+
+            // Sort by start time
+            segments.sort((a, b) => a.start_time - b.start_time);
+            return segments;
+        }
+
+        function renderTranscript() {
+            if (!elements.transcriptContent) {
+                console.error('Transcript content element not found');
+                return;
+            }
+
+            elements.transcriptContent.innerHTML = '';
+
+            transcriptData.forEach((segment, index) => {
+                const segmentEl = document.createElement('div');
+                segmentEl.className = `transcript-segment ${segment.type}`;
+                segmentEl.setAttribute('data-start', segment.start_time);
+                segmentEl.innerHTML = `
+                    <div class="segment-time">${formatTime(segment.start_time)}</div>
+                    <div class="segment-text">${segment.text}</div>
+                `;
+
+                segmentEl.addEventListener('click', () => {
+                    seekToTime(segment.start_time);
+                });
+
+                elements.transcriptContent.appendChild(segmentEl);
+            });
+
+            // Setup transcript search and filters
+            setupTranscriptControls();
+        }
+
+        function setupTranscriptControls() {
+            if (!elements.transcriptSearch) {
+                console.error('Transcript search element not found');
+                return;
+            }
+
+            const filterButtons = document.querySelectorAll('.filter-btn');
+
+            elements.transcriptSearch.addEventListener('input', function() {
+                filterTranscript(this.value, getActiveFilter());
+            });
+
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterTranscript(elements.transcriptSearch.value, this.getAttribute('data-filter'));
+                });
+            });
+        }
+
+        function getActiveFilter() {
+            const activeBtn = document.querySelector('.filter-btn.active');
+            return activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
+        }
+
+        function filterTranscript(searchTerm, filter) {
+            const segments = document.querySelectorAll('.transcript-segment');
+
+            segments.forEach(segment => {
+                const text = segment.textContent.toLowerCase();
+                const type = segment.classList.contains('question') ? 'questions' :
+                            segment.classList.contains('keyword') ? 'keywords' : 'all';
+
+                const matchesSearch = !searchTerm || text.includes(searchTerm.toLowerCase());
+                const matchesFilter = filter === 'all' || filter === type;
+
+                segment.style.display = matchesSearch && matchesFilter ? 'flex' : 'none';
+            });
+        }
+
+        // Video synchronization functions
+        function setupVideoSync() {
+            // Additional sync setup if needed
+        }
+
+        function seekToTime(time) {
+            if (videoPlayer) {
+                videoPlayer.currentTime = time;
+            }
+        }
+
+        function seekToChapter(chapterIndex) {
+            if (videoMetadata.chapters && videoMetadata.chapters[chapterIndex]) {
+                seekToTime(videoMetadata.chapters[chapterIndex].start_time);
+                updateChapterHighlight(chapterIndex);
+            }
+        }
+
+        function updateCurrentChapter() {
+            if (!videoMetadata.chapters) return;
+
+            const currentTime = videoPlayer.currentTime;
+            let newChapter = 0;
+
+            for (let i = videoMetadata.chapters.length - 1; i >= 0; i--) {
+                if (currentTime >= videoMetadata.chapters[i].start_time) {
+                    newChapter = i;
+                    break;
+                }
+            }
+
+            if (newChapter !== currentChapter) {
+                currentChapter = newChapter;
+                updateChapterHighlight(currentChapter);
+            }
+        }
+
+        function updateChapterHighlight(chapterIndex) {
+            const chapterItems = document.querySelectorAll('.chapter-item');
+            chapterItems.forEach((item, index) => {
+                item.classList.toggle('current', index === chapterIndex);
+            });
+        }
+
+        function highlightCurrentTranscriptSegment() {
+            if (!transcriptData) return;
+
+            const currentTime = videoPlayer.currentTime;
+            const segments = document.querySelectorAll('.transcript-segment');
+
+            segments.forEach((segment, index) => {
+                const startTime = parseFloat(segment.getAttribute('data-start'));
+                const endTime = index < transcriptData.length - 1 ?
+                              parseFloat(segments[index + 1].getAttribute('data-start')) :
+                              startTime + 10;
+
+                const isCurrent = currentTime >= startTime && currentTime < endTime;
+                segment.classList.toggle('current', isCurrent);
+
+                if (isCurrent && syncEnabled) {
+                    segment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        // Utility functions
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
 
         async function checkExportFormats() {
             try {

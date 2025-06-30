@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Transcription Tool</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
     <style>
         * {
             margin: 0;
@@ -56,11 +57,34 @@
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         .upload-area:hover {
             border-color: #667eea;
             background-color: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .upload-area:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Ensure file input covers the upload area but not the browse button */
+        .upload-area input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 60px); /* Leave space for the browse button */
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
         }
 
         .upload-area.dragover, .drag-feedback {
@@ -218,10 +242,6 @@
         .upload-hint {
             color: #999;
             font-size: 0.9rem;
-        }
-
-        input[type="file"] {
-            display: none;
         }
 
         .form-group {
@@ -507,6 +527,66 @@
             background: #5a67d8;
         }
 
+        .nav-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .nav-link:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .nav-bar {
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .nav-link {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .nav-link {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
         .features-section {
             margin-top: 40px;
             padding-top: 30px;
@@ -591,34 +671,57 @@
 </head>
 <body>
     <div class="container">
-        <div style="text-align: right; margin-bottom: 20px;">
-            <a href="/sessions" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; margin-right: 10px;">📚 Browse Previous Sessions</a>
-            <a href="/config" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; margin-right: 10px;">🔤 Keyword Config</a>
-            <a href="/performance" style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">🚀 Performance Monitor</a>
-        </div>
+        <nav class="nav-bar">
+            <a href="/sessions" class="nav-link">
+                <span>📚</span>
+                <span>Previous Sessions</span>
+            </a>
+            <a href="/config" class="nav-link">
+                <span>🔤</span>
+                <span>Keyword Config</span>
+            </a>
+            <a href="/performance" class="nav-link">
+                <span>🚀</span>
+                <span>Performance Monitor</span>
+            </a>
+        </nav>
         <h1>🎥 Video Transcriber</h1>
         <p class="subtitle">Transform your educational videos into searchable, analyzed transcripts</p>
-        
+
         <form id="uploadForm" enctype="multipart/form-data">
             <div class="upload-section">
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-icon">📁</div>
-                    <div class="upload-text">Drop your video files here or click to browse</div>
+                    <div class="upload-text"><strong>Click here to browse</strong> or drop your video files here</div>
                     <div class="upload-hint">Supports MP4, AVI, MOV, and other common video formats • Up to 5 files • Max 2GB each</div>
-                    <input type="file" id="videoFile" name="video" accept="video/*" multiple>
+                    <input type="file" id="videoFile" name="video" accept="video/*" multiple title="Click to select video files">
+
+                    <!-- Fallback browse button for browsers with restrictions -->
+                    <div style="margin-top: 15px; position: relative; z-index: 3;">
+                        <button type="button" id="browseButton" style="
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            transition: background 0.2s ease;
+                        " onmouseover="this.style.background='#5a67d8'" onmouseout="this.style.background='#667eea'">📂 Browse Files</button>
+                    </div>
                 </div>
-                
+
                 <div class="file-queue" id="fileQueue">
                     <div class="upload-stats" id="uploadStats">
                         <span id="fileCount">0 files selected</span>
                         <span id="totalSize">0 MB total</span>
                     </div>
-                    
+
                     <h4>Upload Queue</h4>
                     <div class="file-list" id="fileList">
                         <!-- File items will be added here dynamically -->
                     </div>
-                    
+
                     <div class="batch-actions">
                         <button type="button" class="submit-btn btn-batch add-files-button" id="addMoreFilesBtn">
                             ➕ Add More Files
@@ -632,15 +735,15 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="sessionName">Session Name (Optional)</label>
                 <input type="text" id="sessionName" name="session_name" placeholder="e.g., Week 1 Lecture, Data Analysis Session">
             </div>
-            
+
             <!-- Multi-file processing is handled by the file queue buttons -->
         </form>
-        
+
         <div class="progress-section" id="progressSection">
             <div class="connection-status" id="connectionStatus">
                 🔌 Connecting to server...
@@ -670,10 +773,10 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
-        
+
         <!-- Video Preview Modal -->
         <div class="video-preview-modal" id="videoPreviewModal">
             <div class="modal-content">
@@ -710,7 +813,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="features-section">
             <h3 class="features-title">✨ Features</h3>
             <div class="features-grid">
@@ -782,48 +885,88 @@
             }
 
             setupEventListeners() {
-                // Upload area interactions
-                uploadArea.addEventListener('click', () => fileInput.click());
-                
+                // File input change with enhanced error handling
+                fileInput.addEventListener('change', (e) => {
+                    console.log('File input changed, files:', e.target.files);
+                    if (e.target.files && e.target.files.length > 0) {
+                        this.handleFiles(e.target.files);
+                    }
+                    // Reset file input to allow selecting the same file again
+                    e.target.value = '';
+                });
+
+                // Drag and drop functionality
                 uploadArea.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     uploadArea.classList.add('dragover');
                 });
-                
+
                 uploadArea.addEventListener('dragleave', () => {
                     uploadArea.classList.remove('dragover');
                 });
-                
+
                 uploadArea.addEventListener('drop', (e) => {
                     e.preventDefault();
                     uploadArea.classList.remove('dragover');
                     this.handleFiles(e.dataTransfer.files);
                 });
 
-                // File input change
-                fileInput.addEventListener('change', (e) => {
-                    this.handleFiles(e.target.files);
-                });
-
                 // Batch actions
                 clearAllBtn.addEventListener('click', () => this.clearAllFiles());
                 uploadForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-                
-                // Add more files button
-                document.getElementById('addMoreFilesBtn').addEventListener('click', () => {
-                    fileInput.click();
+
+                // Add more files button - create a second file input for this
+                document.getElementById('addMoreFilesBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Create a temporary file input for additional files
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'video/*';
+                    tempInput.multiple = true;
+                    tempInput.onchange = (event) => {
+                        if (event.target.files && event.target.files.length > 0) {
+                            this.handleFiles(event.target.files);
+                        }
+                        tempInput.remove();
+                    };
+                    tempInput.click();
+                });
+
+                // Fallback browse button
+                document.getElementById('browseButton').addEventListener('click', (e) => {
+                    console.log('Browse button clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Create a temporary file input for the browse button
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'video/*';
+                    tempInput.multiple = true;
+                    tempInput.onchange = (event) => {
+                        if (event.target.files && event.target.files.length > 0) {
+                            this.handleFiles(event.target.files);
+                        }
+                        tempInput.remove();
+                    };
+                    tempInput.click();
+                });
+
+                // Add debug logging for file input
+                fileInput.addEventListener('click', () => {
+                    console.log('File input clicked directly');
                 });
             }
 
             handleFiles(files) {
                 const filesArray = Array.from(files);
-                
+
                 for (const file of filesArray) {
                     if (this.validateFile(file)) {
                         this.addFile(file);
                     }
                 }
-                
+
                 this.updateUI();
             }
 
@@ -865,7 +1008,7 @@
                     status: 'pending',
                     progress: 0
                 };
-                
+
                 selectedFiles.push(fileObj);
                 this.hideMessages();
             }
@@ -956,7 +1099,7 @@
                     const minutes = Math.floor(duration / 60);
                     const seconds = Math.floor(duration % 60);
                     previewDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    
+
                     const width = previewVideo.videoWidth;
                     const height = previewVideo.videoHeight;
                     previewResolution.textContent = width && height ? `${width} × ${height}` : 'Unknown';
@@ -972,7 +1115,7 @@
 
                 document.getElementById('closePreviewBtn').onclick = closeModal;
                 document.getElementById('cancelPreviewBtn').onclick = closeModal;
-                
+
                 // Process individual file
                 processFileBtn.onclick = () => {
                     closeModal();
@@ -998,7 +1141,7 @@
                 this.showProgressSection();
 
                 const sessionName = document.getElementById('sessionName').value || 'single_file_upload';
-                
+
                 try {
                     this.updateProgress({
                         progress: 0,
@@ -1023,7 +1166,7 @@
                     if (result.success) {
                         currentSessionId = result.session_id;
                         sessionIdElement.textContent = currentSessionId;
-                        
+
                         // Join WebSocket session
                         if (socket && socket.connected) {
                             socket.emit('join_session', { session_id: currentSessionId });
@@ -1031,10 +1174,10 @@
 
                         // Remove the processed file from queue
                         this.removeFile(fileObj.id);
-                        
+
                         // Show enhanced success message
                         this.showSuccess(`✅ ${fileObj.name} processed successfully! Found ${result.stats?.words || 0} words in ${result.stats?.chunks || 0} chunks.`);
-                        
+
                     } else {
                         // Handle enhanced error format
                         if (result.type === 'user_friendly_error' || result.type === 'validation_error') {
@@ -1100,10 +1243,10 @@
                         </div>
                     `;
                 }
-                
+
                 errorMessage.style.display = 'block';
                 successMessage.style.display = 'none';
-                
+
                 // Auto-hide after 10 seconds for non-critical errors
                 setTimeout(() => {
                     if (errorMessage.style.display === 'block') {
@@ -1125,7 +1268,7 @@
 
             async handleFormSubmit(e) {
                 e.preventDefault();
-                
+
                 if (selectedFiles.length === 0) {
                     this.showError('Please select at least one video file.');
                     return;
@@ -1138,7 +1281,7 @@
 
                 currentlyProcessing = true;
                 processingQueue = [...selectedFiles];
-                
+
                 this.showProgressSection();
                 this.processNextFile();
             }
@@ -1160,7 +1303,7 @@
 
                 const fileObj = processingQueue.shift();
                 const sessionName = document.getElementById('sessionName').value || 'multi_file_batch';
-                
+
                 try {
                     this.updateProgress({
                         progress: 0,
@@ -1185,7 +1328,7 @@
                     if (result.success) {
                         currentSessionId = result.session_id;
                         sessionIdElement.textContent = currentSessionId;
-                        
+
                         // Join WebSocket session
                         if (socket && socket.connected) {
                             socket.emit('join_session', { session_id: currentSessionId });
@@ -1193,7 +1336,7 @@
 
                         // Wait for processing to complete before moving to next file
                         this.waitForCompletion();
-                        
+
                     } else {
                         this.showError(`Failed to process ${fileObj.name}: ${result.error}`);
                         this.onProcessingError();
@@ -1220,9 +1363,9 @@
                 processAllBtn.disabled = false;
                 processAllBtn.textContent = '🚀 Process All Files';
                 clearAllBtn.disabled = false;
-                
+
                 this.showSuccess(`Successfully processed all ${selectedFiles.length} files!`);
-                
+
                 // Optionally clear the queue
                 setTimeout(() => {
                     this.clearAllFiles();
@@ -1235,12 +1378,11 @@
                 processAllBtn.textContent = '🚀 Process All Files';
                 clearAllBtn.disabled = false;
             }
-            }
 
             // WebSocket integration
             initializeSocket() {
                 socket = io();
-                
+
                 socket.on('connect', () => {
                     console.log('Connected to server');
                     connectionStatus.textContent = '✅ Connected to server';
@@ -1269,34 +1411,34 @@
 
             updateProgress(data) {
                 console.log('Progress update:', data);
-                
+
                 // Update progress bar
                 if (data.progress !== undefined) {
                     progressFill.style.width = data.progress + '%';
                 }
-                
+
                 // Update status text
                 if (data.current_task) {
                     statusText.textContent = data.current_task;
                 }
-                
+
                 // Update chunks progress
                 if (data.chunks_total > 0) {
                     chunksProgress.textContent = `${data.chunks_completed}/${data.chunks_total}`;
                 }
-                
+
                 // Update time remaining
                 if (data.estimated_time) {
                     timeRemaining.textContent = this.formatTime(data.estimated_time);
                 } else if (data.progress === 100) {
                     timeRemaining.textContent = 'Complete!';
                 }
-                
+
                 // Update current stage
                 if (data.stage) {
                     currentStage.textContent = this.capitalizeFirst(data.stage.replace('_', ' '));
                 }
-                
+
                 // Handle completion
                 if (data.status === 'completed') {
                     this.onFileComplete();
@@ -1319,24 +1461,24 @@
             capitalizeFirst(str) {
                 return str.charAt(0).toUpperCase() + str.slice(1);
             }
-            
+
             // Additional utility functions that tests expect
             showPreview(fileId) {
                 return this.previewFile(fileId);
             }
-            
+
             processQueue() {
                 // Process all files in the queue
                 if (selectedFiles.length === 0) {
                     this.showError('No files in queue to process.');
                     return;
                 }
-                
+
                 if (currentlyProcessing) {
                     this.showError('Processing is already in progress.');
                     return;
                 }
-                
+
                 // Start batch processing
                 this.handleFormSubmit({ preventDefault: () => {} });
             }

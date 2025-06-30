@@ -90,7 +90,7 @@ A powerful Python web application that transforms videos into searchable, analyz
    run.bat
    
    # Or directly with Python
-   python setup_and_run.py
+   python scripts/setup/setup_and_run.py
    ```
 
 That's it! The script will:

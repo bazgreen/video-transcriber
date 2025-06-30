@@ -9,7 +9,7 @@ documents (PDF/DOCX), and enhanced text outputs.
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 # Optional dependencies for enhanced export formats
 try:
@@ -727,7 +727,9 @@ class EnhancedExportService:
             return self.export_to_pdf(results, path)
         return None
 
-    def _export_docx_wrapper(self, results: Dict[str, Any], path: str) -> Optional[None]:
+    def _export_docx_wrapper(
+        self, results: Dict[str, Any], path: str
+    ) -> Optional[None]:
         """Wrapper for DOCX export with availability check."""
         if DOCX_AVAILABLE:
             return self.export_to_docx(results, path)

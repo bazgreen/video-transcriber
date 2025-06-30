@@ -1,5 +1,6 @@
 """Main web routes for the video transcriber application."""
 
+import json
 import logging
 import os
 
@@ -33,10 +34,31 @@ def results(session_id):
     # Load session metadata
     metadata = load_session_metadata(session_id, session_path)
 
+    # Load analysis data
+    analysis_file = os.path.join(session_path, "analysis.json")
+    analysis = {}
+    if os.path.exists(analysis_file):
+        try:
+            with open(analysis_file, "r") as f:
+                analysis = json.load(f)
+                logger.debug(f"Loaded analysis data for session {session_id}")
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(
+                f"Failed to load analysis file for session {session_id}: {e}"
+            )
+            # Provide empty analysis data structure
+            analysis = {
+                "keyword_matches": [],
+                "questions": [],
+                "emphasis_cues": [],
+                "total_words": 0,
+            }
+
     return render_template(
         "results.html",
         session_id=session_id,
         metadata=metadata,
+        analysis=analysis,
         session_path=session_path,
     )
 

@@ -83,6 +83,19 @@ def process_upload(
         # Process video
         results = transcriber.process_video(upload_path, session_name, file.filename)
 
+        # Copy original video file to session directory for synchronized playback
+        session_dir = results.get("session_dir")
+        if session_dir and os.path.exists(session_dir):
+            video_destination = os.path.join(session_dir, file.filename)
+            try:
+                shutil.copy2(upload_path, video_destination)
+                logger.info(f"Copied original video to session: {video_destination}")
+            except (IOError, OSError) as copy_error:
+                logger.warning(
+                    f"Could not copy video to session directory: {copy_error}"
+                )
+                # Don't fail the entire process if copy fails
+
         response_data = {
             "success": True,
             "session_id": results["session_id"],
