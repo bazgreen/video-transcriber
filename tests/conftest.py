@@ -21,14 +21,19 @@ mock_whisper = MagicMock()
 mock_whisper.load_model = Mock(return_value=Mock())
 sys.modules["whisper"] = mock_whisper
 
-# Import our application components
-from src.config import AnalysisConfig, AppConfig, MemoryConfig, VideoConfig
-from src.models import MemoryManager, ModelManager, ProgressiveFileManager
-from src.models.progress import ProgressTracker
-from src.services.transcription import VideoTranscriber
-from src.utils.memory import get_memory_status_safe
-from src.utils.session import validate_session_access
-from src.utils.validation import validate_file_upload
+# Import our application components after mocking whisper
+from src.config import (  # noqa: E402
+    AnalysisConfig,
+    AppConfig,
+    MemoryConfig,
+    VideoConfig,
+)
+from src.models import MemoryManager, ModelManager, ProgressiveFileManager  # noqa: E402
+from src.models.progress import ProgressTracker  # noqa: E402
+from src.services.transcription import VideoTranscriber  # noqa: E402
+from src.utils.memory import get_memory_status_safe  # noqa: E402
+from src.utils.session import validate_session_access  # noqa: E402
+from src.utils.validation import validate_file_upload  # noqa: E402
 
 
 @pytest.fixture(scope="session")

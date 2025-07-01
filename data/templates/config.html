@@ -223,7 +223,7 @@
     <div class="container">
         <h1>🔤 Keyword Configuration</h1>
         <p class="subtitle">Manage keywords for content analysis and detection</p>
-        
+
         <div class="nav-links">
             <a href="/">🏠 Home</a>
             <a href="/sessions">📚 Browse Sessions</a>
@@ -266,7 +266,7 @@
             messageEl.textContent = message;
             messageEl.className = 'message ' + type;
             messageEl.style.display = 'block';
-            
+
             setTimeout(() => {
                 messageEl.style.display = 'none';
             }, 3000);
@@ -280,14 +280,14 @@
                     <button onclick="removeKeyword('${keyword}')" title="Remove keyword">×</button>
                 </div>
             `).join('');
-            
+
             document.getElementById('keywordCount').textContent = keywords.length;
         }
 
         async function addKeyword() {
             const input = document.getElementById('newKeyword');
             const keyword = input.value.trim();
-            
+
             if (!keyword) {
                 showMessage('Please enter a keyword', 'error');
                 return;

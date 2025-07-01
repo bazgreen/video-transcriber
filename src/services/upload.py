@@ -85,16 +85,38 @@ def process_upload(
 
         # Copy original video file to session directory for synchronized playback
         session_dir = results.get("session_dir")
-        if session_dir and os.path.exists(session_dir):
-            video_destination = os.path.join(session_dir, file.filename)
-            try:
-                shutil.copy2(upload_path, video_destination)
-                logger.info(f"Copied original video to session: {video_destination}")
-            except (IOError, OSError) as copy_error:
-                logger.warning(
-                    f"Could not copy video to session directory: {copy_error}"
-                )
-                # Don't fail the entire process if copy fails
+        if session_dir:
+            # Ensure session directory exists
+            os.makedirs(session_dir, exist_ok=True)
+
+            if os.path.exists(session_dir):
+                # Use a standardized filename for easier retrieval
+                video_filename = f"original_video_{secure_filename(file.filename)}"
+                video_destination = os.path.join(session_dir, video_filename)
+
+                try:
+                    shutil.copy2(upload_path, video_destination)
+                    logger.info(
+                        f"Copied original video to session: {video_destination}"
+                    )
+
+                    # Verify the copy was successful
+                    if not os.path.exists(video_destination):
+                        logger.error(
+                            f"Video copy verification failed: {video_destination}"
+                        )
+                    else:
+                        logger.info(
+                            f"Video copy verified successfully: {video_destination}"
+                        )
+
+                except (IOError, OSError) as copy_error:
+                    logger.error(
+                        f"Could not copy video to session directory: {copy_error}"
+                    )
+                    # Still don't fail the entire process if copy fails
+            else:
+                logger.error(f"Session directory does not exist: {session_dir}")
 
         response_data = {
             "success": True,

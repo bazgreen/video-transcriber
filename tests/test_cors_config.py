@@ -14,7 +14,7 @@ from unittest.mock import patch
 # Add src directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.config.settings import AppConfig
+from src.config.settings import AppConfig  # noqa: E402
 
 
 class TestCORSConfiguration(unittest.TestCase):

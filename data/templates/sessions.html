@@ -453,7 +453,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    
+
                     {% if session.total_words %}
                     <div class="session-stats">
                         <div class="stat-item">
@@ -474,7 +474,7 @@
                         </div>
                     </div>
                     {% endif %}
-                    
+
                     <div class="session-actions">
                         <a href="/results/{{ session.session_id }}" class="action-btn btn-primary">📊 View Results</a>
                         <a href="/transcript/{{ session.session_id }}" class="action-btn btn-secondary" target="_blank">🔍 View Transcript</a>
@@ -521,14 +521,14 @@
 
         function performSearch() {
             const query = searchInput.value.trim();
-            
+
             if (!query) {
                 clearSearchResults();
                 return;
             }
 
             showLoading(true);
-            
+
             fetch(`/sessions/search?q=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(sessions => {
@@ -554,7 +554,7 @@
 
         function sortSessions() {
             const sortBy = sortSelect.value;
-            
+
             currentSessions.sort((a, b) => {
                 switch (sortBy) {
                     case 'date-desc':
@@ -573,16 +573,16 @@
                         return 0;
                 }
             });
-            
+
             renderSessions(currentSessions);
         }
 
         function renderSessions(sessions) {
             if (sessions.length === 0) {
-                const emptyMessage = isSearching ? 
-                    'No sessions found matching your search.' : 
+                const emptyMessage = isSearching ?
+                    'No sessions found matching your search.' :
                     'No sessions yet. Upload your first video to get started!';
-                
+
                 sessionsGrid.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">🔍</div>
@@ -621,7 +621,7 @@
                             ` : ''}
                         </div>
                     </div>
-                    
+
                     ${session.total_words ? `
                     <div class="session-stats">
                         <div class="stat-item">
@@ -642,7 +642,7 @@
                         </div>
                     </div>
                     ` : ''}
-                    
+
                     <div class="session-actions">
                         <a href="/results/${session.session_id}" class="action-btn btn-primary">📊 View Results</a>
                         <a href="/transcript/${session.session_id}" class="action-btn btn-secondary" target="_blank">🔍 View Transcript</a>
@@ -676,11 +676,11 @@
                     // Remove from current sessions
                     currentSessions = currentSessions.filter(s => s.session_id !== sessionId);
                     allSessions = allSessions.filter(s => s.session_id !== sessionId);
-                    
+
                     // Re-render
                     renderSessions(currentSessions);
                     updateSessionCount(currentSessions.length);
-                    
+
                     // Show success message (you could add a toast here)
                     const sessionCard = document.querySelector(`[data-session-id="${sessionId}"]`);
                     if (sessionCard) {

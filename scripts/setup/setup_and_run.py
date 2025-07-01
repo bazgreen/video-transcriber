@@ -102,7 +102,7 @@ def install_dependencies(venv_python):
         if result.returncode == 0:
             print("✅ All dependencies are already installed")
             return
-    except:
+    except Exception:
         pass
 
     print("📥 Installing dependencies (this may take a few minutes on first run)...")
@@ -125,7 +125,9 @@ def install_dependencies(venv_python):
                 text=True,
             )
             if result.returncode != 0:
-                print("⚠️  Standard installation failed, trying alternative approach...")
+                print(
+                    "⚠️  Standard installation failed, trying alternative approach..."
+                )
                 # Try installing packages individually for better error handling
                 packages = [
                     "torch",
@@ -143,7 +145,7 @@ def install_dependencies(venv_python):
                             check=True,
                         )
                         print(f"✅ {package} installed successfully")
-                    except subprocess.CalledProcessError as e:
+                    except subprocess.CalledProcessError:
                         print(
                             f"⚠️  Failed to install {package}, trying without version constraints..."
                         )
