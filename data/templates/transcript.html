@@ -26,7 +26,7 @@
     <div class="container">
         <h1>Video Transcript Analysis</h1>
         <p><strong>Session:</strong> {{ session_id }}</p>
-        
+
         <div class="stats">
             <div class="stat-card">
                 <h3>{{ analysis.keyword_matches|length }}</h3>
@@ -45,18 +45,18 @@
                 <p>Total Words</p>
             </div>
         </div>
-        
+
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Search transcript...">
         </div>
-        
+
         <div class="filters">
             <button class="filter-btn active" onclick="filterSegments('all')">All</button>
             <button class="filter-btn" onclick="filterSegments('keywords')">Keywords</button>
             <button class="filter-btn" onclick="filterSegments('questions')">Questions</button>
             <button class="filter-btn" onclick="filterSegments('emphasis')">Emphasis</button>
         </div>
-        
+
         <div id="transcript">
             {% for segment in segments %}
                 <div class="segment {{ segment.classes|join(' ') }}" data-type="{{ segment.types|join(' ') if segment.types else 'normal' }}">
@@ -72,7 +72,7 @@
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
             const segments = document.querySelectorAll('.segment');
-            
+
             segments.forEach(segment => {
                 const text = segment.textContent.toLowerCase();
                 if (text.includes(searchTerm) || searchTerm === '') {
@@ -87,15 +87,15 @@
         function filterSegments(type) {
             const segments = document.querySelectorAll('.segment');
             const buttons = document.querySelectorAll('.filter-btn');
-            
+
             // Update button states
             buttons.forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-            
+
             // Filter segments
             segments.forEach(segment => {
                 const dataType = segment.getAttribute('data-type');
-                
+
                 if (type === 'all') {
                     segment.style.display = 'block';
                 } else if (type === 'keywords' && (dataType.includes('highlight') || dataType === 'normal')) {
@@ -128,7 +128,7 @@
             const keywordSegments = document.querySelectorAll('.segment.highlight:not([style*="display: none"])');
             const questionSegments = document.querySelectorAll('.segment.question:not([style*="display: none"])');
             const emphasisSegments = document.querySelectorAll('.segment.emphasis:not([style*="display: none"])');
-            
+
             console.log(`Showing ${visibleSegments.length} segments`);
         }
     </script>

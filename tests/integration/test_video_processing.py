@@ -14,17 +14,18 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-# Mock whisper module before any imports that might use it
-mock_whisper = MagicMock()
-mock_whisper.load_model = Mock(return_value=Mock())
-sys.modules["whisper"] = mock_whisper
-
+# Import modules first
 from src.models import MemoryManager, ProgressiveFileManager
 from src.models.exceptions import UserFriendlyError
 from src.models.progress import ProgressTracker
 from src.services.transcription import VideoTranscriber
 from src.services.upload import delete_session, process_upload
 from src.utils.session import ensure_session_exists, get_session_list
+
+# Mock whisper module after imports
+mock_whisper = MagicMock()
+mock_whisper.load_model = Mock(return_value=Mock())
+sys.modules["whisper"] = mock_whisper
 
 
 class TestVideoProcessingPipeline:
@@ -360,7 +361,8 @@ class TestEndToEndWorkflow:
         response = client.get("/api/performance")
         assert response.status_code == 200
         data = response.get_json()
-        assert "settings" in data
+        assert "data" in data
+        assert "current_settings" in data["data"]
 
         # Test memory status
         response = client.get("/api/memory")

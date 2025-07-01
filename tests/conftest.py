@@ -16,12 +16,7 @@ import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 
-# Mock whisper module to avoid installation issues in tests
-mock_whisper = MagicMock()
-mock_whisper.load_model = Mock(return_value=Mock())
-sys.modules["whisper"] = mock_whisper
-
-# Import our application components
+# Import our application components first
 from src.config import AnalysisConfig, AppConfig, MemoryConfig, VideoConfig
 from src.models import MemoryManager, ModelManager, ProgressiveFileManager
 from src.models.progress import ProgressTracker
@@ -29,6 +24,11 @@ from src.services.transcription import VideoTranscriber
 from src.utils.memory import get_memory_status_safe
 from src.utils.session import validate_session_access
 from src.utils.validation import validate_file_upload
+
+# Mock whisper module to avoid installation issues in tests
+mock_whisper = MagicMock()
+mock_whisper.load_model = Mock(return_value=Mock())
+sys.modules["whisper"] = mock_whisper
 
 
 @pytest.fixture(scope="session")

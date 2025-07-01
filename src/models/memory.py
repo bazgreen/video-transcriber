@@ -153,18 +153,18 @@ class MemoryManager:
         recommendations = {}
 
         if memory_info["system_used_percent"] > 90:
-            recommendations["critical"] = (
-                "System memory critically low - consider stopping other applications"
-            )
+            recommendations[
+                "critical"
+            ] = "System memory critically low - consider stopping other applications"
         elif memory_info["system_used_percent"] > 80:
-            recommendations["warning"] = (
-                "High memory usage - monitor for performance impact"
-            )
+            recommendations[
+                "warning"
+            ] = "High memory usage - monitor for performance impact"
 
         if memory_info["system_available_gb"] < 2:
-            recommendations["low_memory"] = (
-                "Less than 2GB available - processing may be slow"
-            )
+            recommendations[
+                "low_memory"
+            ] = "Less than 2GB available - processing may be slow"
 
         optimal_workers = self.get_optimal_workers()
         if optimal_workers < multiprocessing.cpu_count():

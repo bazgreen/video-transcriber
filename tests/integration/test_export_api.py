@@ -7,6 +7,7 @@ Tests the new export format capabilities without requiring a full transcription.
 import sys
 from pathlib import Path
 
+import pytest
 import requests
 
 
@@ -17,36 +18,37 @@ def test_export_endpoints():
     print("🧪 Testing Enhanced Export API Endpoints...")
     print("-" * 50)
 
+    # Skip if server not running
+    try:
+        response = requests.get(f"{base_url}/api/export/formats", timeout=1)
+    except (requests.ConnectionError, requests.Timeout):
+        pytest.skip("Server not running - integration test requires running server")
+
     # Test 1: Get available export formats
     print("1. Testing export formats endpoint...")
-    try:
-        response = requests.get(f"{base_url}/api/export/formats")
+    assert (
+        response.status_code == 200
+    ), f"Export formats endpoint failed with status {response.status_code}"
+
+    data = response.json()
+    assert data.get(
+        "success"
+    ), f"API returned error: {data.get('error', 'Unknown error')}"
+
+    assert "formats" in data, "Response missing 'formats' key"
+
+    print("✅ Export formats endpoint working")
+    print("📋 Available formats:")
+    for format_name, info in data["formats"].items():
+        status = "✅" if info["available"] else "❌"
+        print(f"   {status} {format_name}: {info['description']}")
+
+    # Assert that core formats are present
+    expected_formats = ["srt", "vtt", "enhanced_txt", "json", "html"]
+    for fmt in expected_formats:
         assert (
-            response.status_code == 200
-        ), f"Export formats endpoint failed with status {response.status_code}"
-
-        data = response.json()
-        assert data.get(
-            "success"
-        ), f"API returned error: {data.get('error', 'Unknown error')}"
-        assert "formats" in data, "Response missing 'formats' key"
-
-        print("✅ Export formats endpoint working")
-        print("📋 Available formats:")
-        for format_name, info in data["formats"].items():
-            status = "✅" if info["available"] else "❌"
-            print(f"   {status} {format_name}: {info['description']}")
-
-        # Assert that core formats are present
-        expected_formats = ["srt", "vtt", "enhanced_txt", "json", "html"]
-        for fmt in expected_formats:
-            assert (
-                fmt in data["formats"]
-            ), f"Required format '{fmt}' missing from API response"
-
-    except requests.RequestException as e:
-        print(f"❌ Request failed: {e}")
-        raise AssertionError(f"Failed to connect to export formats endpoint: {e}")
+            fmt in data["formats"]
+        ), f"Required format '{fmt}' missing from API response"
 
     print()
 
