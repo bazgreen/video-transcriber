@@ -1001,7 +1001,7 @@ def generate_video_chapters(analysis_data: dict) -> list:
 
     # Configuration for intelligent chapter breaks
     chapter_interval = 300  # 5 minutes minimum between chapters
-    last_chapter_time = 0
+    last_chapter_time = 0.0  # Use float for consistency
     chapter_count = 1
 
     for i, question in enumerate(sorted_questions):

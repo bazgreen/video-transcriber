@@ -14,18 +14,18 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-# Import modules first
-from src.models import MemoryManager, ProgressiveFileManager
-from src.models.exceptions import UserFriendlyError
-from src.models.progress import ProgressTracker
-from src.services.transcription import VideoTranscriber
-from src.services.upload import delete_session, process_upload
-from src.utils.session import ensure_session_exists, get_session_list
-
-# Mock whisper module after imports
+# Mock whisper module before importing src modules that depend on it
 mock_whisper = MagicMock()
 mock_whisper.load_model = Mock(return_value=Mock())
 sys.modules["whisper"] = mock_whisper
+
+# Import modules after mocking whisper
+from src.models import MemoryManager, ProgressiveFileManager  # noqa: E402
+from src.models.exceptions import UserFriendlyError  # noqa: E402
+from src.models.progress import ProgressTracker  # noqa: E402
+from src.services.transcription import VideoTranscriber  # noqa: E402
+from src.services.upload import delete_session, process_upload  # noqa: E402
+from src.utils.session import ensure_session_exists, get_session_list  # noqa: E402
 
 
 class TestVideoProcessingPipeline:

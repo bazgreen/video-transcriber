@@ -1334,6 +1334,7 @@
                     if (keyword.keyword && keyword.matches && Array.isArray(keyword.matches)) {
                         keyword.matches.forEach((match, index) => {
                             // Estimate timestamp based on position in matches and video duration
+                            // Default to 3600 seconds (1 hour) if total_duration is not available
                             const estimatedTime = (index / keyword.matches.length) * (videoMetadata.total_duration || 3600);
                             segments.push({
                                 start_time: estimatedTime,
