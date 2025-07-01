@@ -1279,7 +1279,7 @@
                         const indicator = document.createElement('div');
                         indicator.className = 'indicator-mark keyword-mark';
                         indicator.style.left = `${(estimatedTime / duration) * 100}%`;
-                        indicator.title = `Keyword: ${keyword.keyword} (${keyword.count} total matches)`;
+                        indicator.title = `Keyword: ${keyword.keyword} (${keyword.matches.length} total matches)`;
                         indicator.addEventListener('click', () => seekToTime(estimatedTime));
                         elements.keywordIndicators.appendChild(indicator);
                     });
