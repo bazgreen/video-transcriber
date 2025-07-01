@@ -792,10 +792,22 @@ def _find_video_file(session_dir: str, metadata: dict) -> str:
     Raises:
         UserFriendlyError: If no video file is found
     """
-    # Look for video file by original name pattern
+    # Look for video file by standardized filename pattern
     video_extensions = ["mp4", "avi", "mov", "mkv", "webm", "flv", "wmv", "m4v"]
 
-    # Try to find video files in session directory
+    # First, try to find files with the standardized naming pattern "original_video_*"
+    standardized_video_files = []
+    for ext in video_extensions:
+        # Check both lowercase and uppercase extensions
+        for case_ext in [ext.lower(), ext.upper()]:
+            pattern = os.path.join(session_dir, f"original_video_*.{case_ext}")
+            standardized_video_files.extend(glob.glob(pattern))
+
+    # If standardized files found, return the first one
+    if standardized_video_files:
+        return standardized_video_files[0]
+
+    # Fallback: try to find any video files in session directory
     video_files = []
     for ext in video_extensions:
         # Check both lowercase and uppercase extensions

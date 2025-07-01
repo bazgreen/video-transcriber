@@ -1264,20 +1264,26 @@
         }
 
         function createKeywordIndicators(duration) {
-            if (!videoMetadata.keywords || !elements.keywordIndicators) return;
+            if (!videoMetadata.keywords || !Array.isArray(videoMetadata.keywords) || !elements.keywordIndicators) return;
 
             // Clear existing indicators
             elements.keywordIndicators.innerHTML = '';
 
             videoMetadata.keywords.forEach(keyword => {
-                keyword.timestamps.forEach(timestamp => {
-                    const indicator = document.createElement('div');
-                    indicator.className = 'indicator-mark keyword-mark';
-                    indicator.style.left = `${(timestamp / duration) * 100}%`;
-                    indicator.title = `Keyword: ${keyword.keyword}`;
-                    indicator.addEventListener('click', () => seekToTime(timestamp));
-                    elements.keywordIndicators.appendChild(indicator);
-                });
+                // Handle actual keyword_matches structure - they don't have timestamps
+                // Create approximate indicators based on keyword frequency distribution
+                if (keyword.keyword && keyword.matches && Array.isArray(keyword.matches)) {
+                    keyword.matches.forEach((match, index) => {
+                        // Estimate timestamp based on position in matches and video duration
+                        const estimatedTime = (index / keyword.matches.length) * duration;
+                        const indicator = document.createElement('div');
+                        indicator.className = 'indicator-mark keyword-mark';
+                        indicator.style.left = `${(estimatedTime / duration) * 100}%`;
+                        indicator.title = `Keyword: ${keyword.keyword} (${keyword.count} total matches)`;
+                        indicator.addEventListener('click', () => seekToTime(estimatedTime));
+                        elements.keywordIndicators.appendChild(indicator);
+                    });
+                }
             });
         }
 
@@ -1309,7 +1315,7 @@
             const segments = [];
 
             // Add question segments
-            if (videoMetadata.questions) {
+            if (videoMetadata.questions && Array.isArray(videoMetadata.questions)) {
                 videoMetadata.questions.forEach(question => {
                     segments.push({
                         start_time: question.start,
@@ -1320,16 +1326,34 @@
                 });
             }
 
-            // Add keyword segments
-            if (videoMetadata.keywords) {
+            // Add keyword segments - handle the actual keyword_matches structure
+            if (videoMetadata.keywords && Array.isArray(videoMetadata.keywords)) {
                 videoMetadata.keywords.forEach(keyword => {
-                    keyword.timestamps.forEach(timestamp => {
-                        segments.push({
-                            start_time: timestamp,
-                            end_time: timestamp + 5, // Approximate duration
-                            text: `[${keyword.keyword}] related content`,
-                            type: 'keyword'
+                    // Handle actual keyword_matches structure - they don't have timestamps
+                    // Create approximate segments based on keyword frequency
+                    if (keyword.keyword && keyword.matches && Array.isArray(keyword.matches)) {
+                        keyword.matches.forEach((match, index) => {
+                            // Estimate timestamp based on position in matches and video duration
+                            const estimatedTime = (index / keyword.matches.length) * (videoMetadata.total_duration || 3600);
+                            segments.push({
+                                start_time: estimatedTime,
+                                end_time: estimatedTime + 5, // Approximate duration
+                                text: `[${keyword.keyword}] ${match.substring(0, 100)}...`,
+                                type: 'keyword'
+                            });
                         });
+                    }
+                });
+            }
+
+            // Add emphasis cue segments
+            if (videoMetadata.emphasis_cues && Array.isArray(videoMetadata.emphasis_cues)) {
+                videoMetadata.emphasis_cues.forEach(cue => {
+                    segments.push({
+                        start_time: cue.start,
+                        end_time: cue.start + 8, // Approximate duration
+                        text: cue.text,
+                        type: 'emphasis'
                     });
                 });
             }

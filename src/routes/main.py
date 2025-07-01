@@ -91,7 +91,46 @@ def transcript(session_id):
     if not os.path.exists(session_path):
         raise UserFriendlyError(f"Session '{session_id}' not found")
 
-    return render_template("transcript.html", session_id=session_id)
+    # Load session metadata
+    metadata = load_session_metadata(session_id, session_path)
+
+    # Load analysis data
+    analysis_file = os.path.join(session_path, "analysis.json")
+    analysis = {}
+    if os.path.exists(analysis_file):
+        try:
+            with open(analysis_file, "r") as f:
+                analysis = json.load(f)
+                logger.debug(f"Loaded analysis data for transcript {session_id}")
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(
+                f"Failed to load analysis file for transcript {session_id}: {e}"
+            )
+            # Provide empty analysis data structure
+            analysis = {
+                "keyword_matches": [],
+                "questions": [],
+                "emphasis_cues": [],
+                "total_words": 0,
+            }
+
+    # Create segments array from analysis data for transcript rendering
+    segments = []
+    if "questions" in analysis:
+        segments.extend(analysis["questions"])
+    if "emphasis_cues" in analysis:
+        segments.extend(analysis["emphasis_cues"])
+
+    # Sort segments by timestamp for proper display
+    segments.sort(key=lambda x: x.get("start", 0))
+
+    return render_template(
+        "transcript.html",
+        session_id=session_id,
+        analysis=analysis,
+        metadata=metadata,
+        segments=segments,
+    )
 
 
 @main_bp.route("/sessions")
