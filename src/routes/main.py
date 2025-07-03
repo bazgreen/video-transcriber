@@ -373,6 +373,7 @@ def search_sessions():
 def config_page():
     """Configuration page"""
     from src.utils import load_keywords
+
     keywords = load_keywords()
     return render_template("config.html", keywords=keywords)
 

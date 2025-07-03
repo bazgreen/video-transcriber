@@ -178,33 +178,33 @@
             color: #666;
             font-size: 0.9rem;
         }
-        
+
         .keyword-scenarios-section {
             background: #f8f9fa;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 30px;
         }
-        
+
         .section-description {
             color: #666;
             margin-bottom: 15px;
             font-size: 0.9rem;
         }
-        
+
         .scenarios-selector {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
-        
+
         .scenario-controls {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             align-items: center;
         }
-        
+
         .scenario-dropdown {
             flex: 1;
             padding: 12px;
@@ -214,12 +214,12 @@
             min-width: 200px;
             background-color: white;
         }
-        
+
         .scenario-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .btn-apply, .btn-merge {
             padding: 10px 15px;
             border-radius: 8px;
@@ -228,22 +228,22 @@
             border: none;
             transition: all 0.3s ease;
         }
-        
+
         .btn-apply {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
+
         .btn-merge {
             background: #6c757d;
             color: white;
         }
-        
+
         .btn-apply:hover, .btn-merge:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         .scenario-description {
             padding: 15px;
             background: white;
@@ -252,7 +252,7 @@
             font-size: 0.95rem;
             color: #444;
         }
-        
+
         .scenario-preview {
             display: flex;
             flex-wrap: wrap;
@@ -262,7 +262,7 @@
             border-radius: 8px;
             min-height: 60px;
         }
-        
+
         .preview-keyword {
             background: rgba(102, 126, 234, 0.2);
             color: #4a5568;
@@ -326,7 +326,7 @@
         <div class="keyword-scenarios-section">
             <h2 class="section-title">Keyword Scenarios</h2>
             <p class="section-description">Choose pre-built keyword sets for different content types</p>
-            
+
             <div class="scenarios-selector">
                 <div class="scenario-controls">
                     <select id="scenarioSelect" class="scenario-dropdown">
@@ -506,12 +506,12 @@
                 if (response.ok) {
                     const scenarios = data.scenarios;
                     const selectElement = document.getElementById('scenarioSelect');
-                    
+
                     // Clear existing options except the placeholder
                     while (selectElement.options.length > 1) {
                         selectElement.remove(1);
                     }
-                    
+
                     // Add new options
                     scenarios.forEach(scenario => {
                         const option = document.createElement('option');
@@ -519,7 +519,7 @@
                         option.textContent = `${scenario.name} (${scenario.keyword_count} keywords)`;
                         selectElement.appendChild(option);
                     });
-                    
+
                     // Add change event listener
                     selectElement.addEventListener('change', handleScenarioSelection);
                 } else {
@@ -533,20 +533,20 @@
         async function handleScenarioSelection() {
             const scenarioId = document.getElementById('scenarioSelect').value;
             if (!scenarioId) return;
-            
+
             try {
                 const response = await fetch(`/api/keywords/scenarios/${scenarioId}`);
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     const scenario = data.scenario;
-                    
+
                     // Update description
                     document.getElementById('scenarioDescription').textContent = scenario.description;
-                    
+
                     // Update preview
                     const previewEl = document.getElementById('scenarioPreview');
-                    previewEl.innerHTML = scenario.keywords.map(keyword => 
+                    previewEl.innerHTML = scenario.keywords.map(keyword =>
                         `<div class="preview-keyword">${keyword}</div>`
                     ).join('');
                 } else {
@@ -563,29 +563,29 @@
                 showMessage('Please select a scenario first', 'error');
                 return;
             }
-            
-            const confirmMessage = mode === 'replace' 
-                ? 'This will replace all your current keywords. Continue?' 
+
+            const confirmMessage = mode === 'replace'
+                ? 'This will replace all your current keywords. Continue?'
                 : 'This will add the scenario keywords to your current set. Continue?';
-                
+
             if (!confirm(confirmMessage)) {
                 return;
             }
-            
+
             try {
                 const response = await fetch('/api/keywords/scenarios/apply', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         scenario_id: scenarioId,
                         merge_mode: mode
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     updateKeywordDisplay(data.keywords);
                     showMessage(data.message, 'success');

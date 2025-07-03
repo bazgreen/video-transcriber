@@ -175,17 +175,17 @@ const uiState = new UIStateManager();
 // Format time in MM:SS or HH:MM:SS format
 function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return '00:00';
-    
+
     seconds = Math.floor(seconds);
-    
+
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hrs > 0) {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    
+
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
@@ -217,13 +217,13 @@ function checkExportFormats() {
 // Generate all export formats
 function generateExports() {
     const sessionId = document.querySelector('.session-id').textContent.trim();
-    
+
     // Show loading state
     const exportBtn = document.querySelector('.generate-exports-btn');
     const originalText = exportBtn.textContent;
     exportBtn.textContent = 'Generating exports...';
     exportBtn.disabled = true;
-    
+
     fetch(`/api/export/${sessionId}/generate`, {
         method: 'POST',
         headers: {
@@ -269,7 +269,7 @@ function generateExports() {
 async function checkVideoAvailability() {
     const sessionId = document.querySelector('.session-id').textContent.trim();
     const containerId = 'videoSection';
-    
+
     try {
         const response = await fetch(`/api/video/${sessionId}/metadata`);
         if (response.ok) {
@@ -691,12 +691,12 @@ function setupTranscriptControls() {
             filterButtons.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             filterTranscript(elements.transcriptSearch.value, this.getAttribute('data-filter'));
-            
+
             // Save filter preference
             userPrefs.set('transcriptFilterMode', this.getAttribute('data-filter'));
         });
     });
-    
+
     // Apply saved filter preference
     const savedFilter = userPrefs.get('transcriptFilterMode');
     if (savedFilter) {
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
     statNumbers.forEach(stat => {
         const finalValue = parseInt(stat.textContent);
         if (isNaN(finalValue)) return;
-        
+
         let currentValue = 0;
         const increment = Math.ceil(finalValue / 20);
 
