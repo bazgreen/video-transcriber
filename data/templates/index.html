@@ -840,7 +840,7 @@
             </a>
         </nav>
         <h1>🎥 Video Transcriber</h1>
-        <p class="subtitle">Transform your educational videos into searchable, analyzed transcripts</p>
+        <p class="subtitle">Transform your videos into searchable, analyzed transcripts</p>
 
         <form id="uploadForm" enctype="multipart/form-data">
             <div class="upload-section">
@@ -892,7 +892,7 @@
 
             <div class="form-group">
                 <label for="sessionName">Session Name (Optional)</label>
-                <input type="text" id="sessionName" name="session_name" placeholder="e.g., Week 1 Lecture, Data Analysis Session">
+                <input type="text" id="sessionName" name="session_name" placeholder="e.g., Meeting Recording, Project Review">
             </div>
 
             <!-- Multi-file processing is handled by the file queue buttons -->
@@ -1009,12 +1009,12 @@
                 <div class="feature-card">
                     <div class="feature-icon">🔍</div>
                     <div class="feature-title">Smart Analysis</div>
-                    <div class="feature-desc">Detects questions, emphasis cues, and educational keywords automatically</div>
+                    <div class="feature-desc">Detects questions, emphasis cues, and important keywords automatically</div>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
                     <div class="feature-title">Keyword Insights</div>
-                    <div class="feature-desc">Frequency analysis and highlighting of important assessment terms</div>
+                    <div class="feature-desc">Frequency analysis and highlighting of important terms</div>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🔎</div>
@@ -1577,7 +1577,7 @@
             onFileComplete() {
                 // Clear current session ID
                 this.currentSessionId = null;
-                
+
                 // Process next file in queue
                 setTimeout(() => this.processNextFile(), 1000);
             }
@@ -1614,7 +1614,7 @@
                     if (progressSection.style.display === 'block') {
                         connectionStatus.style.display = 'block';
                     }
-                    
+
                     // Check for active sessions when connecting
                     this.checkForActiveTranscriptions();
                 });
@@ -1692,7 +1692,7 @@
                             }
                         });
                     }, 1000); // Small delay to let final progress update show
-                    
+
                     this.onFileComplete();
                 } else if (data.status === 'error') {
                     this.showError(data.current_task || 'Processing failed');
@@ -1728,7 +1728,7 @@
 
                 // Show modal
                 completionModal.classList.add('visible');
-                
+
                 // Reset progress section but keep it visible
                 progressFill.style.width = '100%';
                 statusText.textContent = '✅ Processing Complete!';
@@ -1742,26 +1742,26 @@
             resetForNewTranscription() {
                 // Hide progress section
                 progressSection.style.display = 'none';
-                
+
                 // Reset progress indicators
                 progressFill.style.width = '0%';
                 statusText.textContent = 'Processing your video...';
                 progressPercentage.textContent = '0%';
                 chunksProgress.textContent = '0/0';
                 sessionIdElement.textContent = '-';
-                
+
                 // Reset processing state
                 currentlyProcessing = false;
                 currentSessionId = null;
-                
+
                 // Re-enable buttons
                 processAllBtn.disabled = selectedFiles.length === 0;
                 processAllBtn.textContent = '🚀 Process All Files';
                 clearAllBtn.disabled = false;
-                
+
                 // Hide messages
                 this.hideMessages();
-                
+
                 // Focus on upload area
                 uploadArea.scrollIntoView({ behavior: 'smooth' });
             }
@@ -1802,13 +1802,13 @@
 
             handleActiveSessions(activeSessions) {
                 console.log('Active sessions received from API:', activeSessions);
-                
+
                 if (activeSessions.length > 0) {
                     // Find the most recent active session
                     const mostRecentSession = activeSessions.reduce((latest, current) => {
                         return (current.start_time || 0) > (latest.start_time || 0) ? current : latest;
                     });
-                    
+
                     if (mostRecentSession) {
                         // Ensure the session object has an 'id' property for resumeTranscriptionDisplay
                         if (mostRecentSession.session_id && !mostRecentSession.id) {
@@ -1821,30 +1821,30 @@
 
             resumeTranscriptionDisplay(session) {
                 console.log('Resuming transcription display for session:', session.id);
-                
+
                 // Store current session ID for progress updates
                 this.currentSessionId = session.id;
-                
+
                 // Show progress section
                 this.showProgressSection();
-                
+
                 // Update UI elements with current session data
                 if (session.current_task) {
                     statusText.textContent = session.current_task;
                 }
-                
+
                 if (session.progress !== undefined) {
                     progressFill.style.width = session.progress + '%';
                 }
-                
+
                 if (session.chunks_total > 0) {
                     chunksProgress.textContent = `${session.chunks_completed || 0}/${session.chunks_total}`;
                 }
-                
+
                 if (session.progress !== undefined) {
                     progressPercentage.textContent = Math.round(session.progress) + '%';
                 }
-                
+
                 // Show blue notification that we've resumed an active session
                 this.showResumedSessionNotification(session.id);
             }
@@ -1866,7 +1866,7 @@
                 `;
                 notification.textContent = `📋 Resumed active transcription: ${sessionId}`;
                 document.body.appendChild(notification);
-                
+
                 // Auto-hide after 5 seconds
                 setTimeout(() => {
                     if (notification.parentNode) {
