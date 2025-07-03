@@ -50,16 +50,20 @@ def check_ffmpeg():
 
 def get_venv_python():
     """Get the path to the Python executable in the virtual environment"""
-    # Try new location first, fallback to old location for backward compatibility
+    # Use .venv as the primary virtual environment
     if platform.system() == "Windows":
-        if os.path.exists(os.path.join("env", "venv311", "Scripts", "python.exe")):
+        if os.path.exists(os.path.join(".venv", "Scripts", "python.exe")):
+            return os.path.join(".venv", "Scripts", "python.exe")
+        elif os.path.exists(os.path.join("env", "venv311", "Scripts", "python.exe")):
             return os.path.join("env", "venv311", "Scripts", "python.exe")
         elif os.path.exists(os.path.join("venv311", "Scripts", "python.exe")):
             return os.path.join("venv311", "Scripts", "python.exe")
         else:
             return os.path.join("env", "venv", "Scripts", "python.exe")
     else:
-        if os.path.exists(os.path.join("env", "venv311", "bin", "python")):
+        if os.path.exists(os.path.join(".venv", "bin", "python")):
+            return os.path.join(".venv", "bin", "python")
+        elif os.path.exists(os.path.join("env", "venv311", "bin", "python")):
             return os.path.join("env", "venv311", "bin", "python")
         elif os.path.exists(os.path.join("venv311", "bin", "python")):
             return os.path.join("venv311", "bin", "python")
@@ -69,11 +73,13 @@ def get_venv_python():
 
 def setup_virtualenv():
     """Create virtual environment if it doesn't exist"""
-    # Check for existing virtual environments
+    # Check for existing virtual environments, prefer .venv
     venv_python = get_venv_python()
 
-    # Determine which venv path to use
-    if os.path.exists(os.path.join("env", "venv311")):
+    # Determine which venv path to use, prioritizing .venv
+    if os.path.exists(".venv"):
+        print("✅ Virtual environment already exists (.venv)")
+    elif os.path.exists(os.path.join("env", "venv311")):
         print("✅ Virtual environment already exists (env/venv311)")
     elif os.path.exists("venv311"):
         print("✅ Virtual environment already exists (venv311)")
@@ -83,9 +89,8 @@ def setup_virtualenv():
         print("✅ Virtual environment already exists (venv)")
     else:
         print("🔧 Creating virtual environment...")
-        os.makedirs("env", exist_ok=True)
-        subprocess.run([sys.executable, "-m", "venv", "env/venv"], check=True)
-        print("✅ Virtual environment created")
+        subprocess.run([sys.executable, "-m", "venv", ".venv"], check=True)
+        print("✅ Virtual environment created (.venv)")
 
     return venv_python
 
@@ -232,7 +237,7 @@ def open_browser_delayed(url, delay=2):
     webbrowser.open(url)
 
 
-def run_app(venv_python, app_preference=None):
+def run_app(venv_python):
     """Run the Flask application"""
     print("\n🚀 Starting Video Transcriber...")
     print("   Access the app at: http://localhost:5001")
@@ -251,30 +256,12 @@ def run_app(venv_python, app_preference=None):
     env = os.environ.copy()
     env["FLASK_ENV"] = "production"
 
-    # Check which version to run
-    if app_preference:
-        # User specified a preference
-        if app_preference == "main.py" and os.path.exists("main.py"):
-            print("🚀 Starting Video Transcriber (Modular Version - User Selected)...")
-            app_file = "main.py"
-        elif app_preference == "app.py" and os.path.exists("legacy/app.py"):
-            print("🚀 Starting Video Transcriber (Original Version - User Selected)...")
-            app_file = "legacy/app.py"
-        else:
-            print(f"❌ Error: {app_preference} not found!")
-            sys.exit(1)
-    else:
-        # Auto-detect (prefer modular)
-        if os.path.exists("main.py"):
-            print("🚀 Starting Video Transcriber (Modular Version)...")
-            app_file = "main.py"
-        elif os.path.exists("legacy/app.py"):
-            print("🚀 Starting Video Transcriber (Original Version)...")
-            app_file = "legacy/app.py"
-        else:
-            print("❌ Error: Neither main.py nor legacy/app.py found!")
-            sys.exit(1)
+    app_file = "main.py"
+    if not os.path.exists(app_file):
+        print(f"❌ Error: {app_file} not found in the project root!")
+        sys.exit(1)
 
+    print(f"🚀 Starting Video Transcriber ({app_file})...")
     try:
         subprocess.run([venv_python, app_file], env=env)
     except KeyboardInterrupt:
@@ -285,30 +272,10 @@ def main():
     """Main setup and run function"""
     print_header()
 
-    # Check for command line arguments
-    if len(sys.argv) > 1:
-        if sys.argv[1] in ["--modular", "-m"]:
-            app_preference = "main.py"
-        elif sys.argv[1] in ["--original", "-o"]:
-            app_preference = "app.py"
-        elif sys.argv[1] in ["--help", "-h"]:
-            print("Usage: python setup_and_run.py [options]")
-            print("\nOptions:")
-            print("  --modular, -m    Force use of modular version (main.py)")
-            print("  --original, -o   Force use of original version (app.py)")
-            print("  --help, -h       Show this help message")
-            print("\nDefault: Auto-detect (prefers modular version)")
-            return
-        else:
-            print(f"❌ Unknown option: {sys.argv[1]}")
-            print("Use --help for available options")
-            return
-    else:
-        app_preference = None
-
-    # Change to script directory
-    script_dir = Path(__file__).parent
-    os.chdir(script_dir)
+    # Change to project root directory to ensure paths are correct
+    project_root = Path(__file__).parent.parent.parent
+    os.chdir(project_root)
+    print(f"✅ Working directory set to: {os.getcwd()}")
 
     # Run checks and setup
     check_python_version()
@@ -327,7 +294,7 @@ def main():
             sys.exit(0)
 
     # Run the application
-    run_app(venv_python, app_preference)
+    run_app(venv_python)
 
 
 if __name__ == "__main__":

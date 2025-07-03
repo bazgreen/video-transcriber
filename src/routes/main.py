@@ -40,7 +40,12 @@ def results(session_id):
     if os.path.exists(analysis_file):
         try:
             with open(analysis_file, "r") as f:
-                analysis = json.load(f)
+                analysis_data = json.load(f)
+                # Extract nested analysis data if it exists
+                if "analysis" in analysis_data:
+                    analysis = analysis_data["analysis"]
+                else:
+                    analysis = analysis_data
                 logger.debug(f"Loaded analysis data for session {session_id}")
         except (json.JSONDecodeError, IOError) as e:
             logger.warning(
@@ -100,7 +105,12 @@ def transcript(session_id):
     if os.path.exists(analysis_file):
         try:
             with open(analysis_file, "r") as f:
-                analysis = json.load(f)
+                analysis_data = json.load(f)
+                # Extract nested analysis data if it exists
+                if "analysis" in analysis_data:
+                    analysis = analysis_data["analysis"]
+                else:
+                    analysis = analysis_data
                 logger.debug(f"Loaded analysis data for transcript {session_id}")
         except (json.JSONDecodeError, IOError) as e:
             logger.warning(
@@ -114,22 +124,183 @@ def transcript(session_id):
                 "total_words": 0,
             }
 
-    # Create segments array from analysis data for transcript rendering
+    # Load transcript segments from analysis or session data
     segments = []
-    if "questions" in analysis:
-        segments.extend(analysis["questions"])
-    if "emphasis_cues" in analysis:
-        segments.extend(analysis["emphasis_cues"])
+
+    # First try to get segments from the loaded analysis data
+    if "segments" in analysis_data:
+        segments = analysis_data["segments"]
+    elif "segments" in analysis:
+        segments = analysis["segments"]
+    else:
+        # Fallback: create segments from questions and emphasis cues only
+        if "questions" in analysis:
+            segments.extend(analysis["questions"])
+        if "emphasis_cues" in analysis:
+            segments.extend(analysis["emphasis_cues"])
 
     # Sort segments by timestamp for proper display
     segments.sort(key=lambda x: x.get("start", 0))
+
+    # Function to detect low-quality transcription segments
+    def is_likely_gibberish(text):
+        """Detect if a text segment is likely gibberish or low-quality transcription"""
+        if not text or len(text.strip()) == 0:
+            return True
+
+        text = text.strip()
+
+        # Check for excessive non-ASCII characters (Unicode gibberish)
+        ascii_chars = sum(1 for char in text if ord(char) < 128)
+        total_chars = len(text)
+        if total_chars > 0 and ascii_chars / total_chars < 0.6:
+            return True
+
+        # Check for specific gibberish patterns
+        gibberish_patterns = [
+            "ᄟᄳ",
+            "овор",
+            "ᆽᄲᓜ",
+            "değiş",
+            "λε",
+            "먹을",
+            "maki k",
+            "cleaningspeak",
+            "팍له",
+            "plaint trope",
+            "amis member",
+            "towe",
+            "appargewana",
+            "Indere Payter",
+            "valentina",
+            "ー quite",
+            "weirdest eyelashes",
+            "gêė",
+            "PCBėę",
+            "whèn inducté",
+            "tý valuation",
+            "bewядz",
+            "Stall reportedly",
+            "mės adhesive",
+            "Padnam Alle",
+            "dopol",
+            "meses y tutti",
+            "githé",
+            "avour thinking",
+            "jazz linders",
+            "nye dėoh",
+            "tūl ach cheat",
+            "vill ehm",
+            "así misto",
+            "tut zhiò",
+            "s'hė Interview",
+            "pexãŒ",
+            "PxãŒ",
+        ]
+
+        # If text contains any of these known gibberish patterns, mark as gibberish
+        text_lower = text.lower()
+        for pattern in gibberish_patterns:
+            if pattern.lower() in text_lower:
+                return True
+
+        # Check for segments with unusual character combinations
+        import re
+
+        # Look for segments with mixed scripts (Latin + Korean + Arabic + Greek + Cyrillic)
+        if re.search(r"[ᄀ-ힿ].*[а-я]|[а-я].*[ᄀ-ힿ]|[α-ω].*[ᄀ-ힿ]|[ᄀ-ힿ].*[α-ω]", text):
+            return True
+
+        # Check for segments with too many non-standard characters
+        unusual_chars = re.findall(r"[^\w\s.,!?\'\"-]", text)
+        if len(unusual_chars) > len(text) * 0.2:
+            return True
+
+        # Check for very short segments that don't make sense
+        words = text.split()
+        if len(words) <= 3:
+            # Single/short segments that are likely noise
+            noise_words = ["exch", "ー", "eh", "ehm", "uh", "um", "ah", "hmm"]
+            if any(word.lower() in noise_words for word in words):
+                return True
+
+            # Very short segments with weird character combinations
+            for word in words:
+                if len(word) > 0 and not re.match(r"^[a-zA-Z.,!?\'\"-]*$", word):
+                    # Contains non-standard characters
+                    if len(word) < 4 or not any(char.isalpha() for char in word):
+                        return True
+
+        return False
+
+    # Process segments for template rendering
+    processed_segments = []
+    for segment in segments:
+        text = segment.get("text", "")
+
+        # Skip likely gibberish segments
+        if is_likely_gibberish(text):
+            continue
+
+        # Determine segment type and styling
+        segment_classes = []
+        segment_types = []
+
+        # Check if this segment is a question
+        if any(
+            q.get("start") == segment.get("start")
+            for q in analysis.get("questions", [])
+        ):
+            segment_classes.append("question")
+            segment_types.append("questions")
+
+        # Check if this segment has emphasis
+        if any(
+            e.get("start") == segment.get("start")
+            for e in analysis.get("emphasis_cues", [])
+        ):
+            segment_classes.append("emphasis")
+            segment_types.append("emphasis")
+
+        # Check if this segment contains keywords
+        highlighted_text = text
+        has_keyword = False
+
+        for keyword_match in analysis.get("keyword_matches", []):
+            keyword = keyword_match.get("keyword", "")
+            if keyword.lower() in text.lower():
+                has_keyword = True
+                # Simple highlighting - replace keyword with highlighted version
+                highlighted_text = highlighted_text.replace(
+                    keyword, f'<span class="keyword">{keyword}</span>'
+                )
+
+        if has_keyword:
+            segment_classes.append("highlight")
+            segment_types.append("keywords")
+
+        # Default styling if no special type
+        if not segment_types:
+            segment_types.append("normal")
+
+        processed_segments.append(
+            {
+                "timestamp_str": segment.get("timestamp_str", ""),
+                "highlighted_text": highlighted_text,
+                "classes": segment_classes,
+                "types": segment_types,
+                "start": segment.get("start", 0),
+                "end": segment.get("end", 0),
+                "text": text,
+            }
+        )
 
     return render_template(
         "transcript.html",
         session_id=session_id,
         analysis=analysis,
         metadata=metadata,
-        segments=segments,
+        segments=processed_segments,
     )
 
 

@@ -57,6 +57,11 @@
             <button class="filter-btn" onclick="filterSegments('emphasis')">Emphasis</button>
         </div>
 
+        <!-- Quality filter notice -->
+        <div style="background: #e8f4fd; padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #2196f3; font-size: 0.9rem; color: #1565c0;">
+            <strong>📝 Note:</strong> Low-quality transcript segments (gibberish, transcription errors) have been automatically filtered for better readability. Some timestamps may be skipped.
+        </div>
+
         <div id="transcript">
             {% for segment in segments %}
                 <div class="segment {{ segment.classes|join(' ') }}" data-type="{{ segment.types|join(' ') if segment.types else 'normal' }}">

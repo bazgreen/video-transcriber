@@ -141,3 +141,17 @@ def register_socket_handlers(socketio: SocketIO) -> None:
                 emit("progress_update", current_progress)
             else:
                 emit("error", {"message": f"No progress data for session {session_id}"})
+
+    @socketio.on("get_active_sessions")
+    def on_get_active_sessions() -> None:
+        """
+        Handle request for all active sessions.
+
+        Emits:
+            active_sessions: Dictionary of active session data
+        """
+        if progress_tracker:
+            active_sessions = progress_tracker.get_active_sessions()
+            emit("active_sessions", active_sessions)
+        else:
+            emit("active_sessions", {})

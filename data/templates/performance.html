@@ -25,6 +25,76 @@
             padding: 20px;
         }
 
+        .nav-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .nav-link:active {
+            transform: translateY(0);
+        }
+
+        .nav-link.home {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .nav-link.home:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .nav-bar {
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .nav-link {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .nav-link {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -480,6 +550,21 @@
 </head>
 <body>
     <div class="container">
+        <nav class="nav-bar">
+            <a href="/" class="nav-link home">
+                <span>🏠</span>
+                <span>Home</span>
+            </a>
+            <a href="/sessions" class="nav-link">
+                <span>📚</span>
+                <span>Previous Sessions</span>
+            </a>
+            <a href="/config" class="nav-link">
+                <span>🔤</span>
+                <span>Keyword Config</span>
+            </a>
+        </nav>
+        
         <div class="header">
             <h1>🚀 Performance Monitor</h1>
             <p>Real-time system performance and optimization insights</p>

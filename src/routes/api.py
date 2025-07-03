@@ -584,7 +584,12 @@ def generate_export_formats(session_id: str):
             import json
 
             with open(analysis_file, "r", encoding="utf-8") as f:
-                analysis = json.load(f)
+                analysis_data = json.load(f)
+                # Extract nested analysis data if it exists
+                if "analysis" in analysis_data:
+                    analysis = analysis_data["analysis"]
+                else:
+                    analysis = analysis_data
         else:
             analysis = {}
 
@@ -735,7 +740,12 @@ def get_video_metadata(session_id: str) -> Response:
 
     try:
         with open(analysis_path, "r") as f:
-            analysis = json.load(f)
+            analysis_data = json.load(f)
+            # Extract nested analysis data if it exists
+            if "analysis" in analysis_data:
+                analysis = analysis_data["analysis"]
+            else:
+                analysis = analysis_data
     except (json.JSONDecodeError, IOError) as e:
         logger.error(f"Error reading analysis for session {session_id}: {e}")
         raise UserFriendlyError("Error reading analysis data")

@@ -495,7 +495,7 @@
     </div>
 
     <script>
-        let allSessions = {{ sessions|tojson }};
+        let allSessions = {{ sessions|tojson|safe }};
         let currentSessions = [...allSessions];
         let isSearching = false;
 

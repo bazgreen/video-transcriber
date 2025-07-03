@@ -643,7 +643,7 @@ class VideoTranscriber:
         )
 
         # Store results
-        results["chunks"] = all_segments
+        results["segments"] = all_segments
         results["full_transcript"] = "\n".join(all_text)
 
         # Analyze content
@@ -779,8 +779,11 @@ class VideoTranscriber:
 
     def _finalize_session(self, session_id, session_dir, metadata, results):
         """Finalize session processing and generate outputs"""
+        # Get chunk count from progress tracker or calculate from segments
+        progress_data = self.progress_tracker.get_session_progress(session_id)
+        chunks_count = progress_data.get("total_chunks", 1) if progress_data else 1
+        
         # Update metadata with final stats
-        chunks_count = len(results["chunks"])
         metadata.update(
             {
                 "status": "completed",
@@ -900,9 +903,7 @@ class VideoTranscriber:
     def generate_html_transcript(self, results):
         """Generate searchable HTML transcript using template"""
         # Prepare all segments with metadata
-        all_segments = []
-        for chunk in results["chunks"]:
-            all_segments.extend(chunk["segments"])
+        all_segments = results.get("segments", [])
 
         # Sort by timestamp
         all_segments.sort(key=lambda x: x["start"])

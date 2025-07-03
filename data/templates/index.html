@@ -667,6 +667,160 @@
             color: #666;
             font-size: 0.9rem;
         }
+
+        /* Completion Modal Styles */
+        .completion-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .completion-modal.visible {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                background: rgba(0, 0, 0, 0);
+            }
+            to {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        .completion-modal .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            animation: modalSlideIn 0.4s ease;
+            border: 3px solid #48bb78;
+        }
+
+        .completion-modal .modal-header {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .completion-modal .modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .completion-modal .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .completion-modal .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .completion-summary {
+            padding: 30px;
+            background: #f8fffe;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e6fffa;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .summary-value {
+            font-weight: 700;
+            color: #38a169;
+            font-size: 1.1rem;
+        }
+
+        .completion-actions {
+            padding: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            background: white;
+        }
+
+        .completion-actions .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 180px;
+        }
+
+        .completion-actions .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .completion-actions .btn-primary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 180px;
+        }
+
+        .completion-actions .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -760,12 +914,8 @@
                     <div class="progress-detail-value" id="chunksProgress">0/0</div>
                 </div>
                 <div class="progress-detail">
-                    <div class="progress-detail-label">Time Remaining</div>
-                    <div class="progress-detail-value" id="timeRemaining">Calculating...</div>
-                </div>
-                <div class="progress-detail">
-                    <div class="progress-detail-label">Current Stage</div>
-                    <div class="progress-detail-value" id="currentStage">Initializing</div>
+                    <div class="progress-detail-label">Progress</div>
+                    <div class="progress-detail-value" id="progressPercentage">0%</div>
                 </div>
                 <div class="progress-detail">
                     <div class="progress-detail-label">Session ID</div>
@@ -776,6 +926,40 @@
 
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
+
+        <!-- Completion Dialog Modal -->
+        <div class="completion-modal" id="completionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="completionTitle">🎉 Transcription Complete!</h3>
+                    <button class="modal-close" id="closeCompletionBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="completion-summary" id="completionSummary">
+                        <div class="summary-item">
+                            <span class="summary-label">Processing Time:</span>
+                            <span class="summary-value" id="processingTime">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Words Found:</span>
+                            <span class="summary-value" id="wordsFound">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Keywords Detected:</span>
+                            <span class="summary-value" id="keywordsDetected">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Questions Found:</span>
+                            <span class="summary-value" id="questionsFound">-</span>
+                        </div>
+                    </div>
+                    <div class="completion-actions">
+                        <button class="btn-secondary" id="viewResultsBtn">📁 View Results</button>
+                        <button class="btn-primary" id="startNewBtn">🆕 Start New Transcription</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Video Preview Modal -->
         <div class="video-preview-modal" id="videoPreviewModal">
@@ -861,9 +1045,18 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const progressDetails = document.getElementById('progressDetails');
         const chunksProgress = document.getElementById('chunksProgress');
-        const timeRemaining = document.getElementById('timeRemaining');
-        const currentStage = document.getElementById('currentStage');
+        const progressPercentage = document.getElementById('progressPercentage');
         const sessionIdElement = document.getElementById('sessionId');
+
+        // Completion Modal Elements
+        const completionModal = document.getElementById('completionModal');
+        const closeCompletionBtn = document.getElementById('closeCompletionBtn');
+        const viewResultsBtn = document.getElementById('viewResultsBtn');
+        const startNewBtn = document.getElementById('startNewBtn');
+        const processingTimeEl = document.getElementById('processingTime');
+        const wordsFoundEl = document.getElementById('wordsFound');
+        const keywordsDetectedEl = document.getElementById('keywordsDetected');
+        const questionsFoundEl = document.getElementById('questionsFound');
 
         // Multi-file upload state
         let selectedFiles = [];
@@ -880,6 +1073,7 @@
         // Multi-file upload functionality
         class MultiFileUploader {
             constructor() {
+                this.currentSessionId = null;
                 this.setupEventListeners();
                 this.initializeSocket();
             }
@@ -893,6 +1087,25 @@
                     }
                     // Reset file input to allow selecting the same file again
                     e.target.value = '';
+                });
+
+                // Completion modal event handlers
+                closeCompletionBtn.addEventListener('click', () => this.hideCompletionModal());
+                startNewBtn.addEventListener('click', () => {
+                    this.hideCompletionModal();
+                    this.resetForNewTranscription();
+                });
+                viewResultsBtn.addEventListener('click', () => {
+                    if (currentSessionId) {
+                        window.open(`/results/${currentSessionId}`, '_blank');
+                    }
+                });
+
+                // Close modal on background click
+                completionModal.addEventListener('click', (e) => {
+                    if (e.target === completionModal) {
+                        this.hideCompletionModal();
+                    }
                 });
 
                 // Drag and drop functionality
@@ -1165,6 +1378,7 @@
 
                     if (result.success) {
                         currentSessionId = result.session_id;
+                        this.currentSessionId = result.session_id;
                         sessionIdElement.textContent = currentSessionId;
 
                         // Join WebSocket session
@@ -1266,6 +1480,12 @@
                 successMessage.style.display = 'none';
             }
 
+            showProgressSection() {
+                uploadSection.style.display = 'none';
+                progressSection.style.display = 'block';
+                connectionStatus.style.display = 'block';
+            }
+
             async handleFormSubmit(e) {
                 e.preventDefault();
 
@@ -1327,6 +1547,7 @@
 
                     if (result.success) {
                         currentSessionId = result.session_id;
+                        this.currentSessionId = result.session_id;
                         sessionIdElement.textContent = currentSessionId;
 
                         // Join WebSocket session
@@ -1354,6 +1575,9 @@
             }
 
             onFileComplete() {
+                // Clear current session ID
+                this.currentSessionId = null;
+                
                 // Process next file in queue
                 setTimeout(() => this.processNextFile(), 1000);
             }
@@ -1390,6 +1614,9 @@
                     if (progressSection.style.display === 'block') {
                         connectionStatus.style.display = 'block';
                     }
+                    
+                    // Check for active sessions when connecting
+                    this.checkForActiveTranscriptions();
                 });
 
                 socket.on('disconnect', () => {
@@ -1403,6 +1630,10 @@
                     this.updateProgress(data);
                 });
 
+                socket.on('active_sessions', (data) => {
+                    this.handleActiveSessions(data);
+                });
+
                 socket.on('error', (data) => {
                     console.error('Socket error:', data);
                     this.showError(data.message || 'WebSocket error occurred');
@@ -1411,6 +1642,17 @@
 
             updateProgress(data) {
                 console.log('Progress update:', data);
+
+                // Store session ID if provided
+                if (data.session_id && !this.currentSessionId) {
+                    this.currentSessionId = data.session_id;
+                }
+
+                // If progress section is not visible but we have progress data, show it
+                if (progressSection.style.display !== 'block' && data.progress !== undefined) {
+                    this.showProgressSection();
+                    currentlyProcessing = true;
+                }
 
                 // Update progress bar
                 if (data.progress !== undefined) {
@@ -1427,20 +1669,30 @@
                     chunksProgress.textContent = `${data.chunks_completed}/${data.chunks_total}`;
                 }
 
-                // Update time remaining
-                if (data.estimated_time) {
-                    timeRemaining.textContent = this.formatTime(data.estimated_time);
-                } else if (data.progress === 100) {
-                    timeRemaining.textContent = 'Complete!';
+                // Update progress percentage
+                if (data.progress !== undefined) {
+                    progressPercentage.textContent = Math.round(data.progress) + '%';
+                } else {
+                    progressPercentage.textContent = '0%';
                 }
 
                 // Update current stage
-                if (data.stage) {
-                    currentStage.textContent = this.capitalizeFirst(data.stage.replace('_', ' '));
-                }
+                // Removed: Current Stage display has been removed from UI
 
                 // Handle completion
                 if (data.status === 'completed') {
+                    // Show completion dialog with results
+                    setTimeout(() => {
+                        this.showCompletionModal({
+                            processing_time: data.estimated_time || 0,
+                            stats: {
+                                words: data.total_words || 0,
+                                keywords: data.keywords_found || 0,
+                                questions: data.questions_found || 0
+                            }
+                        });
+                    }, 1000); // Small delay to let final progress update show
+                    
                     this.onFileComplete();
                 } else if (data.status === 'error') {
                     this.showError(data.current_task || 'Processing failed');
@@ -1462,6 +1714,58 @@
                 return str.charAt(0).toUpperCase() + str.slice(1);
             }
 
+            // Completion Modal Methods
+            showCompletionModal(data) {
+                // Populate completion summary
+                if (data.processing_time) {
+                    processingTimeEl.textContent = this.formatTime(data.processing_time);
+                }
+                if (data.stats) {
+                    wordsFoundEl.textContent = data.stats.words || 0;
+                    keywordsDetectedEl.textContent = data.stats.keywords || 0;
+                    questionsFoundEl.textContent = data.stats.questions || 0;
+                }
+
+                // Show modal
+                completionModal.classList.add('visible');
+                
+                // Reset progress section but keep it visible
+                progressFill.style.width = '100%';
+                statusText.textContent = '✅ Processing Complete!';
+                progressPercentage.textContent = '100%';
+            }
+
+            hideCompletionModal() {
+                completionModal.classList.remove('visible');
+            }
+
+            resetForNewTranscription() {
+                // Hide progress section
+                progressSection.style.display = 'none';
+                
+                // Reset progress indicators
+                progressFill.style.width = '0%';
+                statusText.textContent = 'Processing your video...';
+                progressPercentage.textContent = '0%';
+                chunksProgress.textContent = '0/0';
+                sessionIdElement.textContent = '-';
+                
+                // Reset processing state
+                currentlyProcessing = false;
+                currentSessionId = null;
+                
+                // Re-enable buttons
+                processAllBtn.disabled = selectedFiles.length === 0;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+                
+                // Hide messages
+                this.hideMessages();
+                
+                // Focus on upload area
+                uploadArea.scrollIntoView({ behavior: 'smooth' });
+            }
+
             // Additional utility functions that tests expect
             showPreview(fileId) {
                 return this.previewFile(fileId);
@@ -1481,6 +1785,94 @@
 
                 // Start batch processing
                 this.handleFormSubmit({ preventDefault: () => {} });
+            }
+
+            async checkForActiveTranscriptions() {
+                // Request active sessions from server via HTTP API
+                try {
+                    const response = await fetch('/api/performance/live');
+                    const result = await response.json();
+                    if (result.success && result.data.active_sessions) {
+                        this.handleActiveSessions(result.data.active_sessions);
+                    }
+                } catch (error) {
+                    console.error('Error fetching active sessions:', error);
+                }
+            }
+
+            handleActiveSessions(activeSessions) {
+                console.log('Active sessions received from API:', activeSessions);
+                
+                if (activeSessions.length > 0) {
+                    // Find the most recent active session
+                    const mostRecentSession = activeSessions.reduce((latest, current) => {
+                        return (current.start_time || 0) > (latest.start_time || 0) ? current : latest;
+                    });
+                    
+                    if (mostRecentSession) {
+                        // Ensure the session object has an 'id' property for resumeTranscriptionDisplay
+                        if (mostRecentSession.session_id && !mostRecentSession.id) {
+                            mostRecentSession.id = mostRecentSession.session_id;
+                        }
+                        this.resumeTranscriptionDisplay(mostRecentSession);
+                    }
+                }
+            }
+
+            resumeTranscriptionDisplay(session) {
+                console.log('Resuming transcription display for session:', session.id);
+                
+                // Store current session ID for progress updates
+                this.currentSessionId = session.id;
+                
+                // Show progress section
+                this.showProgressSection();
+                
+                // Update UI elements with current session data
+                if (session.current_task) {
+                    statusText.textContent = session.current_task;
+                }
+                
+                if (session.progress !== undefined) {
+                    progressFill.style.width = session.progress + '%';
+                }
+                
+                if (session.chunks_total > 0) {
+                    chunksProgress.textContent = `${session.chunks_completed || 0}/${session.chunks_total}`;
+                }
+                
+                if (session.progress !== undefined) {
+                    progressPercentage.textContent = Math.round(session.progress) + '%';
+                }
+                
+                // Show blue notification that we've resumed an active session
+                this.showResumedSessionNotification(session.id);
+            }
+
+            showResumedSessionNotification(sessionId) {
+                // Create and show a blue notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #3182ce;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    z-index: 1000;
+                    font-size: 14px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                `;
+                notification.textContent = `📋 Resumed active transcription: ${sessionId}`;
+                document.body.appendChild(notification);
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 5000);
             }
         }
 
