@@ -19,6 +19,7 @@ from flask import Blueprint, Response, jsonify, request, send_file
 from src.config import AppConfig, Constants, PerformanceConfig, VideoConfig
 from src.models.exceptions import UserFriendlyError
 from src.utils import (
+    get_scenario_by_id,
     handle_user_friendly_error,
     is_safe_path,
     is_valid_session_id,
@@ -26,7 +27,6 @@ from src.utils import (
     load_scenarios,
     load_session_metadata,
     save_keywords,
-    get_scenario_by_id,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -183,21 +183,20 @@ def remove_keyword():
 def get_keyword_scenarios():
     """Get all available keyword scenarios"""
     scenarios = load_scenarios()
-    
+
     # Format for UI display
     formatted_scenarios = []
     for scenario in scenarios:
-        formatted_scenarios.append({
-            "id": scenario.get("id", ""),
-            "name": scenario.get("name", ""),
-            "description": scenario.get("description", ""),
-            "keyword_count": len(scenario.get("keywords", [])),
-        })
-    
-    return jsonify({
-        "success": True,
-        "scenarios": formatted_scenarios
-    })
+        formatted_scenarios.append(
+            {
+                "id": scenario.get("id", ""),
+                "name": scenario.get("name", ""),
+                "description": scenario.get("description", ""),
+                "keyword_count": len(scenario.get("keywords", [])),
+            }
+        )
+
+    return jsonify({"success": True, "scenarios": formatted_scenarios})
 
 
 @api_bp.route("/keywords/scenarios/<scenario_id>", methods=["GET"])
@@ -205,14 +204,11 @@ def get_keyword_scenarios():
 def get_keyword_scenario(scenario_id):
     """Get details for a specific keyword scenario"""
     scenario = get_scenario_by_id(scenario_id)
-    
+
     if not scenario:
         raise UserFriendlyError(f"Scenario not found: {scenario_id}")
-    
-    return jsonify({
-        "success": True,
-        "scenario": scenario
-    })
+
+    return jsonify({"success": True, "scenario": scenario})
 
 
 @api_bp.route("/keywords/scenarios/apply", methods=["POST"])
@@ -222,18 +218,18 @@ def apply_keyword_scenario():
     data = request.get_json()
     if not data or "scenario_id" not in data:
         raise UserFriendlyError("Invalid request: 'scenario_id' field is required")
-    
+
     scenario_id = data["scenario_id"]
     merge_mode = data.get("merge_mode", "replace")  # replace, merge
-    
+
     # Get the scenario
     scenario = get_scenario_by_id(scenario_id)
     if not scenario:
         raise UserFriendlyError(f"Scenario not found: {scenario_id}")
-    
+
     # Get scenario keywords
     scenario_keywords = scenario.get("keywords", [])
-    
+
     # Apply to current keywords based on merge mode
     if merge_mode == "replace":
         # Replace all current keywords
@@ -245,13 +241,17 @@ def apply_keyword_scenario():
         merged_keywords = list(set(current_keywords + scenario_keywords))
         save_keywords(merged_keywords)
         keywords = merged_keywords
-    
-    logger.info(f"Applied keyword scenario '{scenario.get('name')}' with merge mode '{merge_mode}'")
-    return jsonify({
-        "success": True,
-        "message": f"Applied scenario '{scenario.get('name')}' with {len(keywords)} keywords",
-        "keywords": keywords
-    })
+
+    logger.info(
+        f"Applied keyword scenario '{scenario.get('name')}' with merge mode '{merge_mode}'"
+    )
+    return jsonify(
+        {
+            "success": True,
+            "message": f"Applied scenario '{scenario.get('name')}' with {len(keywords)} keywords",
+            "keywords": keywords,
+        }
+    )
 
 
 @api_bp.route("/performance", methods=["GET"])

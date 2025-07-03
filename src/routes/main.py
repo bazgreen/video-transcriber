@@ -372,7 +372,9 @@ def search_sessions():
 @main_bp.route("/config")
 def config_page():
     """Configuration page"""
-    return render_template("config.html")
+    from src.utils import load_keywords
+    keywords = load_keywords()
+    return render_template("config.html", keywords=keywords)
 
 
 @main_bp.route("/performance")

@@ -17,6 +17,8 @@
         "grading",
         "criteria",
         "format",
-        "feedback"
+        "feedback",
+        "formative",
+        "summative"
     ]
 }

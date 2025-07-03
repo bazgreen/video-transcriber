@@ -69,7 +69,7 @@ def process_upload(
     session_name = re.sub(r"[^a-zA-Z0-9_-]", "_", session_name)
     # Limit length
     session_name = session_name[: config.MAX_SESSION_NAME_LENGTH]
-    
+
     # Check if a keyword scenario was selected
     scenario_id = request.form.get("keyword_scenario", "").strip()
     if scenario_id:
@@ -88,10 +88,10 @@ def process_upload(
     try:
         # Process video
         results = transcriber.process_video(
-            upload_path, 
-            session_name, 
-            file.filename, 
-            keyword_scenario_id=scenario_id if scenario_id else None
+            upload_path,
+            session_name,
+            file.filename,
+            keyword_scenario_id=scenario_id if scenario_id else None,
         )
 
         # Copy original video file to session directory for synchronized playback

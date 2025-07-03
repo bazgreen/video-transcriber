@@ -1909,11 +1909,11 @@
             try {
                 const response = await fetch('/api/keywords/scenarios');
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     const scenarios = data.scenarios;
                     const selectElement = document.getElementById('keywordScenario');
-                    
+
                     // Add options
                     scenarios.forEach(scenario => {
                         const option = document.createElement('option');
@@ -1926,10 +1926,10 @@
                 console.error('Error loading keyword scenarios:', error);
             }
         }
-        
+
         // Load scenarios on page load
         loadKeywordScenarios();
-        
+
         // Initialize the multi-file uploader
         const uploader = new MultiFileUploader();
     </script>
