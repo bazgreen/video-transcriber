@@ -317,10 +317,31 @@ class TestAPIPerformance:
             )
             assert post_response.status_code == 200
 
-            return get_response, post_response
+            # Test GET keyword scenarios
+            scenarios_response = client.get("/api/keywords/scenarios")
+            assert scenarios_response.status_code == 200
+
+            # Test GET specific scenario (education)
+            scenario_response = client.get("/api/keywords/scenarios/education")
+            assert scenario_response.status_code == 200
+
+            # Test apply scenario
+            apply_response = client.post(
+                "/api/keywords/scenarios/apply",
+                json={"scenario_id": "education", "merge_mode": "replace"},
+            )
+            assert apply_response.status_code == 200
+
+            return (
+                get_response,
+                post_response,
+                scenarios_response,
+                scenario_response,
+                apply_response,
+            )
 
         # Benchmark the operations
-        get_response, post_response = benchmark(keywords_api_operations)
+        benchmark(keywords_api_operations)
 
         # Performance assertion
         stats = benchmark.stats

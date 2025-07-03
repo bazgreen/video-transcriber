@@ -30,6 +30,8 @@ A powerful Python web application that transforms videos into searchable, analyz
 
 ### 🔍 Advanced Analysis
 
+- **🎭 Pre-Built Keyword Scenarios** - Choose from domain-specific keyword sets (Education, Business, Interviews, Technical)
+
 - **Question Detection** - Automatically identifies spoken questions with timestamps
 - **Emphasis Cue Recognition** - Finds important phrases like "make sure...", "don't forget..."
 - **Custom Keyword Tracking** - Monitors user-defined terms and their frequency
@@ -398,6 +400,7 @@ video-transcriber/
 │   └── keywords_config.json # Customizable keywords configuration
 ├── CLAUDE.md               # Development documentation
 ├── docs/                    # Documentation
+│   ├── keyword_scenarios.md  # Keyword scenarios documentation
 ├── templates/               # HTML templates
 │   ├── index.html          # Upload interface
 │   ├── results.html        # Results dashboard

@@ -264,9 +264,28 @@
             transition: border-color 0.3s ease;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus, select:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .scenario-select {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background-color: white;
+            margin-bottom: 5px;
+        }
+
+        .form-hint {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
         }
 
         .submit-btn {
@@ -893,6 +912,15 @@
             <div class="form-group">
                 <label for="sessionName">Session Name (Optional)</label>
                 <input type="text" id="sessionName" name="session_name" placeholder="e.g., Meeting Recording, Project Review">
+            </div>
+
+            <div class="form-group">
+                <label for="keywordScenario">Keyword Scenario (Optional)</label>
+                <select id="keywordScenario" name="keyword_scenario" class="scenario-select">
+                    <option value="" selected>Use current keyword configuration</option>
+                    <!-- Scenarios will be loaded dynamically -->
+                </select>
+                <div class="form-hint">Pre-built keyword sets for different content types</div>
             </div>
 
             <!-- Multi-file processing is handled by the file queue buttons -->
@@ -1876,6 +1904,32 @@
             }
         }
 
+        // Load keyword scenarios
+        async function loadKeywordScenarios() {
+            try {
+                const response = await fetch('/api/keywords/scenarios');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const scenarios = data.scenarios;
+                    const selectElement = document.getElementById('keywordScenario');
+                    
+                    // Add options
+                    scenarios.forEach(scenario => {
+                        const option = document.createElement('option');
+                        option.value = scenario.id;
+                        option.textContent = scenario.name;
+                        selectElement.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading keyword scenarios:', error);
+            }
+        }
+        
+        // Load scenarios on page load
+        loadKeywordScenarios();
+        
         // Initialize the multi-file uploader
         const uploader = new MultiFileUploader();
     </script>

@@ -500,8 +500,21 @@ class VideoTranscriber:
             "total_words": len(text.split()),
         }
 
-        # Load custom keywords
-        custom_keywords = load_keywords()
+        # Load keywords - from scenario if specified, otherwise from custom keywords
+        custom_keywords = []
+        
+        # If a keyword scenario was selected during upload, use those keywords
+        if hasattr(self, '_selected_keyword_scenario_id') and self._selected_keyword_scenario_id:
+            from src.utils import get_scenario_by_id
+            scenario = get_scenario_by_id(self._selected_keyword_scenario_id)
+            if scenario and 'keywords' in scenario:
+                custom_keywords = scenario['keywords']
+                logger.info(f"Using {len(custom_keywords)} keywords from scenario: {scenario.get('name', self._selected_keyword_scenario_id)}")
+        
+        # If no scenario keywords were loaded, fall back to custom keywords
+        if not custom_keywords:
+            custom_keywords = load_keywords()
+            logger.info(f"Using {len(custom_keywords)} custom keywords")
 
         # Keyword analysis
         for keyword in custom_keywords:
@@ -555,11 +568,12 @@ class VideoTranscriber:
         return analysis
 
     def process_video(
-        self, video_path: str, session_name: str = "", original_filename: str = ""
+        self, video_path: str, session_name: str = "", original_filename: str = "", 
+        keyword_scenario_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Complete video processing pipeline"""
         session_id, session_dir, metadata, results = self._initialize_session(
-            session_name, original_filename
+            session_name, original_filename, keyword_scenario_id
         )
 
         try:
@@ -577,13 +591,17 @@ class VideoTranscriber:
             raise
 
     def _initialize_session(
-        self, session_name: str = "", original_filename: str = ""
+        self, session_name: str = "", original_filename: str = "", 
+        keyword_scenario_id: Optional[str] = None
     ) -> Tuple[str, str, Dict[str, Any], Dict[str, Any]]:
         """Initialize a new processing session"""
         # Create session directory
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         if session_name:
             session_id = f"{session_name}_{session_id}"
+            
+        # Store scenario ID for later use in keyword analysis
+        self._selected_keyword_scenario_id = keyword_scenario_id
 
         session_dir = os.path.join(self.results_folder, session_id)
         os.makedirs(session_dir, exist_ok=True)
@@ -912,8 +930,19 @@ class VideoTranscriber:
         question_times = {q["start"] for q in results["analysis"]["questions"]}
         emphasis_times = {e["start"] for e in results["analysis"]["emphasis_cues"]}
 
-        # Load custom keywords
-        custom_keywords = load_keywords()
+        # Load keywords - from scenario if specified, otherwise from custom keywords
+        custom_keywords = []
+        
+        # If a keyword scenario was selected during upload, use those keywords
+        if hasattr(self, '_selected_keyword_scenario_id') and self._selected_keyword_scenario_id:
+            from src.utils import get_scenario_by_id
+            scenario = get_scenario_by_id(self._selected_keyword_scenario_id)
+            if scenario and 'keywords' in scenario:
+                custom_keywords = scenario['keywords']
+        
+        # If no scenario keywords were loaded, fall back to custom keywords
+        if not custom_keywords:
+            custom_keywords = load_keywords()
 
         # Process segments for template
         processed_segments = []

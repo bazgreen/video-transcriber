@@ -1,0 +1,55 @@
+{
+    "scenarios": [
+        {
+            "id": "education",
+            "name": "🎓 Education & Training",
+            "description": "Keywords focused on learning environments",
+            "keywords": [
+                "question", "answer", "explain", "understand", "learn", "study",
+                "homework", "assignment", "exam", "test", "quiz", "grade",
+                "concept", "theory", "example", "definition", "formula",
+                "remember", "practice", "review", "lesson", "chapter",
+                "important", "key point", "main idea", "summary"
+            ]
+        },
+        {
+            "id": "business",
+            "name": "💼 Business & Meetings",
+            "description": "Keywords for corporate environments",
+            "keywords": [
+                "action item", "deadline", "follow up", "next steps", "decision",
+                "budget", "cost", "revenue", "profit", "investment", "ROI",
+                "project", "milestone", "deliverable", "timeline", "schedule",
+                "team", "stakeholder", "client", "customer", "vendor",
+                "strategy", "goal", "objective", "target", "KPI", "metric",
+                "risk", "issue", "blocker", "concern", "opportunity"
+            ]
+        },
+        {
+            "id": "interview",
+            "name": "🎤 Interviews & Research",
+            "description": "Keywords for interview analysis",
+            "keywords": [
+                "experience", "background", "skill", "qualification", "achievement",
+                "opinion", "perspective", "viewpoint", "belief", "attitude",
+                "challenge", "difficulty", "problem", "solution", "approach",
+                "example", "instance", "case study", "scenario", "situation",
+                "recommendation", "suggestion", "advice", "insight", "feedback",
+                "future", "trend", "prediction", "expectation", "vision"
+            ]
+        },
+        {
+            "id": "technical",
+            "name": "🔬 Technical & Development",
+            "description": "Keywords for technical discussions",
+            "keywords": [
+                "bug", "error", "issue", "fix", "solution", "workaround",
+                "feature", "requirement", "specification", "implementation",
+                "test", "deploy", "release", "version", "update", "patch",
+                "performance", "optimization", "scalability", "security",
+                "API", "database", "integration", "architecture", "framework",
+                "code review", "documentation", "refactor", "technical debt"
+            ]
+        }
+    ]
+}

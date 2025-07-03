@@ -8,7 +8,7 @@ from .helpers import (
     load_session_metadata,
     parse_session_metadata,
 )
-from .keywords import load_keywords, save_keywords
+from .keywords import load_keywords, save_keywords, load_scenarios, save_scenarios, get_scenario_by_id
 from .memory import (
     check_memory_constraints,
     get_memory_status_safe,
@@ -40,6 +40,9 @@ __all__ = [
     # Keywords
     "load_keywords",
     "save_keywords",
+    "load_scenarios",
+    "save_scenarios",
+    "get_scenario_by_id",
     # Decorators
     "handle_user_friendly_error",
     # Session management
