@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Video Transcriber{% endblock %}
+
+{% block body_class %}layout-centered{% endblock %}
+
+{% set show_header = false %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h1>📝 Sign Up</h1>
+        <p>Create your account to save and manage your transcription sessions.</p>
+    </div>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-control") }}
+            {% if form.username.errors %}
+                <div class="form-errors">
+                    {% for error in form.username.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control") }}
+            {% if form.email.errors %}
+                <div class="form-errors">
+                    {% for error in form.email.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.display_name.label(class="form-label") }}
+            {{ form.display_name(class="form-control") }}
+            {% if form.display_name.errors %}
+                <div class="form-errors">
+                    {% for error in form.display_name.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control") }}
+            {% if form.password.errors %}
+                <div class="form-errors">
+                    {% for error in form.password.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password2.label(class="form-label") }}
+            {{ form.password2(class="form-control") }}
+            {% if form.password2.errors %}
+                <div class="form-errors">
+                    {% for error in form.password2.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        {{ form.submit(class="btn btn-primary btn-full") }}
+    </form>
+
+    <div class="auth-links">
+        <p>Already have an account? <a href="{{ url_for('auth.login') }}">Sign in here</a></p>
+        <p><a href="{{ url_for('main.index') }}">← Back to Home</a></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-links {
+        text-align: center;
+        margin-top: var(--spacing-xl);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .auth-links p {
+        margin-bottom: var(--spacing-sm);
+        font-size: var(--font-size-sm);
+        color: var(--gray-600);
+    }
+
+    .auth-links a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

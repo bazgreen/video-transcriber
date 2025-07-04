@@ -1,104 +1,468 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keyword Configuration - Video Transcriber</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+{% extends "base.html" %}
+
+{% block title %}Keyword Configuration - Video Transcriber{% endblock %}
+
+{% block body_class %}layout-centered{% endblock %}
+
+{% set show_header = false %}
+
+{% block content %}
+<div class="container container-wide">
+    <h1 class="page-title">⚙️ Keyword Configuration</h1>
+    <p class="page-subtitle">Customize keywords for enhanced content analysis and searchability</p>
+
+    <div class="nav-links-inline">
+        <a href="{{ url_for('main.index') }}" class="nav-link">
+            <span>🏠</span> Home
+        </a>
+        <a href="{{ url_for('main.sessions') }}" class="nav-link">
+            <span>📁</span> Sessions
+        </a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">
+            <span>👤</span> Profile
+        </a>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}" class="nav-link">
+            <span>🔑</span> Sign In
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Assessment Keywords Section -->
+    <div class="keyword-section card">
+        <div class="card-header">
+            <h2 class="section-title">📝 Assessment Keywords</h2>
+            <p>Keywords that indicate assessments, tests, evaluations, and grading</p>
+        </div>
+        <div class="card-body">
+            <div class="keyword-cloud" id="assessmentKeywords">
+                <!-- Keywords will be loaded here -->
+            </div>
+            <div class="keyword-controls">
+                <div class="form-group">
+                    <input type="text" id="newAssessmentKeyword" class="form-control" placeholder="Add new assessment keyword..." maxlength="100">
+                </div>
+                <div class="keyword-actions">
+                    <button type="button" id="addAssessmentKeyword" class="btn btn-primary">
+                        <span>➕</span> Add Keyword
+                    </button>
+                    <button type="button" id="resetAssessmentKeywords" class="btn btn-outline">
+                        <span>🔄</span> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Keywords Section -->
+    <div class="keyword-section card">
+        <div class="card-header">
+            <h2 class="section-title">❓ Question Keywords</h2>
+            <p>Keywords that indicate questions, inquiries, and interrogative statements</p>
+        </div>
+        <div class="card-body">
+            <div class="keyword-cloud" id="questionKeywords">
+                <!-- Keywords will be loaded here -->
+            </div>
+            <div class="keyword-controls">
+                <div class="form-group">
+                    <input type="text" id="newQuestionKeyword" class="form-control" placeholder="Add new question keyword..." maxlength="100">
+                </div>
+                <div class="keyword-actions">
+                    <button type="button" id="addQuestionKeyword" class="btn btn-primary">
+                        <span>➕</span> Add Keyword
+                    </button>
+                    <button type="button" id="resetQuestionKeywords" class="btn btn-outline">
+                        <span>🔄</span> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emphasis Keywords Section -->
+    <div class="keyword-section card">
+        <div class="card-header">
+            <h2 class="section-title">⚡ Emphasis Keywords</h2>
+            <p>Keywords that indicate important points, emphasis, and key information</p>
+        </div>
+        <div class="card-body">
+            <div class="keyword-cloud" id="emphasisKeywords">
+                <!-- Keywords will be loaded here -->
+            </div>
+            <div class="keyword-controls">
+                <div class="form-group">
+                    <input type="text" id="newEmphasisKeyword" class="form-control" placeholder="Add new emphasis keyword..." maxlength="100">
+                </div>
+                <div class="keyword-actions">
+                    <button type="button" id="addEmphasisKeyword" class="btn btn-primary">
+                        <span>➕</span> Add Keyword
+                    </button>
+                    <button type="button" id="resetEmphasisKeywords" class="btn btn-outline">
+                        <span>🔄</span> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Actions -->
+    <div class="config-actions">
+        <button type="button" id="saveAllConfigs" class="btn btn-success btn-lg">
+            <span>💾</span> Save All Changes
+        </button>
+        <button type="button" id="exportConfig" class="btn btn-secondary">
+            <span>📄</span> Export Config
+        </button>
+        <button type="button" id="importConfig" class="btn btn-secondary">
+            <span>📥</span> Import Config
+        </button>
+        <input type="file" id="configFile" accept=".json" style="display: none;">
+    </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessages" class="status-messages" style="display: none;"></div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .keyword-section {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .keyword-controls {
+        border-top: 1px solid var(--gray-200);
+        padding-top: var(--spacing-lg);
+        margin-top: var(--spacing-lg);
+    }
+
+    .keyword-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+        margin-top: var(--spacing-md);
+    }
+
+    .config-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: var(--spacing-xl);
+        padding-top: var(--spacing-xl);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .status-messages {
+        margin-top: var(--spacing-lg);
+    }
+
+    /* Enhanced keyword tag styles */
+    .keyword-tag {
+        position: relative;
+        cursor: default;
+    }
+
+    .keyword-tag button {
+        transition: var(--transition-base);
+    }
+
+    .keyword-tag button:hover {
+        background: rgba(255, 255, 255, 0.5);
+        transform: scale(1.1);
+    }
+
+    .keyword-tag.removing {
+        animation: fadeOut 0.3s ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+    }
+
+    /* Empty state for keyword clouds */
+    .keyword-cloud:empty::after {
+        content: "No keywords configured yet. Add some keywords to get started!";
+        display: block;
+        text-align: center;
+        color: var(--gray-500);
+        font-style: italic;
+        padding: var(--spacing-lg);
+        background: var(--gray-50);
+        border-radius: var(--radius-md);
+        border: 2px dashed var(--gray-300);
+    }
+
+    /* Loading states */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+        position: relative;
+    }
+
+    .loading::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--gray-300);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Configuration data
+    let config = {
+        assessment_keywords: [],
+        question_keywords: [],
+        emphasis_keywords: []
+    };
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadConfiguration();
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        // Add keyword buttons
+        document.getElementById('addAssessmentKeyword').addEventListener('click', () => addKeyword('assessment'));
+        document.getElementById('addQuestionKeyword').addEventListener('click', () => addKeyword('question'));
+        document.getElementById('addEmphasisKeyword').addEventListener('click', () => addKeyword('emphasis'));
+
+        // Reset buttons
+        document.getElementById('resetAssessmentKeywords').addEventListener('click', () => resetKeywords('assessment'));
+        document.getElementById('resetQuestionKeywords').addEventListener('click', () => resetKeywords('question'));
+        document.getElementById('resetEmphasisKeywords').addEventListener('click', () => resetKeywords('emphasis'));
+
+        // Enter key handlers for inputs
+        document.getElementById('newAssessmentKeyword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addKeyword('assessment');
+        });
+        document.getElementById('newQuestionKeyword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addKeyword('question');
+        });
+        document.getElementById('newEmphasisKeyword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addKeyword('emphasis');
+        });
+
+        // Configuration actions
+        document.getElementById('saveAllConfigs').addEventListener('click', saveConfiguration);
+        document.getElementById('exportConfig').addEventListener('click', exportConfiguration);
+        document.getElementById('importConfig').addEventListener('click', () => {
+            document.getElementById('configFile').click();
+        });
+        document.getElementById('configFile').addEventListener('change', importConfiguration);
+    }
+
+    async function loadConfiguration() {
+        try {
+            const response = await fetch('/api/config/keywords');
+            if (response.ok) {
+                config = await response.json();
+                renderAllKeywords();
+            } else {
+                showMessage('Failed to load configuration', 'error');
+            }
+        } catch (error) {
+            showMessage('Error loading configuration: ' + error.message, 'error');
+        }
+    }
+
+    function renderAllKeywords() {
+        renderKeywords('assessment', config.assessment_keywords || []);
+        renderKeywords('question', config.question_keywords || []);
+        renderKeywords('emphasis', config.emphasis_keywords || []);
+    }
+
+    function renderKeywords(type, keywords) {
+        const container = document.getElementById(`${type}Keywords`);
+        container.innerHTML = keywords.map(keyword => `
+            <div class="keyword-tag">
+                <span>${keyword}</span>
+                <button type="button" onclick="removeKeyword('${type}', '${keyword}')">×</button>
+            </div>
+        `).join('');
+    }
+
+    function addKeyword(type) {
+        const input = document.getElementById(`new${type.charAt(0).toUpperCase() + type.slice(1)}Keyword`);
+        const keyword = input.value.trim().toLowerCase();
+
+        if (!keyword) {
+            showMessage('Please enter a keyword', 'warning');
+            return;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        if (keyword.length > 100) {
+            showMessage('Keyword too long (max 100 characters)', 'warning');
+            return;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
+        const keywordArray = config[`${type}_keywords`] || [];
+
+        if (keywordArray.includes(keyword)) {
+            showMessage('Keyword already exists', 'warning');
+            return;
         }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
+        keywordArray.push(keyword);
+        config[`${type}_keywords`] = keywordArray;
+
+        renderKeywords(type, keywordArray);
+        input.value = '';
+
+        showMessage(`Added "${keyword}" to ${type} keywords`, 'success');
+    }
+
+    function removeKeyword(type, keyword) {
+        const keywordArray = config[`${type}_keywords`] || [];
+        const index = keywordArray.indexOf(keyword);
+
+        if (index > -1) {
+            keywordArray.splice(index, 1);
+            config[`${type}_keywords`] = keywordArray;
+            renderKeywords(type, keywordArray);
+            showMessage(`Removed "${keyword}" from ${type} keywords`, 'info');
+        }
+    }
+
+    async function resetKeywords(type) {
+        if (!confirm(`Reset ${type} keywords to defaults? This will remove all custom keywords.`)) {
+            return;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1.1rem;
-        }
+        try {
+            const response = await fetch(`/api/config/keywords/${type}/reset`, {
+                method: 'POST'
+            });
 
-        .nav-links {
-            text-align: center;
-            margin-bottom: 30px;
+            if (response.ok) {
+                const defaults = await response.json();
+                config[`${type}_keywords`] = defaults.keywords;
+                renderKeywords(type, defaults.keywords);
+                showMessage(`Reset ${type} keywords to defaults`, 'success');
+            } else {
+                showMessage('Failed to reset keywords', 'error');
+            }
+        } catch (error) {
+            showMessage('Error resetting keywords: ' + error.message, 'error');
         }
+    }
 
-        .nav-links a {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin: 0 5px;
-            display: inline-block;
+    async function saveConfiguration() {
+        const saveBtn = document.getElementById('saveAllConfigs');
+        const originalText = saveBtn.innerHTML;
+
+        saveBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+        saveBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/config/keywords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (response.ok) {
+                showMessage('Configuration saved successfully!', 'success');
+            } else {
+                const error = await response.json();
+                showMessage('Failed to save configuration: ' + (error.error || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            showMessage('Error saving configuration: ' + error.message, 'error');
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
         }
+    }
 
-        .nav-links a:hover {
-            background: rgba(102, 126, 234, 0.2);
-        }
+    function exportConfiguration() {
+        const dataStr = JSON.stringify(config, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
 
-        .keyword-section {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'video-transcriber-keywords.json';
+        link.click();
 
-        .keyword-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+        URL.revokeObjectURL(url);
+        showMessage('Configuration exported successfully', 'success');
+    }
 
-        .keyword-tag {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
+    function importConfiguration(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-        .keyword-tag:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
 
-        .keyword-tag button {
-            background: rgba(255, 255, 255, 0.3);
-            border: none;
-            color: white;
+                // Validate structure
+                if (!imported.assessment_keywords && !imported.question_keywords && !imported.emphasis_keywords) {
+                    throw new Error('Invalid configuration file format');
+                }
+
+                // Merge with current config
+                config = {
+                    assessment_keywords: imported.assessment_keywords || config.assessment_keywords || [],
+                    question_keywords: imported.question_keywords || config.question_keywords || [],
+                    emphasis_keywords: imported.emphasis_keywords || config.emphasis_keywords || []
+                };
+
+                renderAllKeywords();
+                showMessage('Configuration imported successfully', 'success');
+            } catch (error) {
+                showMessage('Error importing configuration: ' + error.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+
+        // Reset file input
+        event.target.value = '';
+    }
+
+    function showMessage(message, type = 'info') {
+        const container = document.getElementById('statusMessages');
+        const alertClass = `alert-${type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info'}`;
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert ${alertClass}`;
+        alertDiv.innerHTML = `
+            ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            ${message}
+        `;
+
+        container.appendChild(alertDiv);
+        container.style.display = 'block';
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+            if (container.children.length === 0) {
+                container.style.display = 'none';
+            }
+        }, 5000);
+    }
+</script>
+{% endblock %}
             width: 20px;
             height: 20px;
             border-radius: 50%;

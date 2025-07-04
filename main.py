@@ -21,6 +21,18 @@ from src.routes.socket_handlers import init_socket_globals
 from src.services import VideoTranscriber, delete_session, process_upload
 from src.utils import handle_user_friendly_error
 
+# Import authentication integration (optional)
+try:
+    from src.auth_integration import (
+        check_auth_status,
+        configure_auth_context,
+        create_app_with_auth,
+    )
+
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+
 
 def configure_logging() -> logging.Logger:
     """Configure application logging with appropriate format and level."""
@@ -40,8 +52,8 @@ def create_app() -> Tuple[Flask, SocketIO]:
     """
     config = AppConfig()
 
-    # Create Flask app with proper template folder
-    app = Flask(__name__, template_folder="data/templates")
+    # Create Flask app with proper template and static folders
+    app = Flask(__name__, template_folder="data/templates", static_folder="data/static")
 
     # Configure Flask app
     app.config.update(
@@ -53,6 +65,19 @@ def create_app() -> Tuple[Flask, SocketIO]:
             "DEBUG": config.is_debug(),
         }
     )
+
+    # Initialize optional authentication system
+    login_manager = None
+    if AUTH_AVAILABLE:
+        try:
+            login_manager = create_app_with_auth(app, enable_auth=True)
+            configure_auth_context(app, login_manager)
+            logging.info("Authentication system enabled")
+        except Exception as e:
+            logging.warning(f"Authentication initialization failed: {e}")
+            logging.info("Running without authentication")
+    else:
+        logging.info("Authentication not available (missing dependencies)")
 
     # Initialize SocketIO with security considerations
     cors_origins = AppConfig.get_cors_origins()
@@ -229,6 +254,21 @@ def main() -> None:
     try:
         # Configuration
         config = AppConfig()
+
+        # Check authentication status
+        if AUTH_AVAILABLE:
+            auth_status = check_auth_status()
+            if auth_status["enabled"]:
+                logger.info("Authentication system available and enabled")
+            else:
+                logger.warning(
+                    f"Authentication disabled: {auth_status.get('missing_dependency', 'Unknown reason')}"
+                )
+                logger.info(
+                    f"To enable auth: {auth_status.get('install_command', 'Install auth dependencies')}"
+                )
+        else:
+            logger.info("Authentication integration not available")
 
         # Check for security warnings
         security_warnings = config.validate_security_config()

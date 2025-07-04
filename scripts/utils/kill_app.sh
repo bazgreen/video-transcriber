@@ -28,7 +28,7 @@ else
       echo "  ⚠️  Failed to kill process $PID (may already be stopped)"
     fi
   done
-  
+
   # Wait a moment and check if port 5001 is still in use
   sleep 2
   if lsof -i :5001 >/dev/null 2>&1; then

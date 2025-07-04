@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Video Transcriber{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% block header %}
+    {% if show_header %}
+    <header class="header">
+        <div class="header-content">
+            <h1>
+                <span>🎥</span>
+                Video Transcriber
+            </h1>
+            <nav class="header-nav">
+                {% if current_user.is_authenticated %}
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            {{ current_user.display_name[0].upper() if current_user.display_name else 'U' }}
+                        </div>
+                        <span>{{ current_user.display_name }}</span>
+                    </div>
+                {% endif %}
+
+                <div class="nav-buttons">
+                    <a href="{{ url_for('main.index') }}" class="nav-btn">
+                        <span>🏠</span> Home
+                    </a>
+                    <a href="{{ url_for('main.sessions') }}" class="nav-btn">
+                        <span>📁</span> Sessions
+                    </a>
+                    <a href="{{ url_for('main.config') }}" class="nav-btn">
+                        <span>⚙️</span> Config
+                    </a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('auth.profile') }}" class="nav-btn">
+                            <span>👤</span> Profile
+                        </a>
+                        <a href="{{ url_for('auth.logout') }}" class="nav-btn">
+                            <span>🚪</span> Logout
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="nav-btn">
+                            <span>🔑</span> Sign In
+                        </a>
+                        <a href="{{ url_for('auth.register') }}" class="nav-btn">
+                            <span>📝</span> Sign Up
+                        </a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+    {% endif %}
+    {% endblock %}
+
+    {% block flash_messages %}
+    {% if get_flashed_messages() %}
+    <div class="flash-messages">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ 'error' if category == 'error' else 'success' if category == 'success' else 'info' }}">
+            {% if category == 'success' %}
+                <span>✅</span>
+            {% elif category == 'error' %}
+                <span>❌</span>
+            {% elif category == 'warning' %}
+                <span>⚠️</span>
+            {% else %}
+                <span>ℹ️</span>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endblock %}
+
+    <main class="{% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block footer %}{% endblock %}
+
+    <!-- Common JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

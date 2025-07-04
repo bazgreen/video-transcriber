@@ -9,9 +9,11 @@ from typing import Any, Dict, Tuple
 from flask import request
 from werkzeug.utils import secure_filename
 
-from src.config import AppConfig, Constants
+from src.config.settings import AppConfig, Constants
 from src.models.exceptions import UserFriendlyError
+from src.routes.auth import associate_session_with_user, get_current_user_id
 from src.utils import is_valid_session_id
+from src.utils.security import log_access_attempt
 
 logger = logging.getLogger(__name__)
 config = AppConfig()
@@ -93,6 +95,14 @@ def process_upload(
             file.filename,
             keyword_scenario_id=scenario_id if scenario_id else None,
         )
+
+        # Associate session with current user (if authenticated)
+        session_id = results["session_id"]
+        try:
+            associate_session_with_user(session_id, session_name)
+            log_access_attempt(session_id, "create", True)
+        except Exception as e:
+            logger.warning(f"Failed to associate session {session_id} with user: {e}")
 
         # Copy original video file to session directory for synchronized playback
         session_dir = results.get("session_dir")

@@ -42,6 +42,25 @@ class AppConfig:
     # Security Configuration
     SECRET_KEY: str = os.getenv("SECRET_KEY", "video-transcriber-secret-key")
 
+    # Authentication Configuration
+    AUTH_ENABLED: bool = os.getenv("AUTH_ENABLED", "true").lower() == "true"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///data/video_transcriber.db")
+    SESSION_PROTECTION: str = "strong"  # CSRF protection level
+    REMEMBER_COOKIE_DURATION: int = 30 * 24 * 3600  # 30 days in seconds
+
+    # Additional Authentication Settings
+    WTF_CSRF_ENABLED: bool = True
+    WTF_CSRF_TIME_LIMIT: int = 3600  # 1 hour
+    MIN_PASSWORD_LENGTH: int = 8
+    REQUIRE_PASSWORD_COMPLEXITY: bool = True
+    REGISTRATION_ENABLED: bool = True
+    REQUIRE_EMAIL_VERIFICATION: bool = False  # Set to True for production
+
+    # File Security Configuration
+    ENABLE_FILE_ACCESS_CONTROL: bool = True
+    LOG_FILE_ACCESS: bool = True
+    ACCESS_LOG_PATH: str = "logs/file_access.log"
+
     # Application Settings
     DEFAULT_HOST: str = "0.0.0.0"  # nosec B104 - Intended for development/container use
     DEFAULT_PORT: int = 5001

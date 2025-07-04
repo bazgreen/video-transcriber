@@ -1,0 +1,2211 @@
+{% extends "base.html" %}
+
+{% block title %}Video Transcription Tool{% endblock %}
+
+{% block body_class %}layout-centered{% endblock %}
+
+{% block show_header %}false{% endblock %}
+
+{% block main_class %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">🎥 Video Transcriber</h1>
+    <p class="page-subtitle">Transform your videos into searchable transcripts with AI-powered analysis</p>
+
+    {% if current_user.is_authenticated %}
+    <div class="nav-links-inline">
+        <a href="{{ url_for('main.sessions') }}" class="nav-link">
+            <span>📁</span> My Sessions
+        </a>
+        <a href="{{ url_for('main.config') }}" class="nav-link">
+            <span>⚙️</span> Keywords
+        </a>
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">
+            <span>👤</span> Profile
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-link">
+            <span>🚪</span> Logout
+        </a>
+    </div>
+    {% else %}
+    <div class="nav-links-inline">
+        <a href="{{ url_for('main.sessions') }}" class="nav-link">
+            <span>📁</span> Browse Sessions
+        </a>
+        <a href="{{ url_for('main.config') }}" class="nav-link">
+            <span>⚙️</span> Keywords
+        </a>
+        <a href="{{ url_for('auth.login') }}" class="nav-link">
+            <span>🔑</span> Sign In
+        </a>
+        <a href="{{ url_for('auth.register') }}" class="nav-link">
+            <span>📝</span> Sign Up
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="upload-section">
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.flv,.wmv,.m4v" multiple>
+            <div class="upload-content">
+                <div class="upload-icon">📹</div>
+                <p class="upload-text">Drop video files here or click to browse</p>
+                <p class="upload-hint">Supports MP4, AVI, MOV, MKV, WebM, and more</p>
+            </div>
+        </div>
+
+        <div class="file-queue" id="fileQueue" style="display: none;">
+            <h3 class="section-title">📋 Files Ready for Processing</h3>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="file-options" id="fileOptions" style="display: none;">
+            <div class="form-group">
+                <label for="sessionName">Session Name (Optional)</label>
+                <input type="text" id="sessionName" class="form-control" placeholder="Enter a name for this transcription session" maxlength="50">
+                <small class="form-text">Leave blank for auto-generated name</small>
+            </div>
+
+            <div class="form-group">
+                <label for="chunkDuration">Chunk Duration</label>
+                <select id="chunkDuration" class="form-control">
+                    <option value="auto">🤖 Auto (Recommended)</option>
+                    <option value="60">⚡ 1 minute (Fast, less accurate)</option>
+                    <option value="180">⚖️ 3 minutes (Balanced)</option>
+                    <option value="300">🎯 5 minutes (Slower, more accurate)</option>
+                    <option value="420">🔍 7 minutes (Best for long content)</option>
+                </select>
+                <small class="form-text">Shorter chunks process faster but may reduce accuracy</small>
+            </div>
+
+            <div class="form-group">
+                <div class="form-check">
+                    <input type="checkbox" id="enableAnalysis" checked>
+                    <label for="enableAnalysis">Enable content analysis (questions, keywords, emphasis)</label>
+                </div>
+            </div>
+
+            <button type="button" id="startProcessing" class="btn btn-primary btn-full btn-lg">
+                <span>🚀</span> Start Transcription
+            </button>
+        </div>
+    </div>
+
+    <div class="progress-section" id="progressSection" style="display: none;">
+        <h3 class="section-title">📊 Processing Progress</h3>
+
+        <div class="progress-stats" id="progressStats">
+            <div class="stat-item">
+                <span class="stat-label">Files:</span>
+                <span class="stat-value" id="filesProgress">-</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Chunks:</span>
+                <span class="stat-value" id="chunksProgress">-</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Time:</span>
+                <span class="stat-value" id="timeProgress">-</span>
+            </div>
+        </div>
+
+        <div class="progress-bars">
+            <div class="progress-item">
+                <div class="progress-label">Overall Progress</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="overallProgress"></div>
+                </div>
+                <div class="progress-text" id="overallProgressText">0%</div>
+            </div>
+
+            <div class="progress-item" id="currentFileProgress" style="display: none;">
+                <div class="progress-label">Current File</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="currentProgress"></div>
+                </div>
+                <div class="progress-text" id="currentProgressText">0%</div>
+            </div>
+        </div>
+
+        <div class="progress-log" id="progressLog"></div>
+
+        <div class="progress-actions">
+            <button type="button" id="cancelProcessing" class="btn btn-danger">
+                <span>❌</span> Cancel Processing
+            </button>
+        </div>
+    </div>
+
+    <div class="results-section" id="resultsSection" style="display: none;">
+        <h3 class="section-title">✅ Processing Complete!</h3>
+        <div class="results-actions">
+            <a id="viewResultsBtn" href="#" class="btn btn-primary">
+                <span>👁️</span> View Results
+            </a>
+            <a href="{{ url_for('main.sessions') }}" class="btn btn-secondary">
+                <span>📁</span> All Sessions
+            </a>
+            <button type="button" id="processMoreBtn" class="btn btn-outline">
+                <span>🔄</span> Process More Files
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Upload-specific styles */
+    .upload-content {
+        pointer-events: none;
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .upload-text {
+        font-size: var(--font-size-lg);
+        font-weight: 500;
+        margin-bottom: var(--spacing-sm);
+        color: var(--dark);
+    }
+
+    .upload-hint {
+        font-size: var(--font-size-sm);
+        color: var(--gray-600);
+    }
+
+    /* File queue styles */
+    .file-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md);
+        background: var(--gray-50);
+        border-radius: var(--radius-md);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .file-info {
+        flex: 1;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: var(--dark);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .file-size {
+        font-size: var(--font-size-sm);
+        color: var(--gray-600);
+    }
+
+    .file-remove {
+        background: var(--danger-color);
+        color: var(--white);
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        font-size: var(--font-size-xs);
+    }
+
+    .form-text {
+        font-size: var(--font-size-sm);
+        color: var(--gray-600);
+        margin-top: var(--spacing-xs);
+    }
+
+    /* Progress styles */
+    .progress-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .stat-item {
+        background: var(--gray-50);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        text-align: center;
+    }
+
+    .stat-label {
+        display: block;
+        font-size: var(--font-size-sm);
+        color: var(--gray-600);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .stat-value {
+        display: block;
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .progress-bars {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .progress-item {
+        margin-bottom: var(--spacing-md);
+    }
+
+    .progress-label {
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        margin-bottom: var(--spacing-xs);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .progress-bar {
+        height: 20px;
+        background: var(--gray-200);
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--gradient-primary);
+        border-radius: var(--radius-full);
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        color: var(--dark);
+    }
+
+    .progress-log {
+        background: var(--gray-900);
+        color: var(--gray-100);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        font-family: monospace;
+        font-size: var(--font-size-sm);
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: var(--spacing-lg);
+        white-space: pre-line;
+    }
+
+    .progress-actions, .results-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* Section spacing */
+    .upload-section, .progress-section, .results-section {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .upload-section:last-child,
+    .progress-section:last-child,
+    .results-section:last-child {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+<script>
+    // JavaScript for upload functionality will go here
+    // (keeping the existing functionality from the original template)
+</script>
+{% endblock %}
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .file-queue.visible {
+            display: block;
+        }
+
+        .file-queue h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .file-list {
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e1e5e9;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-right: 12px;
+            color: #667eea;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-preview {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-preview:hover {
+            background: #5a67d8;
+        }
+
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+
+        .upload-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #667eea;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-batch {
+            flex: 1;
+            max-width: 150px;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .scenario-select {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background-color: white;
+            margin-bottom: 5px;
+        }
+
+        .form-hint {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .submit-btn:enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .submit-btn:enabled:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:enabled:active {
+            transform: translateY(0);
+        }
+
+        .progress-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e1e5e9;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .status-text {
+            text-align: center;
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .progress-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        .progress-detail {
+            text-align: center;
+        }
+
+        .progress-detail-label {
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+
+        .progress-detail-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .connection-status {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .connection-status.connected {
+            background: #e6f7e6;
+            color: #00b894;
+        }
+
+        .connection-status.disconnected {
+            background: #ffe6e6;
+            color: #d63031;
+        }
+
+        /* Video Preview Modal */
+        .video-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-preview-modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 800px;
+            max-height: 90vh;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .modal-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: #f1f1f1;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .preview-video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .video-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+
+        .video-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .video-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .video-info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .video-info-value {
+            color: #666;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e1e5e9;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-spacer {
+            flex: 1;
+        }
+
+        .nav-link {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .user-link {
+            background: rgba(102, 126, 234, 0.15);
+            color: #4c51bf;
+            font-weight: 600;
+        }
+
+        .nav-link:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .nav-bar {
+                justify-content: center;
+                gap: 8px;
+            }
+
+            .nav-link {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .nav-link {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
+        .features-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .features-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .feature-desc {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            background-color: #ffe6e6;
+            color: #d63031;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .success-message {
+            background-color: #e6f7e6;
+            color: #00b894;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Completion Modal Styles */
+        .completion-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .completion-modal.visible {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                background: rgba(0, 0, 0, 0);
+            }
+            to {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        .completion-modal .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            animation: modalSlideIn 0.4s ease;
+            border: 3px solid #48bb78;
+        }
+
+        .completion-modal .modal-header {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .completion-modal .modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .completion-modal .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .completion-modal .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .completion-summary {
+            padding: 30px;
+            background: #f8fffe;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e6fffa;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .summary-value {
+            font-weight: 700;
+            color: #38a169;
+            font-size: 1.1rem;
+        }
+
+        .completion-actions {
+            padding: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            background: white;
+        }
+
+        .completion-actions .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 180px;
+        }
+
+        .completion-actions .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .completion-actions .btn-primary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 180px;
+        }
+
+        .completion-actions .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav-bar">
+            <a href="/sessions" class="nav-link">
+                <span>📚</span>
+                <span>Previous Sessions</span>
+            </a>
+            <a href="/config" class="nav-link">
+                <span>🔤</span>
+                <span>Keyword Config</span>
+            </a>
+            <a href="/performance" class="nav-link">
+                <span>🚀</span>
+                <span>Performance Monitor</span>
+            </a>
+            <div class="nav-spacer"></div>
+            {% if current_user.is_authenticated %}
+                <a href="/auth/profile" class="nav-link user-link">
+                    <span>👤</span>
+                    <span>{{ current_user.display_name }}</span>
+                </a>
+                <a href="/auth/logout" class="nav-link">
+                    <span>🚪</span>
+                    <span>Logout</span>
+                </a>
+            {% else %}
+                <a href="/auth/login" class="nav-link">
+                    <span>🔐</span>
+                    <span>Sign In</span>
+                </a>
+                <a href="/auth/register" class="nav-link">
+                    <span>🎯</span>
+                    <span>Sign Up</span>
+                </a>
+            {% endif %}
+        </nav>
+        <h1>🎥 Video Transcriber</h1>
+        <p class="subtitle">Transform your videos into searchable, analyzed transcripts</p>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text"><strong>Click here to browse</strong> or drop your video files here</div>
+                    <div class="upload-hint">Supports MP4, AVI, MOV, and other common video formats • Up to 5 files • Max 2GB each</div>
+                    <input type="file" id="videoFile" name="video" accept="video/*" multiple title="Click to select video files">
+
+                    <!-- Fallback browse button for browsers with restrictions -->
+                    <div style="margin-top: 15px; position: relative; z-index: 3;">
+                        <button type="button" id="browseButton" style="
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            transition: background 0.2s ease;
+                        " onmouseover="this.style.background='#5a67d8'" onmouseout="this.style.background='#667eea'">📂 Browse Files</button>
+                    </div>
+                </div>
+
+                <div class="file-queue" id="fileQueue">
+                    <div class="upload-stats" id="uploadStats">
+                        <span id="fileCount">0 files selected</span>
+                        <span id="totalSize">0 MB total</span>
+                    </div>
+
+                    <h4>Upload Queue</h4>
+                    <div class="file-list" id="fileList">
+                        <!-- File items will be added here dynamically -->
+                    </div>
+
+                    <div class="batch-actions">
+                        <button type="button" class="submit-btn btn-batch add-files-button" id="addMoreFilesBtn">
+                            ➕ Add More Files
+                        </button>
+                        <button type="button" class="submit-btn btn-batch" id="clearAllBtn">
+                            🗑️ Clear All
+                        </button>
+                        <button type="submit" class="submit-btn btn-batch" id="processAllBtn" disabled>
+                            🚀 Process All Files
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sessionName">Session Name (Optional)</label>
+                <input type="text" id="sessionName" name="session_name" placeholder="e.g., Meeting Recording, Project Review">
+            </div>
+
+            <div class="form-group">
+                <label for="keywordScenario">Keyword Scenario (Optional)</label>
+                <select id="keywordScenario" name="keyword_scenario" class="scenario-select">
+                    <option value="" selected>Use current keyword configuration</option>
+                    <!-- Scenarios will be loaded dynamically -->
+                </select>
+                <div class="form-hint">Pre-built keyword sets for different content types</div>
+            </div>
+
+            <!-- Multi-file processing is handled by the file queue buttons -->
+        </form>
+
+        <div class="progress-section" id="progressSection">
+            <div class="connection-status" id="connectionStatus">
+                🔌 Connecting to server...
+            </div>
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="status-text" id="statusText">Processing your video...</div>
+            <div class="progress-details" id="progressDetails" style="display: none;">
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Chunks Processed</div>
+                    <div class="progress-detail-value" id="chunksProgress">0/0</div>
+                </div>
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Progress</div>
+                    <div class="progress-detail-value" id="progressPercentage">0%</div>
+                </div>
+                <div class="progress-detail">
+                    <div class="progress-detail-label">Session ID</div>
+                    <div class="progress-detail-value" id="sessionId">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <!-- Completion Dialog Modal -->
+        <div class="completion-modal" id="completionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="completionTitle">🎉 Transcription Complete!</h3>
+                    <button class="modal-close" id="closeCompletionBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="completion-summary" id="completionSummary">
+                        <div class="summary-item">
+                            <span class="summary-label">Processing Time:</span>
+                            <span class="summary-value" id="processingTime">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Words Found:</span>
+                            <span class="summary-value" id="wordsFound">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Keywords Detected:</span>
+                            <span class="summary-value" id="keywordsDetected">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Questions Found:</span>
+                            <span class="summary-value" id="questionsFound">-</span>
+                        </div>
+                    </div>
+                    <div class="completion-actions">
+                        <button class="btn-secondary" id="viewResultsBtn">📁 View Results</button>
+                        <button class="btn-primary" id="startNewBtn">🆕 Start New Transcription</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Preview Modal -->
+        <div class="video-preview-modal" id="videoPreviewModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 id="previewTitle">Video Preview</h4>
+                    <button class="modal-close" id="closePreviewBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <video class="preview-video" id="previewVideo" controls>
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-info" id="previewInfo">
+                        <div class="video-info-row">
+                            <span class="video-info-label">Duration:</span>
+                            <span class="video-info-value" id="previewDuration">Loading...</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">File Size:</span>
+                            <span class="video-info-value" id="previewSize">-</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">Format:</span>
+                            <span class="video-info-value" id="previewFormat">-</span>
+                        </div>
+                        <div class="video-info-row">
+                            <span class="video-info-label">Resolution:</span>
+                            <span class="video-info-value" id="previewResolution">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="cancelPreviewBtn">Close</button>
+                    <button class="btn-primary" id="processFileBtn">Process This File</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-section">
+            <h3 class="features-title">✨ Features</h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⏱️</div>
+                    <div class="feature-title">Auto-Split & Timestamp</div>
+                    <div class="feature-desc">Automatically splits long videos into 5-minute chunks with precise timestamps</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-title">Smart Analysis</div>
+                    <div class="feature-desc">Detects questions, emphasis cues, and important keywords automatically</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Keyword Insights</div>
+                    <div class="feature-desc">Frequency analysis and highlighting of important terms</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔎</div>
+                    <div class="feature-title">Searchable Transcripts</div>
+                    <div class="feature-desc">Interactive HTML transcripts with search and filter capabilities</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('videoFile');
+        const uploadForm = document.getElementById('uploadForm');
+        const fileQueue = document.getElementById('fileQueue');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const totalSize = document.getElementById('totalSize');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const processAllBtn = document.getElementById('processAllBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const statusText = document.getElementById('statusText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const progressDetails = document.getElementById('progressDetails');
+        const chunksProgress = document.getElementById('chunksProgress');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const sessionIdElement = document.getElementById('sessionId');
+
+        // Completion Modal Elements
+        const completionModal = document.getElementById('completionModal');
+        const closeCompletionBtn = document.getElementById('closeCompletionBtn');
+        const viewResultsBtn = document.getElementById('viewResultsBtn');
+        const startNewBtn = document.getElementById('startNewBtn');
+        const processingTimeEl = document.getElementById('processingTime');
+        const wordsFoundEl = document.getElementById('wordsFound');
+        const keywordsDetectedEl = document.getElementById('keywordsDetected');
+        const questionsFoundEl = document.getElementById('questionsFound');
+
+        // Multi-file upload state
+        let selectedFiles = [];
+        let processingQueue = [];
+        let currentlyProcessing = false;
+        let socket = null;
+        let currentSessionId = null;
+
+        // Configuration
+        const MAX_FILES = 5;
+        const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+        const ALLOWED_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
+
+        // Multi-file upload functionality
+        class MultiFileUploader {
+            constructor() {
+                this.currentSessionId = null;
+                this.setupEventListeners();
+                this.initializeSocket();
+            }
+
+            setupEventListeners() {
+                // File input change with enhanced error handling
+                fileInput.addEventListener('change', (e) => {
+                    console.log('File input changed, files:', e.target.files);
+                    if (e.target.files && e.target.files.length > 0) {
+                        this.handleFiles(e.target.files);
+                    }
+                    // Reset file input to allow selecting the same file again
+                    e.target.value = '';
+                });
+
+                // Completion modal event handlers
+                closeCompletionBtn.addEventListener('click', () => this.hideCompletionModal());
+                startNewBtn.addEventListener('click', () => {
+                    this.hideCompletionModal();
+                    this.resetForNewTranscription();
+                });
+                viewResultsBtn.addEventListener('click', () => {
+                    if (currentSessionId) {
+                        window.open(`/results/${currentSessionId}`, '_blank');
+                    }
+                });
+
+                // Close modal on background click
+                completionModal.addEventListener('click', (e) => {
+                    if (e.target === completionModal) {
+                        this.hideCompletionModal();
+                    }
+                });
+
+                // Drag and drop functionality
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                // Batch actions
+                clearAllBtn.addEventListener('click', () => this.clearAllFiles());
+                uploadForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+
+                // Add more files button - create a second file input for this
+                document.getElementById('addMoreFilesBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Create a temporary file input for additional files
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'video/*';
+                    tempInput.multiple = true;
+                    tempInput.onchange = (event) => {
+                        if (event.target.files && event.target.files.length > 0) {
+                            this.handleFiles(event.target.files);
+                        }
+                        tempInput.remove();
+                    };
+                    tempInput.click();
+                });
+
+                // Fallback browse button
+                document.getElementById('browseButton').addEventListener('click', (e) => {
+                    console.log('Browse button clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Create a temporary file input for the browse button
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'video/*';
+                    tempInput.multiple = true;
+                    tempInput.onchange = (event) => {
+                        if (event.target.files && event.target.files.length > 0) {
+                            this.handleFiles(event.target.files);
+                        }
+                        tempInput.remove();
+                    };
+                    tempInput.click();
+                });
+
+                // Add debug logging for file input
+                fileInput.addEventListener('click', () => {
+                    console.log('File input clicked directly');
+                });
+            }
+
+            handleFiles(files) {
+                const filesArray = Array.from(files);
+
+                for (const file of filesArray) {
+                    if (this.validateFile(file)) {
+                        this.addFile(file);
+                    }
+                }
+
+                this.updateUI();
+            }
+
+            validateFile(file) {
+                // Check file count limit
+                if (selectedFiles.length >= MAX_FILES) {
+                    this.showError(`Maximum ${MAX_FILES} files allowed. Please remove some files first.`);
+                    return false;
+                }
+
+                // Check file size
+                if (file.size > MAX_FILE_SIZE) {
+                    this.showError(`File "${file.name}" is too large. Maximum size is 2GB.`);
+                    return false;
+                }
+
+                // Check file extension
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!ALLOWED_EXTENSIONS.includes(extension)) {
+                    this.showError(`File "${file.name}" is not a supported video format. Supported: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                    return false;
+                }
+
+                // Check for duplicates
+                if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    this.showError(`File "${file.name}" is already in the queue.`);
+                    return false;
+                }
+
+                return true;
+            }
+
+            addFile(file) {
+                const fileObj = {
+                    id: Date.now() + Math.random(),
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    status: 'pending',
+                    progress: 0
+                };
+
+                selectedFiles.push(fileObj);
+                this.hideMessages();
+            }
+
+            removeFile(fileId) {
+                selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+                this.updateUI();
+            }
+
+            clearAllFiles() {
+                selectedFiles = [];
+                this.updateUI();
+                this.hideMessages();
+            }
+
+            updateUI() {
+                // Update stats
+                fileCount.textContent = `${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''} selected`;
+                const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+                totalSize.textContent = `${this.formatFileSize(totalBytes)} total`;
+
+                // Show/hide file queue
+                if (selectedFiles.length > 0) {
+                    fileQueue.classList.add('visible');
+                    uploadArea.classList.add('has-files');
+                    processAllBtn.disabled = false;
+                } else {
+                    fileQueue.classList.remove('visible');
+                    uploadArea.classList.remove('has-files');
+                    processAllBtn.disabled = true;
+                }
+
+                // Update file list
+                this.renderFileList();
+            }
+
+            renderFileList() {
+                fileList.innerHTML = selectedFiles.map(fileObj => `
+                    <div class="file-item" data-id="${fileObj.id}">
+                        <div class="file-info">
+                            <div class="file-icon">🎬</div>
+                            <div class="file-details">
+                                <div class="file-name">${fileObj.name}</div>
+                                <div class="file-size">${this.formatFileSize(fileObj.size)}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="btn-preview" onclick="uploader.previewFile('${fileObj.id}')">
+                                👁️ Preview
+                            </button>
+                            <button type="button" class="btn-remove" onclick="uploader.removeFile('${fileObj.id}')" title="Remove file">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            previewFile(fileId) {
+                const fileObj = selectedFiles.find(f => f.id == fileId);
+                if (fileObj) {
+                    this.showVideoPreview(fileObj);
+                }
+            }
+
+            showVideoPreview(fileObj) {
+                const modal = document.getElementById('videoPreviewModal');
+                const previewVideo = document.getElementById('previewVideo');
+                const previewTitle = document.getElementById('previewTitle');
+                const previewSize = document.getElementById('previewSize');
+                const previewFormat = document.getElementById('previewFormat');
+                const previewDuration = document.getElementById('previewDuration');
+                const previewResolution = document.getElementById('previewResolution');
+                const processFileBtn = document.getElementById('processFileBtn');
+
+                // Set up modal content
+                previewTitle.textContent = `Preview: ${fileObj.name}`;
+                previewSize.textContent = this.formatFileSize(fileObj.size);
+                previewFormat.textContent = fileObj.file.type || 'Unknown';
+
+                // Create video URL
+                const videoUrl = URL.createObjectURL(fileObj.file);
+                previewVideo.src = videoUrl;
+
+                // Handle video metadata loading
+                previewVideo.addEventListener('loadedmetadata', () => {
+                    const duration = previewVideo.duration;
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = Math.floor(duration % 60);
+                    previewDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                    const width = previewVideo.videoWidth;
+                    const height = previewVideo.videoHeight;
+                    previewResolution.textContent = width && height ? `${width} × ${height}` : 'Unknown';
+                }, { once: true });
+
+                // Set up modal event handlers
+                const closeModal = () => {
+                    modal.classList.remove('visible');
+                    previewVideo.pause();
+                    URL.revokeObjectURL(videoUrl);
+                    previewVideo.src = '';
+                };
+
+                document.getElementById('closePreviewBtn').onclick = closeModal;
+                document.getElementById('cancelPreviewBtn').onclick = closeModal;
+
+                // Process individual file
+                processFileBtn.onclick = () => {
+                    closeModal();
+                    this.processSingleFile(fileObj);
+                };
+
+                // Close on background click
+                modal.onclick = (e) => {
+                    if (e.target === modal) closeModal();
+                };
+
+                // Show modal
+                modal.classList.add('visible');
+            }
+
+            async processSingleFile(fileObj) {
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+
+                currentlyProcessing = true;
+                this.showProgressSection();
+
+                const sessionName = document.getElementById('sessionName').value || 'single_file_upload';
+
+                try {
+                    this.updateProgress({
+                        progress: 0,
+                        current_task: `Processing ${fileObj.name}...`,
+                        stage: 'upload',
+                        chunks_completed: 0,
+                        chunks_total: 0
+                    });
+
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('video', fileObj.file);
+                    formData.append('session_name', `${sessionName}_${fileObj.name.split('.')[0]}`);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        currentSessionId = result.session_id;
+                        this.currentSessionId = result.session_id;
+                        sessionIdElement.textContent = currentSessionId;
+
+                        // Join WebSocket session
+                        if (socket && socket.connected) {
+                            socket.emit('join_session', { session_id: currentSessionId });
+                        }
+
+                        // Remove the processed file from queue
+                        this.removeFile(fileObj.id);
+
+                        // Show enhanced success message
+                        this.showSuccess(`✅ ${fileObj.name} processed successfully! Found ${result.stats?.words || 0} words in ${result.stats?.chunks || 0} chunks.`);
+
+                    } else {
+                        // Handle enhanced error format
+                        if (result.type === 'user_friendly_error' || result.type === 'validation_error') {
+                            this.showError(result);
+                        } else {
+                            this.showError(`Failed to process ${fileObj.name}: ${result.error || 'Unknown error'}`);
+                        }
+                        this.onProcessingError();
+                    }
+
+                } catch (error) {
+                    this.showError(`Network error processing ${fileObj.name}: ${error.message}`);
+                    this.onProcessingError();
+                }
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showError(messageOrError) {
+                // Handle both string messages and user-friendly error objects
+                if (typeof messageOrError === 'string') {
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.2rem;">❌</span>
+                            <div>
+                                <strong>Error:</strong> ${messageOrError}
+                            </div>
+                        </div>
+                    `;
+                } else if (messageOrError && messageOrError.type === 'user_friendly_error') {
+                    // Enhanced user-friendly error display
+                    const error = messageOrError;
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.5rem;">${error.icon}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #dc3545; margin-bottom: 8px;">
+                                    ${error.message}
+                                </div>
+                                <div style="color: #6c757d; margin-bottom: 8px; font-size: 0.9rem;">
+                                    <strong>Solution:</strong> ${error.solution}
+                                </div>
+                                <div style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; color: #495057;">
+                                    <strong>💡 Action:</strong> ${error.action}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Fallback for other error formats
+                    errorMessage.innerHTML = `
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 1.2rem;">⚠️</span>
+                            <div>
+                                <strong>Error:</strong> ${messageOrError.message || 'An unexpected error occurred'}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+
+                // Auto-hide after 10 seconds for non-critical errors
+                setTimeout(() => {
+                    if (errorMessage.style.display === 'block') {
+                        errorMessage.style.display = 'none';
+                    }
+                }, 10000);
+            }
+
+            showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+            }
+
+            hideMessages() {
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+            }
+
+            showProgressSection() {
+                uploadSection.style.display = 'none';
+                progressSection.style.display = 'block';
+                connectionStatus.style.display = 'block';
+            }
+
+            async handleFormSubmit(e) {
+                e.preventDefault();
+
+                if (selectedFiles.length === 0) {
+                    this.showError('Please select at least one video file.');
+                    return;
+                }
+
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+
+                currentlyProcessing = true;
+                processingQueue = [...selectedFiles];
+
+                this.showProgressSection();
+                this.processNextFile();
+            }
+
+            showProgressSection() {
+                progressSection.style.display = 'block';
+                progressDetails.style.display = 'grid';
+                connectionStatus.style.display = 'block';
+                processAllBtn.disabled = true;
+                processAllBtn.textContent = '⏳ Processing...';
+                clearAllBtn.disabled = true;
+            }
+
+            async processNextFile() {
+                if (processingQueue.length === 0) {
+                    this.onAllFilesComplete();
+                    return;
+                }
+
+                const fileObj = processingQueue.shift();
+                const sessionName = document.getElementById('sessionName').value || 'multi_file_batch';
+
+                try {
+                    this.updateProgress({
+                        progress: 0,
+                        current_task: `Starting processing of ${fileObj.name}...`,
+                        stage: 'upload',
+                        chunks_completed: 0,
+                        chunks_total: 0
+                    });
+
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('video', fileObj.file);
+                    formData.append('session_name', `${sessionName}_${fileObj.name.split('.')[0]}`);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        currentSessionId = result.session_id;
+                        this.currentSessionId = result.session_id;
+                        sessionIdElement.textContent = currentSessionId;
+
+                        // Join WebSocket session
+                        if (socket && socket.connected) {
+                            socket.emit('join_session', { session_id: currentSessionId });
+                        }
+
+                        // Wait for processing to complete before moving to next file
+                        this.waitForCompletion();
+
+                    } else {
+                        this.showError(`Failed to process ${fileObj.name}: ${result.error}`);
+                        this.onProcessingError();
+                    }
+
+                } catch (error) {
+                    this.showError(`Error processing ${fileObj.name}: ${error.message}`);
+                    this.onProcessingError();
+                }
+            }
+
+            waitForCompletion() {
+                // This will be handled by WebSocket progress updates
+                // When we receive a 'completed' status, we'll call processNextFile()
+            }
+
+            onFileComplete() {
+                // Clear current session ID
+                this.currentSessionId = null;
+
+                // Process next file in queue
+                setTimeout(() => this.processNextFile(), 1000);
+            }
+
+            onAllFilesComplete() {
+                currentlyProcessing = false;
+                processAllBtn.disabled = false;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+
+                this.showSuccess(`Successfully processed all ${selectedFiles.length} files!`);
+
+                // Optionally clear the queue
+                setTimeout(() => {
+                    this.clearAllFiles();
+                }, 3000);
+            }
+
+            onProcessingError() {
+                currentlyProcessing = false;
+                processAllBtn.disabled = false;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+            }
+
+            // WebSocket integration
+            initializeSocket() {
+                socket = io();
+
+                socket.on('connect', () => {
+                    console.log('Connected to server');
+                    connectionStatus.textContent = '✅ Connected to server';
+                    connectionStatus.className = 'connection-status connected';
+                    if (progressSection.style.display === 'block') {
+                        connectionStatus.style.display = 'block';
+                    }
+
+                    // Check for active sessions when connecting
+                    this.checkForActiveTranscriptions();
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    connectionStatus.textContent = '❌ Connection lost';
+                    connectionStatus.className = 'connection-status disconnected';
+                    connectionStatus.style.display = 'block';
+                });
+
+                socket.on('progress_update', (data) => {
+                    this.updateProgress(data);
+                });
+
+                socket.on('active_sessions', (data) => {
+                    this.handleActiveSessions(data);
+                });
+
+                socket.on('error', (data) => {
+                    console.error('Socket error:', data);
+                    this.showError(data.message || 'WebSocket error occurred');
+                });
+            }
+
+            updateProgress(data) {
+                console.log('Progress update:', data);
+
+                // Store session ID if provided
+                if (data.session_id && !this.currentSessionId) {
+                    this.currentSessionId = data.session_id;
+                }
+
+                // If progress section is not visible but we have progress data, show it
+                if (progressSection.style.display !== 'block' && data.progress !== undefined) {
+                    this.showProgressSection();
+                    currentlyProcessing = true;
+                }
+
+                // Update progress bar
+                if (data.progress !== undefined) {
+                    progressFill.style.width = data.progress + '%';
+                }
+
+                // Update status text
+                if (data.current_task) {
+                    statusText.textContent = data.current_task;
+                }
+
+                // Update chunks progress
+                if (data.chunks_total > 0) {
+                    chunksProgress.textContent = `${data.chunks_completed}/${data.chunks_total}`;
+                }
+
+                // Update progress percentage
+                if (data.progress !== undefined) {
+                    progressPercentage.textContent = Math.round(data.progress) + '%';
+                } else {
+                    progressPercentage.textContent = '0%';
+                }
+
+                // Update current stage
+                // Removed: Current Stage display has been removed from UI
+
+                // Handle completion
+                if (data.status === 'completed') {
+                    // Show completion dialog with results
+                    setTimeout(() => {
+                        this.showCompletionModal({
+                            processing_time: data.estimated_time || 0,
+                            stats: {
+                                words: data.total_words || 0,
+                                keywords: data.keywords_found || 0,
+                                questions: data.questions_found || 0
+                            }
+                        });
+                    }, 1000); // Small delay to let final progress update show
+
+                    this.onFileComplete();
+                } else if (data.status === 'error') {
+                    this.showError(data.current_task || 'Processing failed');
+                    this.onProcessingError();
+                }
+            }
+
+            formatTime(seconds) {
+                if (seconds < 60) {
+                    return `${Math.ceil(seconds)}s`;
+                } else {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = Math.ceil(seconds % 60);
+                    return `${minutes}m ${remainingSeconds}s`;
+                }
+            }
+
+            capitalizeFirst(str) {
+                return str.charAt(0).toUpperCase() + str.slice(1);
+            }
+
+            // Completion Modal Methods
+            showCompletionModal(data) {
+                // Populate completion summary
+                if (data.processing_time) {
+                    processingTimeEl.textContent = this.formatTime(data.processing_time);
+                }
+                if (data.stats) {
+                    wordsFoundEl.textContent = data.stats.words || 0;
+                    keywordsDetectedEl.textContent = data.stats.keywords || 0;
+                    questionsFoundEl.textContent = data.stats.questions || 0;
+                }
+
+                // Show modal
+                completionModal.classList.add('visible');
+
+                // Reset progress section but keep it visible
+                progressFill.style.width = '100%';
+                statusText.textContent = '✅ Processing Complete!';
+                progressPercentage.textContent = '100%';
+            }
+
+            hideCompletionModal() {
+                completionModal.classList.remove('visible');
+            }
+
+            resetForNewTranscription() {
+                // Hide progress section
+                progressSection.style.display = 'none';
+
+                // Reset progress indicators
+                progressFill.style.width = '0%';
+                statusText.textContent = 'Processing your video...';
+                progressPercentage.textContent = '0%';
+                chunksProgress.textContent = '0/0';
+                sessionIdElement.textContent = '-';
+
+                // Reset processing state
+                currentlyProcessing = false;
+                currentSessionId = null;
+
+                // Re-enable buttons
+                processAllBtn.disabled = selectedFiles.length === 0;
+                processAllBtn.textContent = '🚀 Process All Files';
+                clearAllBtn.disabled = false;
+
+                // Hide messages
+                this.hideMessages();
+
+                // Focus on upload area
+                uploadArea.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // Additional utility functions that tests expect
+            showPreview(fileId) {
+                return this.previewFile(fileId);
+            }
+
+            processQueue() {
+                // Process all files in the queue
+                if (selectedFiles.length === 0) {
+                    this.showError('No files in queue to process.');
+                    return;
+                }
+
+                if (currentlyProcessing) {
+                    this.showError('Processing is already in progress.');
+                    return;
+                }
+
+                // Start batch processing
+                this.handleFormSubmit({ preventDefault: () => {} });
+            }
+
+            async checkForActiveTranscriptions() {
+                // Request active sessions from server via HTTP API
+                try {
+                    const response = await fetch('/api/performance/live');
+                    const result = await response.json();
+                    if (result.success && result.data.active_sessions) {
+                        this.handleActiveSessions(result.data.active_sessions);
+                    }
+                } catch (error) {
+                    console.error('Error fetching active sessions:', error);
+                }
+            }
+
+            handleActiveSessions(activeSessions) {
+                console.log('Active sessions received from API:', activeSessions);
+
+                if (activeSessions.length > 0) {
+                    // Find the most recent active session
+                    const mostRecentSession = activeSessions.reduce((latest, current) => {
+                        return (current.start_time || 0) > (latest.start_time || 0) ? current : latest;
+                    });
+
+                    if (mostRecentSession) {
+                        // Ensure the session object has an 'id' property for resumeTranscriptionDisplay
+                        if (mostRecentSession.session_id && !mostRecentSession.id) {
+                            mostRecentSession.id = mostRecentSession.session_id;
+                        }
+                        this.resumeTranscriptionDisplay(mostRecentSession);
+                    }
+                }
+            }
+
+            resumeTranscriptionDisplay(session) {
+                console.log('Resuming transcription display for session:', session.id);
+
+                // Store current session ID for progress updates
+                this.currentSessionId = session.id;
+
+                // Show progress section
+                this.showProgressSection();
+
+                // Update UI elements with current session data
+                if (session.current_task) {
+                    statusText.textContent = session.current_task;
+                }
+
+                if (session.progress !== undefined) {
+                    progressFill.style.width = session.progress + '%';
+                }
+
+                if (session.chunks_total > 0) {
+                    chunksProgress.textContent = `${session.chunks_completed || 0}/${session.chunks_total}`;
+                }
+
+                if (session.progress !== undefined) {
+                    progressPercentage.textContent = Math.round(session.progress) + '%';
+                }
+
+                // Show blue notification that we've resumed an active session
+                this.showResumedSessionNotification(session.id);
+            }
+
+            showResumedSessionNotification(sessionId) {
+                // Create and show a blue notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #3182ce;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    z-index: 1000;
+                    font-size: 14px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                `;
+                notification.textContent = `📋 Resumed active transcription: ${sessionId}`;
+                document.body.appendChild(notification);
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Load keyword scenarios
+        async function loadKeywordScenarios() {
+            try {
+                const response = await fetch('/api/keywords/scenarios');
+                const data = await response.json();
+
+                if (response.ok) {
+                    const scenarios = data.scenarios;
+                    const selectElement = document.getElementById('keywordScenario');
+
+                    // Add options
+                    scenarios.forEach(scenario => {
+                        const option = document.createElement('option');
+                        option.value = scenario.id;
+                        option.textContent = scenario.name;
+                        selectElement.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading keyword scenarios:', error);
+            }
+        }
+
+        // Load scenarios on page load
+        loadKeywordScenarios();
+
+        // Initialize the multi-file uploader
+        const uploader = new MultiFileUploader();
+    </script>
+</body>
+</html>
