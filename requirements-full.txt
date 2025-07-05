@@ -1,0 +1,9 @@
+# Full installation with all export format dependencies
+# Use: pip install -r requirements-full.txt
+
+# Core dependencies
+-r requirements.txt
+python-docx>=1.1.0        # DOCX export support
+
+# Optional export format dependencies
+reportlab>=4.0.0          # PDF export support
