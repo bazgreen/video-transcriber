@@ -100,9 +100,10 @@ class TestKeywordScenariosAPI(unittest.TestCase):
             "keywords": ["learn", "study", "test"],
         }
 
-        with patch(
-            "src.routes.api.get_scenario_by_id", return_value=mock_scenario
-        ), patch("src.routes.api.save_keywords") as mock_save:
+        with (
+            patch("src.routes.api.get_scenario_by_id", return_value=mock_scenario),
+            patch("src.routes.api.save_keywords") as mock_save,
+        ):
             response = self.client.post(
                 "/api/keywords/scenarios/apply",
                 json={"scenario_id": "education", "merge_mode": "replace"},
@@ -127,11 +128,11 @@ class TestKeywordScenariosAPI(unittest.TestCase):
         }
         existing_keywords = ["existing", "keyword"]
 
-        with patch(
-            "src.routes.api.get_scenario_by_id", return_value=mock_scenario
-        ), patch("src.routes.api.load_keywords", return_value=existing_keywords), patch(
-            "src.routes.api.save_keywords"
-        ) as mock_save:
+        with (
+            patch("src.routes.api.get_scenario_by_id", return_value=mock_scenario),
+            patch("src.routes.api.load_keywords", return_value=existing_keywords),
+            patch("src.routes.api.save_keywords") as mock_save,
+        ):
             response = self.client.post(
                 "/api/keywords/scenarios/apply",
                 json={"scenario_id": "education", "merge_mode": "merge"},

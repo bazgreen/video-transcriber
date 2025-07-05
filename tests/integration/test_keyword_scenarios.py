@@ -173,8 +173,9 @@ class TestKeywordScenariosIntegration:
         transcriber.analyze_content = mock_analyze_content
 
         # Patch get_scenario_by_id to return None (scenario not found)
-        with patch("src.utils.get_scenario_by_id", return_value=None), patch(
-            "src.utils.load_keywords", return_value=custom_keywords
+        with (
+            patch("src.utils.get_scenario_by_id", return_value=None),
+            patch("src.utils.load_keywords", return_value=custom_keywords),
         ):
             # Mock the text and segments for analysis
             text = "This is a test transcript with default custom words."
