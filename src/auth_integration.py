@@ -124,9 +124,9 @@ def create_app_with_auth(app: Flask, enable_auth: bool = True) -> Optional[objec
             logger.warning("SECRET_KEY not set, using default for CSRF")
 
         # Configure session cookies for CSRF token storage
-        app.config["SESSION_COOKIE_SECURE"] = (
-            False  # Set to True in production with HTTPS
-        )
+        app.config[
+            "SESSION_COOKIE_SECURE"
+        ] = False  # Set to True in production with HTTPS
         app.config["SESSION_COOKIE_HTTPONLY"] = True
         app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
@@ -245,9 +245,9 @@ def get_auth_routes_info() -> Dict[str, Any]:
         ]
     else:
         base_info["auth_routes"] = []
-        base_info["auth_note"] = (
-            "Authentication features not available. Install with: pip install -r requirements-auth.txt"
-        )
+        base_info[
+            "auth_note"
+        ] = "Authentication features not available. Install with: pip install -r requirements-auth.txt"
 
     return base_info
 

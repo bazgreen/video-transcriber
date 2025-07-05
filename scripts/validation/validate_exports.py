@@ -287,9 +287,7 @@ def main():
         print("   4. Install optional dependencies: pip install reportlab python-docx")
     else:
         failed_count = results.count(False)
-        print(
-            f"❌ {failed_count} validation(s) failed. Please review the errors above."
-        )
+        print(f"❌ {failed_count} validation(s) failed. Please review the errors above.")
 
     return all(results)
 

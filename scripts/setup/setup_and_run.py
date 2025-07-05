@@ -130,7 +130,9 @@ def install_dependencies(venv_python):
                 text=True,
             )
             if result.returncode != 0:
-                print("⚠️  Standard installation failed, trying alternative approach...")
+                print(
+                    "⚠️  Standard installation failed, trying alternative approach..."
+                )
                 # Try installing packages individually for better error handling
                 packages = [
                     "torch",

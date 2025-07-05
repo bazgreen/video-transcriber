@@ -56,14 +56,14 @@ class TestBatchProcessing(unittest.TestCase):
     def test_add_video_to_batch(self):
         """Test adding videos to batch."""
         batch_id = self.processor.create_batch()
-        
+
         job_id = self.processor.add_video_to_batch(
             batch_id=batch_id,
             file_path="/test/video.mp4",
             original_filename="video.mp4",
             session_name="Test Session",
         )
-        
+
         batch = self.processor.get_batch(batch_id)
         self.assertEqual(len(batch.jobs), 1)
 
@@ -172,9 +172,9 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertEqual(data["name"], "Persistence Test")
 
     def test_load_existing_batches(self):
-        """Test loading existing batches from disk."""        # Create a batch and save it
+        """Test loading existing batches from disk."""  # Create a batch and save it
         batch_id = self.processor.create_batch(name="Load Test")
-        
+
         # Create new processor instance (simulates restart)
         new_processor = BatchProcessor(results_dir=self.temp_dir)
 
