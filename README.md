@@ -1,10 +1,11 @@
 # 🎥 Video Transcriber
 
-A powerful Python web application that transforms videos into searchable, analyzed transcripts using AI. Built with Flask, OpenAI Whisper, and FFmpeg.
+A comprehensive Python web application that transforms videos into searchable, analyzed transcripts with synchronized video playback and advanced analytics. Built with Flask, OpenAI Whisper, FFmpeg, and Chart.js.
 
 ![Video Transcriber](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Chart.js](https://img.shields.io/badge/Chart.js-4.0+-orange.svg)
 
 ## ✨ Features
 
@@ -18,7 +19,35 @@ A powerful Python web application that transforms videos into searchable, analyz
 - **📱 Interactive HTML Transcripts** - Searchable, filterable browser-based transcript viewer
 - **📊 Multiple Export Formats** - Text, JSON, HTML, subtitles (SRT/VTT), PDF reports, and DOCX documents
 
-### 📥 Enhanced Export Formats
+### 🎥 Synchronized Video Player
+
+- **� Interactive Video Playback** - Watch videos alongside synchronized transcripts
+- **🎯 Transcript Synchronization** - Real-time highlighting of current spoken text
+- **📑 Chapter Navigation** - Jump to specific sections with visual timeline markers
+- **⏱️ Timestamp Clicking** - Click any transcript line to jump to that moment
+- **🎮 Full Video Controls** - Play, pause, seek, speed control, and fullscreen
+- **📱 Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- **🔄 Multiple Formats** - Supports MP4, AVI, MOV, MKV, WebM, and more
+
+### 📊 Performance Dashboard & Analytics
+
+- **📈 Real-time Performance Monitoring** - Live system metrics with Chart.js visualizations
+- **💾 Memory Usage Tracking** - Monitor RAM consumption and optimization recommendations
+- **⚡ Processing Speed Analytics** - Track transcription performance and bottlenecks
+- **🎯 Session Analytics** - Detailed statistics on processing time and efficiency
+- **📋 Performance Recommendations** - AI-powered suggestions for optimal settings
+- **🔧 Live Parameter Tuning** - Adjust chunk size and worker count in real-time
+- **📊 Historical Performance Data** - Track improvements and trends over time
+- **🚀 Automatic Optimization** - Smart defaults based on system capabilities
+
+### 🔐 Authentication System (Optional)
+
+- **👤 User Account Management** - Secure registration and login system
+- **🔒 Session Privacy** - Personal transcription sessions with access control
+- **📊 User Analytics** - Individual usage statistics and session history
+- **🛡️ CSRF Protection** - Advanced security with token-based validation
+- **🔑 Flexible Authentication** - Works alongside anonymous usage
+- **📱 Mobile-Friendly Auth** - Responsive login and registration forms
 
 - **📝 SubRip Subtitles (SRT)** - Standard format for video players with precise timestamps
 - **🌐 WebVTT Subtitles (VTT)** - Web-based video player format with styling support
@@ -110,6 +139,40 @@ That's it! The script will:
 - FFmpeg (for video processing) - the script will guide you if not installed
 - At least 4GB RAM for video processing
 
+### Development Setup (Advanced)
+
+For developers who want to contribute or customize the application:
+
+1. **Clone and setup development environment**
+
+   ```bash
+   git clone https://github.com/bazgreen/video-transcriber.git
+   cd video-transcriber
+   make setup-dev
+   ```
+
+2. **Available development commands**
+
+   ```bash
+   make help              # Show all available commands
+   make install-dev       # Install with development dependencies
+   make test              # Run all tests
+   make test-unit         # Run unit tests only
+   make test-integration  # Run integration tests only
+   make test-coverage     # Run tests with coverage report
+   make lint              # Run code quality checks
+   make format            # Auto-format code with black and isort
+   make pre-commit        # Run all pre-commit hooks
+   make benchmark         # Run performance benchmarks
+   make clean             # Clean up temporary files
+   ```
+
+3. **Run the development server**
+
+   ```bash
+   make dev               # Start development server
+   ```
+
 ### Manual Installation (Advanced)
 
 **Click to expand manual setup instructions:**
@@ -181,10 +244,20 @@ That's it! The script will:
 
 1. **Upload Video** - Drag and drop or select your video file
 2. **Add Session Name** - Optional: Give your session a meaningful name
-3. **Start Processing** - Click "Start Transcription" and wait for completion
-4. **View Results** - Access comprehensive analysis and downloadable files
-5. **Browse Sessions** - Use the session browser to manage your transcription history
-6. **Configure Keywords** - Click "Keyword Config" to customize detection keywords
+3. **Start Processing** - Click "Start Transcription" and watch real-time progress
+4. **Watch & Analyze** - Use the synchronized video player to review results
+5. **View Analytics** - Check the performance dashboard for processing insights
+6. **Download Results** - Access multiple export formats (PDF, DOCX, SRT, VTT, etc.)
+7. **Browse Sessions** - Use the session browser to manage transcription history
+8. **Configure Keywords** - Customize detection keywords for your specific needs
+
+### Key Features Access
+
+- **🎥 Video Player**: Click "▶️ Watch Video" on any results page for synchronized playback
+- **📊 Performance Monitor**: Visit `/performance` for real-time system analytics
+- **⚙️ Keyword Configuration**: Click "🔧 Config" to customize detection keywords
+- **📁 Session Browser**: Click "📂 Sessions" to manage all transcriptions
+- **🔐 User Accounts**: Visit `/auth/register` for personal session management (optional)
 
 ### Command Line Interface
 
@@ -387,27 +460,59 @@ curl -X POST http://localhost:5001/api/performance \
 
 ```text
 video-transcriber/
-├── setup_and_run.py         # One-command setup & launch script
-├── run.sh                   # macOS/Linux launcher
-├── run.bat                  # Windows launcher
-├── app.py                   # Main Flask application
-├── requirements.txt         # Python dependencies
-├── LICENSE                  # MIT License
-├── README.md               # This documentation
-├── scripts/                 # Utility scripts
-│   └── transcribe.py       # CLI transcription tool
-├── config/                  # Configuration files
-│   └── keywords_config.json # Customizable keywords configuration
-├── CLAUDE.md               # Development documentation
-├── docs/                    # Documentation
-│   ├── keyword_scenarios.md  # Keyword scenarios documentation
-├── templates/               # HTML templates
-│   ├── index.html          # Upload interface
-│   ├── results.html        # Results dashboard
-│   ├── sessions.html       # Session browser
-│   └── config.html         # Keyword configuration
-├── uploads/                # Temporary upload storage
-└── results/               # Transcription results
+├── Makefile                     # Development workflow automation
+├── setup_and_run.py            # One-command setup & launch script
+├── run.sh                      # macOS/Linux launcher
+├── run.bat                     # Windows launcher
+├── main.py                     # Application entry point
+├── requirements.txt            # Core Python dependencies
+├── requirements-*.txt          # Optional feature dependencies
+├── LICENSE                     # MIT License
+├── README.md                   # This documentation
+├── src/                        # Source code (modular architecture)
+│   ├── routes/                 # Flask route handlers
+│   │   ├── main.py            # Main application routes
+│   │   ├── api.py             # API endpoints
+│   │   ├── auth.py            # Authentication routes (optional)
+│   │   └── socket_handlers.py # WebSocket handlers
+│   ├── services/              # Business logic services
+│   │   ├── transcription.py   # Core transcription service
+│   │   ├── upload.py          # File upload handling
+│   │   └── export.py          # Export format generation
+│   ├── models/                # Data models
+│   │   ├── auth.py            # User authentication models
+│   │   ├── memory.py          # Memory management models
+│   │   └── exceptions.py      # Custom exception classes
+│   ├── utils/                 # Utility functions
+│   │   ├── helpers.py         # General helper functions
+│   │   ├── keywords.py        # Keyword management
+│   │   ├── security.py        # Security utilities
+│   │   └── performance_optimizer.py # Performance tuning
+│   ├── forms/                 # WTForms form definitions
+│   │   └── auth.py            # Authentication forms
+│   └── config.py              # Application configuration
+├── data/                      # Application data
+│   └── templates/             # HTML templates
+│       ├── index.html         # Upload interface
+│       ├── results.html       # Results with video player
+│       ├── sessions.html      # Session browser
+│       ├── config.html        # Keyword configuration
+│       ├── performance.html   # Performance dashboard
+│       └── auth/              # Authentication templates
+├── tests/                     # Test suite
+│   ├── unit/                  # Unit tests
+│   ├── integration/           # Integration tests
+│   └── benchmarks/            # Performance benchmarks
+├── config/                    # Configuration files
+│   ├── keywords_config.json   # Keyword configuration
+│   └── requirements/          # Organized requirements files
+├── scripts/                   # Utility scripts
+│   ├── transcribe.py          # CLI transcription tool
+│   ├── setup/                 # Setup and installation scripts
+│   └── validation/            # Validation and testing scripts
+├── docs/                      # Documentation
+├── uploads/                   # Temporary upload storage
+└── results/                   # Transcription results
 ```
 
 ## 🤝 Contributing
@@ -437,6 +542,18 @@ If you encounter any issues or have questions:
 3. Include your system information and error logs
 
 ## 🔄 Changelog
+
+### v2.0.0 (2025-07-05) - Major Feature Update
+
+- **🎥 Synchronized Video Player**: Interactive video playback with transcript synchronization
+- **📊 Performance Dashboard**: Real-time monitoring with Chart.js visualizations
+- **🔐 Authentication System**: Optional user accounts and session management
+- **📄 Enhanced Export Formats**: PDF reports, DOCX documents, and professional outputs
+- **🏗️ Modular Architecture**: Complete codebase reorganization for better maintainability
+- **⚙️ Development Workflow**: Comprehensive Makefile with testing, linting, and formatting
+- **🧪 Test Suite**: Unit tests, integration tests, and performance benchmarks
+- **📱 Mobile Optimization**: Improved responsive design across all features
+- **🔧 Advanced Configuration**: Real-time performance tuning and optimization
 
 ### v1.2.0 (2025-06-24) - Performance Optimization
 
