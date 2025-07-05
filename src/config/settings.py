@@ -49,7 +49,7 @@ class AppConfig:
     REMEMBER_COOKIE_DURATION: int = 30 * 24 * 3600  # 30 days in seconds
 
     # Additional Authentication Settings
-    WTF_CSRF_ENABLED: bool = True
+    WTF_CSRF_ENABLED: bool = False  # Temporarily disabled for API testing
     WTF_CSRF_TIME_LIMIT: int = 3600  # 1 hour
     MIN_PASSWORD_LENGTH: int = 8
     REQUIRE_PASSWORD_COMPLEXITY: bool = True

@@ -17,6 +17,7 @@ from src.config import AppConfig
 from src.models import MemoryManager, ProgressiveFileManager, ProgressTracker
 from src.routes import api_bp, main_bp, register_socket_handlers
 from src.routes.api import init_api_globals
+from src.routes.batch_routes import batch_bp
 from src.routes.socket_handlers import init_socket_globals
 from src.services import VideoTranscriber, delete_session, process_upload
 from src.utils import handle_user_friendly_error
@@ -178,6 +179,12 @@ def register_routes(
     # Register blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(batch_bp)
+
+    # Initialize batch processor with transcriber
+    from src.services.batch_processing import batch_processor
+
+    batch_processor.set_transcriber(transcriber)
 
     # Register socket handlers
     register_socket_handlers(socketio)

@@ -378,3 +378,9 @@ def config_page():
 def performance():
     """Performance monitoring page"""
     return render_template("performance.html")
+
+
+@main_bp.route("/batch")
+def batch():
+    """Batch processing page"""
+    return render_template("batch.html")
