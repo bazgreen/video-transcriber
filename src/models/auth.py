@@ -15,8 +15,21 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 db = SQLAlchemy()
 
+# Type hint for mypy to understand SQLAlchemy models
+try:
+    from typing import TYPE_CHECKING
 
-class User(UserMixin, db.Model):
+    if TYPE_CHECKING:
+        from flask_sqlalchemy.model import Model
+
+        BaseModel = Model
+    else:
+        BaseModel = db.Model
+except ImportError:
+    BaseModel = db.Model
+
+
+class User(UserMixin, BaseModel):  # type: ignore
     """User model for authentication."""
 
     __tablename__ = "users"
@@ -63,7 +76,7 @@ class User(UserMixin, db.Model):
         return f"<User {self.username}>"
 
 
-class UserSession(db.Model):
+class UserSession(BaseModel):  # type: ignore
     """Association between users and transcription sessions."""
 
     __tablename__ = "user_sessions"
@@ -121,7 +134,7 @@ class UserSession(db.Model):
         return f"<UserSession {self.session_id} -> User {self.user_id}>"
 
 
-class AnonymousSession(db.Model):
+class AnonymousSession(BaseModel):  # type: ignore
     """Track anonymous sessions for backward compatibility."""
 
     __tablename__ = "anonymous_sessions"

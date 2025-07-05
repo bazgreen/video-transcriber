@@ -8,7 +8,7 @@ by allowing the app to run without authentication if dependencies are missing.
 
 import logging
 import os
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from flask import Flask
 
@@ -204,14 +204,14 @@ def check_auth_status() -> dict:
         }
 
 
-def get_auth_routes_info() -> dict:
+def get_auth_routes_info() -> Dict[str, Any]:
     """
     Get information about available auth routes.
 
     Returns:
         Dict with route information
     """
-    base_info = {
+    base_info: Dict[str, Any] = {
         "public_routes": [
             {"path": "/", "name": "Home", "description": "Main upload page"},
             {

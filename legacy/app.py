@@ -741,7 +741,7 @@ def load_keywords() -> List[str]:
             return config.get("keywords", [])
     except FileNotFoundError:
         # If file doesn't exist, create it with minimal default keywords
-        default_keywords = []
+        default_keywords: List[str] = []
         save_keywords(default_keywords)
         return default_keywords
 
@@ -857,7 +857,7 @@ class VideoTranscriber:
 
     def split_video(
         self, input_path: str, output_dir: str, chunk_duration: Optional[int] = None
-    ) -> List[Dict[str, Union[str, int, float]]]:
+    ) -> List[Dict[str, Any]]:
         """Split video into chunks of specified duration (default 5 minutes) with parallel processing"""
         chunks = []
 
@@ -1732,7 +1732,7 @@ def search_sessions():
 
 
 @app.route("/config")
-def config():
+def config_page():
     """Show keyword configuration page"""
     return render_template("config.html", keywords=CUSTOM_KEYWORDS)
 
