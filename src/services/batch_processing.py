@@ -8,6 +8,7 @@ providing queue management, progress tracking, and resource optimization.
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -52,10 +53,28 @@ class BatchJob:
         original_filename: str,
         session_name: Optional[str] = None,
     ):
+        """Initialize a new batch job with smart session naming.
+
+        Args:
+            job_id: Unique identifier for the job
+            file_path: Path to the video file
+            original_filename: Original name of the uploaded file
+            session_name: Optional custom session name (auto-generated if None)
+        """
         self.job_id = job_id
         self.file_path = file_path
         self.original_filename = original_filename
-        self.session_name = session_name or f"batch_{job_id}"
+
+        # Improved session naming logic
+        if session_name:
+            # Use provided custom session name
+            self.session_name = session_name
+        else:
+            # Generate meaningful name from original filename
+            self.session_name = self._generate_session_name_from_filename(
+                original_filename
+            )
+
         self.status = VideoStatus.QUEUED
         self.created_at = datetime.now()
         self.started_at: Optional[datetime] = None
@@ -64,6 +83,29 @@ class BatchJob:
         self.session_id: Optional[str] = None
         self.results_path: Optional[str] = None
         self.progress: float = 0.0
+
+    def _generate_session_name_from_filename(self, filename: str) -> str:
+        """Generate a clean, readable session name from the original filename."""
+        # Remove file extension
+        base_name = os.path.splitext(filename)[0]
+
+        # Replace common separators with spaces
+        cleaned_name = re.sub(r"[_\-\.]+", " ", base_name)
+
+        # Clean up multiple spaces and strip
+        cleaned_name = " ".join(cleaned_name.split())
+
+        # Capitalize first letter of each word for better readability
+        cleaned_name = " ".join(word.capitalize() for word in cleaned_name.split())
+
+        # Limit length to prevent overly long session names
+        if len(cleaned_name) > 50:
+            cleaned_name = cleaned_name[:47] + "..."
+
+        # Add timestamp for uniqueness (shorter format)
+        timestamp = datetime.now().strftime("%m%d_%H%M")
+
+        return f"{cleaned_name}_{timestamp}"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert job to dictionary for JSON serialization."""
@@ -121,6 +163,13 @@ class BatchSession:
         name: Optional[str] = None,
         max_concurrent: int = 2,
     ):
+        """Initialize a new batch session.
+
+        Args:
+            batch_id: Unique identifier for the batch
+            name: Optional custom name for the batch
+            max_concurrent: Maximum number of concurrent jobs to process
+        """
         self.batch_id = batch_id
         self.name = name or f"Batch {batch_id[:8]}"
         self.max_concurrent = max_concurrent
@@ -157,7 +206,7 @@ class BatchSession:
         )
 
         # Calculate weighted progress including partial progress of processing jobs
-        total_progress = completed_jobs
+        total_progress = float(completed_jobs)
         for job in self.jobs:
             if job.status == VideoStatus.PROCESSING:
                 total_progress += job.progress
@@ -236,11 +285,20 @@ class BatchProcessor:
         self,
         results_dir: str = "results",
         transcriber: Optional[VideoTranscriber] = None,
+        app=None,
     ):
+        """Initialize the batch processor.
+
+        Args:
+            results_dir: Directory to store batch metadata and results
+            transcriber: Video transcriber instance (injected later if None)
+            app: Flask application instance for context in background threads
+        """
         self.results_dir = results_dir
         self.batches: Dict[str, BatchSession] = {}
         self.memory_manager = MemoryManager()
         self.transcriber = transcriber  # Will be injected later if not provided
+        self.app = app  # Flask app instance for context
 
         # Ensure batch metadata directory exists
         self.batch_metadata_dir = os.path.join(results_dir, "batches")
@@ -252,6 +310,10 @@ class BatchProcessor:
     def set_transcriber(self, transcriber: VideoTranscriber) -> None:
         """Set the transcriber instance (for dependency injection)."""
         self.transcriber = transcriber
+
+    def set_app(self, app) -> None:
+        """Set the Flask app instance (for application context in background threads)."""
+        self.app = app
 
     def create_batch(
         self,
@@ -401,12 +463,26 @@ class BatchProcessor:
                 "Transcriber not initialized. Call set_transcriber() first."
             )
 
+        # Run within Flask application context if available
+        if self.app:
+            with self.app.app_context():
+                self._process_single_job_with_context(batch, job)
+        else:
+            self._process_single_job_with_context(batch, job)
+
+    def _process_single_job_with_context(
+        self, batch: BatchSession, job: BatchJob
+    ) -> None:
+        """Process a single video job with proper context."""
         try:
             job.status = VideoStatus.PROCESSING
             job.started_at = datetime.now()
 
             # Generate unique session ID for this job
             job.session_id = f"batch_{batch.batch_id[:8]}_{job.job_id[:8]}"
+
+            # Save metadata when job starts processing
+            self._save_batch_metadata(batch)
 
             logger.info(f"Starting job {job.job_id} for file {job.original_filename}")
 
@@ -425,12 +501,19 @@ class BatchProcessor:
             job.completed_at = datetime.now()
             job.progress = 1.0
 
+            # Save metadata when job completes
+            self._save_batch_metadata(batch)
+
             logger.info(f"Completed job {job.job_id}")
 
         except Exception as e:
             job.status = VideoStatus.FAILED
             job.error_message = str(e)
             job.completed_at = datetime.now()
+
+            # Save metadata when job fails
+            self._save_batch_metadata(batch)
+
             logger.error(f"Job {job.job_id} failed: {e}")
             raise
 

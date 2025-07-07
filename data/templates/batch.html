@@ -33,12 +33,53 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
+            padding: 0.75rem;
             border-bottom: 1px solid #f0f0f0;
+            background: #fafafa;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
         }
 
         .job-item:last-child {
             border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .job-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .job-filename {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .job-info {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-name-input {
+            margin-top: 0.5rem;
+        }
+
+        .session-name-input input {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.5rem;
+        }
+
+        .session-name-input small {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .preview-name {
+            font-style: italic;
+            color: #28a745;
+            font-size: 0.8rem;
         }
 
         .drop-zone {
@@ -182,8 +223,9 @@
                         </div>
 
                         <div id="fileQueue" class="file-queue mt-3" style="display: none;">
-                            <div class="p-2 bg-light border-bottom">
-                                <strong>Files to Process:</strong>
+                            <div class="p-2 bg-light border-bottom mb-2 rounded">
+                                <strong><i class="bi bi-list-ul"></i> Files to Process:</strong>
+                                <small class="text-muted ms-2">You can customize the session name for each video below</small>
                             </div>
                             <div id="fileList"></div>
                         </div>
@@ -330,18 +372,61 @@
         function createFileItem(file) {
             const div = document.createElement('div');
             div.className = 'job-item';
+
+            // Generate clean session name from filename
+            const baseName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+            const cleanName = baseName
+                .replace(/[_\-\.]+/g, ' ')  // Replace separators with spaces
+                .replace(/\s+/g, ' ')       // Normalize multiple spaces
+                .trim()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+
             div.innerHTML = `
-                <div>
-                    <strong>${file.name}</strong>
-                    <small class="text-muted d-block">${formatFileSize(file.size)}</small>
+                <div class="job-details">
+                    <div class="job-filename">
+                        <i class="bi bi-camera-video text-primary"></i>
+                        ${file.name}
+                    </div>
+                    <div class="job-info">
+                        <small class="text-muted">${formatFileSize(file.size)}</small>
+                    </div>
+                    <div class="session-name-input">
+                        <label class="form-label small mb-1">Session Name:</label>
+                        <input type="text" class="form-control form-control-sm session-name-field"
+                               placeholder="Enter custom session name (optional)"
+                               value="${cleanName}"
+                               maxlength="60">
+                        <small class="text-muted">
+                            Preview: <span class="preview-name">${cleanName}_${new Date().toLocaleDateString('en-US', {month:'2-digit', day:'2-digit'})}_${new Date().toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit'})}</span>
+                        </small>
+                    </div>
                 </div>
                 <div class="batch-actions">
                     <span class="badge bg-secondary">Queued</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFileItem(this)">
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeFileItem(this)">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>
             `;
+
+            // Add real-time preview update
+            const sessionInput = div.querySelector('.session-name-field');
+            const previewSpan = div.querySelector('.preview-name');
+
+            sessionInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                const now = new Date();
+                const timestamp = `${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+
+                if (value) {
+                    previewSpan.textContent = `${value}_${timestamp}`;
+                } else {
+                    previewSpan.textContent = `${cleanName}_${timestamp}`;
+                }
+            });
+
             div.dataset.file = JSON.stringify({
                 name: file.name,
                 size: file.size
@@ -403,6 +488,12 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('batch_id', currentBatchId);
+
+            // Get the custom session name from the input field
+            const sessionNameInput = itemElement.querySelector('.session-name-field');
+            if (sessionNameInput && sessionNameInput.value.trim()) {
+                formData.append('session_name', sessionNameInput.value.trim());
+            }
 
             try {
                 const response = await fetch('/api/batch/add-video', {
