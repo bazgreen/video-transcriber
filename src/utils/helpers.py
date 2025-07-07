@@ -81,6 +81,7 @@ def parse_session_metadata(session_folder: str, session_path: str) -> Dict[str, 
     """
     # Legacy session without metadata - try to extract session name from folder
     session_name = ""
+    created_at = "Unknown"
 
     # Try to parse session folder name (format: SessionName_YYYYMMDD_HHMMSS)
     parts = session_folder.split("_")
@@ -98,6 +99,17 @@ def parse_session_metadata(session_folder: str, session_path: str) -> Dict[str, 
         ):
             # Everything before the last two underscores is the session name
             session_name = "_".join(parts[:-2])
+
+            # Try to parse the date and time
+            try:
+                from datetime import datetime
+
+                date_str = f"{date_part}_{time_part}"
+                parsed_date = datetime.strptime(date_str, "%Y%m%d_%H%M%S")
+                created_at = parsed_date.strftime("%Y-%m-%d %H:%M")
+            except ValueError:
+                # If parsing fails, keep as "Unknown"
+                pass
         else:
             # If it doesn't match the expected format, use the whole folder name
             session_name = session_folder
@@ -108,6 +120,6 @@ def parse_session_metadata(session_folder: str, session_path: str) -> Dict[str, 
         "session_id": session_folder,
         "session_name": session_name or "Unnamed Session",
         "original_filename": "Unknown",
-        "created_at": "Unknown",
+        "created_at": created_at,
         "status": "completed",  # Assume legacy sessions are completed
     }

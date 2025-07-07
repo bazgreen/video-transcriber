@@ -1,0 +1,987 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights Dashboard - Video Transcriber{% endblock %}
+
+{% block body_class %}layout-centered{% endblock %}
+
+{% set show_header = false %}
+
+{% block content %}
+<div class="container container-wide">
+    <h1 class="page-title">🤖 AI Insights Dashboard</h1>
+    <p class="page-subtitle">Advanced AI-powered content analysis and intelligent insights</p>
+
+    <div class="nav-links-inline">
+        <a href="{{ url_for('main.index') }}" class="nav-link">
+            <span>🏠</span> Home
+        </a>
+        <a href="{{ url_for('main.sessions') }}" class="nav-link">
+            <span>📁</span> Sessions
+        </a>
+        <a href="{{ url_for('main.batch') }}" class="nav-link">
+            <span>🔄</span> Batch Processing
+        </a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('auth.profile') }}" class="nav-link">
+            <span>👤</span> Profile
+        </a>
+        {% endif %}
+    </div>
+
+    <div id="message" class="message" style="display: none;"></div>
+
+    <!-- AI Capabilities Status -->
+    <div class="card">
+        <h2 class="section-title">🔬 AI Capabilities Status</h2>
+        <div id="capabilitiesStatus" class="loading">
+            <div class="loading-spinner"></div>
+            <span>Checking AI capabilities...</span>
+        </div>
+    </div>
+
+    <!-- Session Analysis Section -->
+    <div class="card">
+        <h2 class="section-title">📊 Session Analysis</h2>
+        <p class="section-description">Generate AI insights for existing sessions or analyze multiple sessions</p>
+
+        <div class="analysis-controls">
+            <div class="form-group">
+                <label for="sessionSelect">Select Session</label>
+                <select id="sessionSelect" class="form-control">
+                    <option value="">Loading sessions...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="insightTypes">Insight Types</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sentimentCheck" checked> Sentiment Analysis
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="topicsCheck" checked> Topic Modeling
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="keyInsightsCheck" checked> Key Insights
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="analyticsCheck" checked> Advanced Analytics
+                    </label>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="analyzeBtn" class="btn btn-primary">
+                    <span>🔍</span> Analyze Session
+                </button>
+                <button id="batchAnalyzeBtn" class="btn btn-secondary">
+                    <span>📦</span> Batch Analysis
+                </button>
+            </div>
+        </div>
+
+        <div id="analysisProgress" class="progress-section" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">Generating AI insights...</div>
+        </div>
+    </div>
+
+    <!-- Results Display -->
+    <div id="resultsSection" style="display: none;">
+
+        <!-- Sentiment Analysis -->
+        <div class="card" id="sentimentCard" style="display: none;">
+            <h3 class="section-title">😊 Sentiment Analysis</h3>
+            <div id="sentimentContent"></div>
+        </div>
+
+        <!-- Topic Modeling -->
+        <div class="card" id="topicsCard" style="display: none;">
+            <h3 class="section-title">📝 Topic Analysis</h3>
+            <div id="topicsContent"></div>
+        </div>
+
+        <!-- Speaker Analysis -->
+        <div class="card" id="speakerCard" style="display: none;">
+            <h3 class="section-title">🎤 Speaker Analysis</h3>
+            <div id="speakerContent"></div>
+        </div>
+
+        <!-- Key Insights -->
+        <div class="card" id="keyInsightsCard" style="display: none;">
+            <h3 class="section-title">💡 Key Insights</h3>
+            <div id="keyInsightsContent"></div>
+        </div>
+
+        <!-- Advanced Analytics -->
+        <div class="card" id="analyticsCard" style="display: none;">
+            <h3 class="section-title">📈 Advanced Analytics</h3>
+            <div id="analyticsContent"></div>
+        </div>
+
+        <!-- Content Classification -->
+        <div class="card" id="classificationCard" style="display: none;">
+            <h3 class="section-title">🏷️ Content Classification</h3>
+            <div id="classificationContent"></div>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+/* AI Insights Dashboard Styles */
+.container-wide {
+    max-width: 1200px;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    margin: 0 0 16px 0;
+    color: #2c3e50;
+    font-size: 1.4em;
+    font-weight: 600;
+}
+
+.section-description {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    color: #7f8c8d;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e0e0e0;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.analysis-controls {
+    display: grid;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-control {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.progress-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #3498db;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressPulse 2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.progress-text {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.message {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.message.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Results Display Styles */
+.sentiment-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.sentiment-stat {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.sentiment-stat .value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    display: block;
+}
+
+.sentiment-stat .label {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.topic-card {
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.topic-card .topic-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #2c3e50;
+}
+
+.topic-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.keyword-tag {
+    background: #3498db;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.insights-list {
+    display: grid;
+    gap: 12px;
+}
+
+.insight-item {
+    padding: 16px;
+    border-left: 4px solid #3498db;
+    background: #f8f9fa;
+    border-radius: 0 6px 6px 0;
+}
+
+.insight-item .timestamp {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-bottom: 4px;
+}
+
+.insight-item .content {
+    color: #2c3e50;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.analytics-metric {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.analytics-metric .metric-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+    display: block;
+}
+
+.analytics-metric .metric-label {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-unavailable {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-partial {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container-wide {
+        padding: 16px;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+
+    .sentiment-overview,
+    .topics-grid,
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// AI Insights Dashboard JavaScript
+let currentSessionData = null;
+let aiCapabilities = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+});
+
+async function initializeDashboard() {
+    await loadAICapabilities();
+    await loadSessions();
+    setupEventListeners();
+}
+
+async function loadAICapabilities() {
+    try {
+        const response = await fetch('/api/ai/capabilities');
+        const data = await response.json();
+
+        aiCapabilities = data;
+        displayCapabilitiesStatus(data);
+
+    } catch (error) {
+        console.error('Error loading AI capabilities:', error);
+        displayCapabilitiesError();
+    }
+}
+
+function displayCapabilitiesStatus(capabilities) {
+    const container = document.getElementById('capabilitiesStatus');
+
+    if (!capabilities.ai_insights_available) {
+        container.innerHTML = `
+            <div class="status-indicator status-unavailable">
+                ❌ AI Insights Not Available
+            </div>
+            <div style="margin-top: 12px;">
+                <p><strong>Required packages:</strong> ${capabilities.installation_info.required_packages.join(', ')}</p>
+                <p><strong>Install command:</strong> <code>${capabilities.installation_info.install_command}</code></p>
+                <p><strong>Additional setup:</strong> <code>${capabilities.installation_info.spacy_model_command}</code></p>
+            </div>
+        `;
+
+        // Disable analysis buttons
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('batchAnalyzeBtn').disabled = true;
+        return;
+    }
+
+    let availableFeatures = [];
+    let unavailableFeatures = [];
+
+    for (const [feature, available] of Object.entries(capabilities.features)) {
+        if (available) {
+            availableFeatures.push(feature.replace('_', ' '));
+        } else {
+            unavailableFeatures.push(feature.replace('_', ' '));
+        }
+    }
+
+    container.innerHTML = `
+        <div class="status-indicator status-available">
+            ✅ AI Insights Available
+        </div>
+        ${availableFeatures.length > 0 ? `
+            <div style="margin-top: 12px;">
+                <strong>Available features:</strong> ${availableFeatures.join(', ')}
+            </div>
+        ` : ''}
+        ${unavailableFeatures.length > 0 ? `
+            <div style="margin-top: 8px; color: #856404;">
+                <strong>Limited features:</strong> ${unavailableFeatures.join(', ')}
+            </div>
+        ` : ''}
+    `;
+}
+
+function displayCapabilitiesError() {
+    const container = document.getElementById('capabilitiesStatus');
+    container.innerHTML = `
+        <div class="status-indicator status-unavailable">
+            ❌ Error checking AI capabilities
+        </div>
+    `;
+}
+
+async function loadSessions() {
+    try {
+        const response = await fetch('/api/sessions');
+        const data = await response.json();
+
+        const sessionSelect = document.getElementById('sessionSelect');
+        sessionSelect.innerHTML = '<option value="">Select a session...</option>';
+
+        if (data.sessions && data.sessions.length > 0) {
+            data.sessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.session_id;
+                option.textContent = `${session.session_name || session.session_id} - ${session.created_at || 'Unknown date'}`;
+                sessionSelect.appendChild(option);
+            });
+        } else {
+            sessionSelect.innerHTML = '<option value="">No sessions available</option>';
+        }
+
+    } catch (error) {
+        console.error('Error loading sessions:', error);
+        const sessionSelect = document.getElementById('sessionSelect');
+        sessionSelect.innerHTML = '<option value="">Error loading sessions</option>';
+    }
+}
+
+function setupEventListeners() {
+    document.getElementById('analyzeBtn').addEventListener('click', analyzeSession);
+    document.getElementById('batchAnalyzeBtn').addEventListener('click', showBatchAnalysisDialog);
+}
+
+async function analyzeSession() {
+    const sessionId = document.getElementById('sessionSelect').value;
+    if (!sessionId) {
+        showMessage('Please select a session to analyze', 'warning');
+        return;
+    }
+
+    if (!aiCapabilities || !aiCapabilities.ai_insights_available) {
+        showMessage('AI insights are not available. Please install required dependencies.', 'error');
+        return;
+    }
+
+    showProgress(true);
+
+    try {
+        // First, generate AI insights
+        const analyzeResponse = await fetch(`/api/ai/analyze/${sessionId}`, {
+            method: 'POST'
+        });
+
+        if (!analyzeResponse.ok) {
+            throw new Error('Failed to generate AI insights');
+        }
+
+        // Then fetch the complete insights
+        const insightsResponse = await fetch(`/api/ai/insights/${sessionId}`);
+        const insightsData = await insightsResponse.json();
+
+        if (insightsResponse.ok && insightsData.ai_insights) {
+            currentSessionData = insightsData;
+            displayResults(insightsData.ai_insights);
+            showMessage('AI insights generated successfully!', 'success');
+        } else {
+            throw new Error(insightsData.error || 'Failed to fetch insights');
+        }
+
+    } catch (error) {
+        console.error('Error analyzing session:', error);
+        showMessage(`Analysis failed: ${error.message}`, 'error');
+    } finally {
+        showProgress(false);
+    }
+}
+
+function showProgress(show) {
+    const progressSection = document.getElementById('analysisProgress');
+    const progressFill = progressSection.querySelector('.progress-fill');
+
+    if (show) {
+        progressSection.style.display = 'block';
+        // Animate progress bar
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            progressFill.style.width = progress + '%';
+        }, 500);
+        progressSection.dataset.interval = interval;
+    } else {
+        progressSection.style.display = 'none';
+        if (progressSection.dataset.interval) {
+            clearInterval(progressSection.dataset.interval);
+        }
+        progressFill.style.width = '0%';
+    }
+}
+
+function displayResults(aiInsights) {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'block';
+
+    // Display sentiment analysis
+    if (aiInsights.sentiment_analysis && !aiInsights.sentiment_analysis.error) {
+        displaySentimentAnalysis(aiInsights.sentiment_analysis);
+    }
+
+    // Display topic modeling
+    if (aiInsights.topic_modeling && !aiInsights.topic_modeling.error) {
+        displayTopicAnalysis(aiInsights.topic_modeling);
+    }
+
+    // Display speaker analysis
+    if (aiInsights.speaker_analysis) {
+        displaySpeakerAnalysis(aiInsights.speaker_analysis);
+    }
+
+    // Display key insights
+    if (aiInsights.key_insights) {
+        displayKeyInsights(aiInsights.key_insights);
+    }
+
+    // Display advanced analytics
+    if (aiInsights.advanced_analytics) {
+        displayAdvancedAnalytics(aiInsights.advanced_analytics);
+    }
+
+    // Display content classification
+    if (aiInsights.content_classification) {
+        displayContentClassification(aiInsights.content_classification);
+    }
+}
+
+function displaySentimentAnalysis(sentimentData) {
+    const card = document.getElementById('sentimentCard');
+    const content = document.getElementById('sentimentContent');
+
+    if (sentimentData.error) {
+        content.innerHTML = `<div class="error">Error: ${sentimentData.error}</div>`;
+        card.style.display = 'block';
+        return;
+    }
+
+    const overall = sentimentData.overall || {};
+    const trends = sentimentData.trends || {};
+    const peaks = sentimentData.emotional_peaks || [];
+
+    content.innerHTML = `
+        <div class="sentiment-overview">
+            <div class="sentiment-stat">
+                <span class="value">${(overall.polarity || 0).toFixed(2)}</span>
+                <div class="label">Overall Polarity</div>
+            </div>
+            <div class="sentiment-stat">
+                <span class="value">${(overall.subjectivity || 0).toFixed(2)}</span>
+                <div class="label">Subjectivity</div>
+            </div>
+            <div class="sentiment-stat">
+                <span class="value">${overall.interpretation || 'Unknown'}</span>
+                <div class="label">Interpretation</div>
+            </div>
+            <div class="sentiment-stat">
+                <span class="value">${trends.progression || 'Unknown'}</span>
+                <div class="label">Trend</div>
+            </div>
+        </div>
+
+        ${peaks.length > 0 ? `
+            <h4>Emotional Peaks</h4>
+            <div class="insights-list">
+                ${peaks.slice(0, 5).map(peak => `
+                    <div class="insight-item">
+                        <div class="timestamp">[${peak.timestamp}] ${peak.type} peak</div>
+                        <div class="content">${peak.text_preview}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+    `;
+
+    card.style.display = 'block';
+}
+
+function displayTopicAnalysis(topicData) {
+    const card = document.getElementById('topicsCard');
+    const content = document.getElementById('topicsContent');
+
+    if (topicData.error) {
+        content.innerHTML = `<div class="error">Error: ${topicData.error}</div>`;
+        card.style.display = 'block';
+        return;
+    }
+
+    const topics = topicData.main_topics || [];
+    const distribution = topicData.topic_distribution || {};
+
+    content.innerHTML = `
+        <div class="topics-grid">
+            ${topics.map(topic => `
+                <div class="topic-card">
+                    <div class="topic-title">${topic.description}</div>
+                    <div class="topic-keywords">
+                        ${topic.keywords.map(keyword => `
+                            <span class="keyword-tag">${keyword}</span>
+                        `).join('')}
+                    </div>
+                    <div style="font-size: 12px; color: #7f8c8d;">
+                        Strength: ${(topic.strength * 100).toFixed(1)}%
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        ${Object.keys(distribution).length > 0 ? `
+            <h4 style="margin-top: 20px;">Topic Distribution</h4>
+            <div class="analytics-grid">
+                ${Object.entries(distribution).map(([topicKey, data]) => `
+                    <div class="analytics-metric">
+                        <span class="metric-value">${data.percentage}%</span>
+                        <div class="metric-label">${data.description}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+    `;
+
+    card.style.display = 'block';
+}
+
+function displaySpeakerAnalysis(speakerData) {
+    const card = document.getElementById('speakerCard');
+    const content = document.getElementById('speakerContent');
+
+    const dialogue = speakerData.dialogue_detection || {};
+    const patterns = speakerData.speaking_patterns || {};
+
+    content.innerHTML = `
+        <div class="analytics-grid">
+            <div class="analytics-metric">
+                <span class="metric-value">${speakerData.estimated_speakers || 1}</span>
+                <div class="metric-label">Estimated Speakers</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${dialogue.dialogue_percentage || 0}%</span>
+                <div class="metric-label">Dialogue Content</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${patterns.average_words_per_segment || 0}</span>
+                <div class="metric-label">Avg Words/Segment</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${patterns.estimated_wpm || 'Unknown'}</span>
+                <div class="metric-label">Speaking Pace (WPM)</div>
+            </div>
+        </div>
+    `;
+
+    card.style.display = 'block';
+}
+
+function displayKeyInsights(keyInsights) {
+    const card = document.getElementById('keyInsightsCard');
+    const content = document.getElementById('keyInsightsContent');
+
+    const actionItems = keyInsights.action_items || [];
+    const takeaways = keyInsights.key_takeaways || [];
+    const decisions = keyInsights.decision_points || [];
+
+    content.innerHTML = `
+        ${actionItems.length > 0 ? `
+            <h4>Action Items</h4>
+            <div class="insights-list">
+                ${actionItems.slice(0, 5).map(item => `
+                    <div class="insight-item">
+                        <div class="timestamp">[${item.timestamp}]</div>
+                        <div class="content">${item.action}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+
+        ${takeaways.length > 0 ? `
+            <h4>Key Takeaways</h4>
+            <div class="insights-list">
+                ${takeaways.slice(0, 5).map(item => `
+                    <div class="insight-item">
+                        <div class="timestamp">[${item.timestamp}]</div>
+                        <div class="content">${item.takeaway}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+
+        ${decisions.length > 0 ? `
+            <h4>Decision Points</h4>
+            <div class="insights-list">
+                ${decisions.slice(0, 3).map(item => `
+                    <div class="insight-item">
+                        <div class="timestamp">[${item.timestamp}]</div>
+                        <div class="content">${item.decision}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+
+        ${actionItems.length === 0 && takeaways.length === 0 && decisions.length === 0 ? `
+            <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                No key insights detected
+            </div>
+        ` : ''}
+    `;
+
+    card.style.display = 'block';
+}
+
+function displayAdvancedAnalytics(analyticsData) {
+    const card = document.getElementById('analyticsCard');
+    const content = document.getElementById('analyticsContent');
+
+    const metrics = analyticsData.content_metrics || {};
+    const engagement = analyticsData.engagement_indicators || {};
+    const complexity = analyticsData.complexity_analysis || {};
+
+    content.innerHTML = `
+        <div class="analytics-grid">
+            <div class="analytics-metric">
+                <span class="metric-value">${metrics.total_words || 0}</span>
+                <div class="metric-label">Total Words</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${metrics.vocabulary_richness || 0}%</span>
+                <div class="metric-label">Vocabulary Richness</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${engagement.interactivity_score || 0}</span>
+                <div class="metric-label">Interactivity Score</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${complexity.overall_complexity || 'Unknown'}</span>
+                <div class="metric-label">Complexity Level</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${metrics.reading_level || 'Unknown'}</span>
+                <div class="metric-label">Reading Level</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${engagement.engagement_level || 'Unknown'}</span>
+                <div class="metric-label">Engagement Level</div>
+            </div>
+        </div>
+    `;
+
+    card.style.display = 'block';
+}
+
+function displayContentClassification(classificationData) {
+    const card = document.getElementById('classificationCard');
+    const content = document.getElementById('classificationContent');
+
+    const domain = classificationData.primary_domain || 'general';
+    const contentType = classificationData.content_type || 'unknown';
+    const characteristics = classificationData.characteristics || {};
+    const scores = classificationData.confidence_scores || {};
+
+    content.innerHTML = `
+        <div class="analytics-grid">
+            <div class="analytics-metric">
+                <span class="metric-value">${domain}</span>
+                <div class="metric-label">Primary Domain</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${contentType}</span>
+                <div class="metric-label">Content Type</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${characteristics.formality_level || 'Unknown'}</span>
+                <div class="metric-label">Formality Level</div>
+            </div>
+            <div class="analytics-metric">
+                <span class="metric-value">${characteristics.complexity || 'Unknown'}</span>
+                <div class="metric-label">Content Complexity</div>
+            </div>
+        </div>
+
+        ${Object.keys(scores).length > 0 ? `
+            <h4 style="margin-top: 20px;">Domain Confidence Scores</h4>
+            <div class="analytics-grid">
+                ${Object.entries(scores).slice(0, 4).map(([domain, score]) => `
+                    <div class="analytics-metric">
+                        <span class="metric-value">${score}%</span>
+                        <div class="metric-label">${domain}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+    `;
+
+    card.style.display = 'block';
+}
+
+function showBatchAnalysisDialog() {
+    // For now, show a simple alert. In a full implementation, this would open a modal
+    alert('Batch analysis feature coming soon! This will allow you to analyze multiple sessions at once.');
+}
+
+function showMessage(message, type) {
+    const messageEl = document.getElementById('message');
+    messageEl.textContent = message;
+    messageEl.className = `message ${type}`;
+    messageEl.style.display = 'block';
+
+    setTimeout(() => {
+        messageEl.style.display = 'none';
+    }, 5000);
+}
+</script>
+
+{% endblock %}

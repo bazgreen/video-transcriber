@@ -1,33 +1,44 @@
+# Video Transcriber - Core Dependencies
+# Minimal installation with essential features for video transcription
+# For complete AI features, use: pip install -r requirements-full.txt
+
+bcrypt>=4.0.0              # Password hashing
+email-validator>=2.0.0     # Email validation
+
+# Media processing and system utilities
 ffmpeg-python>=0.2.0
+
+# Web framework and real-time communication
 flask>=3.0.0
+
+# Authentication and Security (required by application)
+Flask-Login>=0.6.3         # User authentication
+Flask-Migrate>=4.0.0       # Database migrations
 flask-socketio>=5.5.0
-numpy>=1.20.0,<2.0.0
+Flask-SQLAlchemy>=3.0.0    # Database ORM
+Flask-WTF>=1.2.0           # Form handling and CSRF protection
+numpy>=2.0.0
+# Core transcription engine
 openai-whisper>=20231117
 psutil>=7.0.0
+
+# Mathematical and ML foundation
 torch>=2.0.0
+WTForms>=3.0.0             # Form validation
 
 # ========================================
-# OPTIONAL DEPENDENCIES FOR EXPORT FORMATS
+# UPGRADE TO FULL FEATURES
 # ========================================
 #
-# The following dependencies enable additional export formats:
-# - PDF Reports: Professional analysis documents
-# - DOCX Documents: Microsoft Word format
+# For AI insights and advanced features, install:
+# pip install -r requirements-full.txt
 #
-# INSTALLATION OPTIONS:
+# Or run the upgrade script:
+# python scripts/install_ai_features.py
 #
-# Option 1: Install all optional dependencies
-# pip install reportlab python-docx
-#
-# Option 2: Install only PDF support
-# pip install reportlab
-#
-# Option 3: Install only DOCX support
-# pip install python-docx
-#
-# Option 4: Add to requirements (uncomment lines below)
-# reportlab>=4.0.0
-# python-docx>=1.1.0
-#
-# NOTE: Core export formats (SRT, VTT, Enhanced Text, JSON, HTML)
-# work without these dependencies
+# Full features include:
+# - Sentiment analysis (TextBlob)
+# - Topic modeling (Scikit-learn)
+# - Advanced NLP (SpaCy)
+# - PDF reports (ReportLab)
+# - DOCX exports (python-docx)

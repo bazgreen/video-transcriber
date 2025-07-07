@@ -4,7 +4,15 @@ import json
 import logging
 import os
 
-from flask import Blueprint, redirect, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    send_from_directory,
+    url_for,
+)
 
 from src.config.settings import AppConfig
 from src.models.exceptions import UserFriendlyError
@@ -24,6 +32,34 @@ config = AppConfig()
 def index():
     """Main page"""
     return render_template("index.html")
+
+
+@main_bp.route("/favicon.ico")
+def favicon():
+    """Serve favicon"""
+    return send_from_directory(
+        os.path.join(os.getcwd(), "data/static"), "favicon.ico", mimetype="image/x-icon"
+    )
+
+
+@main_bp.route("/apple-touch-icon.png")
+def apple_touch_icon():
+    """Serve apple touch icon"""
+    return send_from_directory(
+        os.path.join(os.getcwd(), "data/static"),
+        "apple-touch-icon.png",
+        mimetype="image/png",
+    )
+
+
+@main_bp.route("/apple-touch-icon-precomposed.png")
+def apple_touch_icon_precomposed():
+    """Serve apple touch icon precomposed"""
+    return send_from_directory(
+        os.path.join(os.getcwd(), "data/static"),
+        "apple-touch-icon-precomposed.png",
+        mimetype="image/png",
+    )
 
 
 @main_bp.route("/results/<session_id>")
@@ -384,3 +420,9 @@ def performance():
 def batch():
     """Batch processing page"""
     return render_template("batch.html")
+
+
+@main_bp.route("/ai-insights")
+def ai_insights():
+    """AI insights dashboard page"""
+    return render_template("ai_insights.html")

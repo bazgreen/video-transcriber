@@ -60,7 +60,10 @@ A comprehensive Python web application that transforms videos into searchable, a
 ### 🔍 Advanced Analysis
 
 - **🎭 Pre-Built Keyword Scenarios** - Choose from domain-specific keyword sets (Education, Business, Interviews, Technical)
-
+- **🧠 AI-Powered Insights** - Advanced natural language processing with sentiment analysis, topic modeling, and entity recognition
+- **🎯 Sentiment Analysis** - Automatic emotional tone detection throughout transcripts
+- **📊 Topic Modeling** - Machine learning-based discovery of key discussion themes
+- **🏷️ Named Entity Recognition** - Identification of people, places, organizations, and concepts
 - **Question Detection** - Automatically identifies spoken questions with timestamps
 - **Emphasis Cue Recognition** - Finds important phrases like "make sure...", "don't forget..."
 - **Custom Keyword Tracking** - Monitors user-defined terms and their frequency
@@ -102,6 +105,9 @@ A comprehensive Python web application that transforms videos into searchable, a
 
 ## 🚀 Quick Start
 
+> **📋 TL;DR:** `git clone repo && cd video-transcriber && ./run.sh`
+> **📖 Super Simple Guide:** See [docs/setup/QUICKSTART.md](docs/setup/QUICKSTART.md) for the simplest possible instructions
+
 ### One-Command Setup & Launch
 
 1. **Clone the repository**
@@ -111,7 +117,7 @@ A comprehensive Python web application that transforms videos into searchable, a
    cd video-transcriber
    ```
 
-2. **Run the app** (handles everything automatically)
+2. **Run the app** (interactive installation)
 
    ```bash
    # macOS/Linux
@@ -119,19 +125,47 @@ A comprehensive Python web application that transforms videos into searchable, a
    
    # Windows
    run.bat
-   
-   # Or directly with Python
-   python scripts/setup/setup_and_run.py
    ```
 
-That's it! The script will:
+   **Choose your installation:**
+   - **🚀 Core** (2-3 minutes) - Essential transcription features
+   - **🧠 Full** (5-8 minutes) - Complete AI insights and advanced exports
 
-- ✅ Check Python version (3.8+ required)
-- ✅ Create virtual environment
-- ✅ Install all dependencies
-- ✅ Check for FFmpeg
-- ✅ Start the web server
-- ✅ Open your browser automatically
+3. **Need more features later?** One simple command upgrades you:
+
+   ```bash
+   python scripts/install_ai_features.py
+   ```
+
+That's it! The script handles everything automatically:
+
+- ✅ Chooses the right installation for you
+- ✅ Creates virtual environment
+- ✅ Installs dependencies
+- ✅ Starts the web server
+- ✅ Opens your browser
+
+### What You Get
+
+**🚀 Core Installation** - Perfect for getting started quickly
+
+- Fast video transcription with OpenAI Whisper
+- Basic keyword detection and session management
+- Export formats: SRT, VTT, Text, JSON, HTML
+- Authentication and user management
+
+**🧠 Full Installation** - Complete professional toolset
+
+- Everything from Core installation
+- AI sentiment analysis and topic modeling
+- Named entity recognition (people, places, organizations)
+- Professional PDF reports and DOCX documents
+
+**💡 Easy Upgrade** - Start core, upgrade anytime with one command:
+
+```bash
+python scripts/install_ai_features.py
+```
 
 ### Prerequisites
 
@@ -157,87 +191,80 @@ For developers who want to contribute or customize the application:
    make help              # Show all available commands
    make install-dev       # Install with development dependencies
    make test              # Run all tests
-   make test-unit         # Run unit tests only
-   make test-integration  # Run integration tests only
-   make test-coverage     # Run tests with coverage report
    make lint              # Run code quality checks
-   make format            # Auto-format code with black and isort
-   make pre-commit        # Run all pre-commit hooks
-   make benchmark         # Run performance benchmarks
-   make clean             # Clean up temporary files
-   ```
-
-3. **Run the development server**
-
-   ```bash
+   make format            # Auto-format code
    make dev               # Start development server
    ```
 
-### Manual Installation (Advanced)
+### Quick Command Reference
 
-**Click to expand manual setup instructions:**
+**🚀 New Installation:**
 
-1. **Create and activate virtual environment**
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   # Basic installation (includes SRT, VTT, Enhanced Text, JSON, HTML export)
-   pip install -r requirements.txt
-   ```
-
-3. **Optional: Enhanced Export Formats**
-
-   Enable additional professional export formats:
-
-   **Option A: Full Feature Installation (Recommended)**
-   ```bash
-   pip install -r requirements-full.txt
-   ```
-
-   **Option B: Selective Installation**
-   ```bash
-   # PDF export only (professional reports)
-   pip install reportlab
-   
-   # DOCX export only (Microsoft Word documents)
-   pip install python-docx
-   
-   # Both PDF and DOCX
-   pip install reportlab python-docx
-   ```
-
-   **Option C: Individual Requirements Files**
-   ```bash
-   # PDF support only
-   pip install -r requirements-pdf.txt
-   
-   # DOCX support only
-   pip install -r requirements-docx.txt
-   ```
-
-   **Available Export Formats:**
-   - ✅ **Always Available:** SRT, VTT, Enhanced Text, JSON, HTML
-   - 📄 **With reportlab:** Professional PDF reports 
-   - 📝 **With python-docx:** Microsoft Word documents
-
-4. **Install FFmpeg** (if not already installed)
-   - **macOS**: `brew install ffmpeg`
-   - **Ubuntu/Debian**: `sudo apt update && sudo apt install ffmpeg`
-   - **Windows**: Download from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
-
-5. **Run the application**
-
-   ```bash
-   python app.py
-   ```
-
+```bash
+git clone https://github.com/bazgreen/video-transcriber.git
+cd video-transcriber
+./run.sh  # Choose Minimal (fast) or Full (complete)
 ```
+
+**💡 Upgrade to Full Features:**
+
+```bash
+python scripts/install_ai_features.py  # One command upgrade
+```
+
+**🔍 Check What's Installed:**
+
+```bash
+python scripts/testing/check_installation.py  # See current status
+```
+
+### Installation Types Comparison
+
+| Feature | 🚀 Core | 🧠 Full |
+|---------|---------|---------|
+| Video Transcription | ✅ | ✅ |
+| Basic Analysis | ✅ | ✅ |
+| SRT/VTT/HTML Export | ✅ | ✅ |
+| Session Management | ✅ | ✅ |
+| User Authentication | ✅ | ✅ |
+| **AI Sentiment Analysis** | ❌ | ✅ |
+| **Topic Modeling** | ❌ | ✅ |
+| **Named Entity Recognition** | ❌ | ✅ |
+| **PDF Reports** | ❌ | ✅ |
+| **DOCX Documents** | ❌ | ✅ |
+| **Install Time** | 2-3 min | 5-8 min |
+| **Upgrade Command** | `python scripts/install_ai_features.py` | Not needed |
+
+### Need FFmpeg?
+
+If the installer says FFmpeg is missing:
+
+- **macOS**: `brew install ffmpeg`
+- **Ubuntu/Debian**: `sudo apt update && sudo apt install ffmpeg`
+- **Windows**: Download from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+
+### 🔧 Troubleshooting & Upgrades
+
+**Need more features after core install?**
+
+```bash
+python scripts/install_ai_features.py  # One command upgrade
+```
+
+**Check what's currently installed:**
+
+```bash
+python scripts/testing/check_installation.py  # See current features
+```
+
+**Something not working?**
+
+```bash
+# Start fresh (keeps your sessions)
+rm -rf .venv  # Remove virtual environment
+./run.sh      # Re-run installer
+```
+
 ## 📖 Usage Guide
 
 ### Web Interface (Recommended)
@@ -461,19 +488,20 @@ curl -X POST http://localhost:5001/api/performance \
 ```text
 video-transcriber/
 ├── Makefile                     # Development workflow automation
-├── setup_and_run.py            # One-command setup & launch script
 ├── run.sh                      # macOS/Linux launcher
 ├── run.bat                     # Windows launcher
+├── clean.sh                    # Environment cleanup (macOS/Linux)
+├── clean.bat                   # Environment cleanup (Windows)
 ├── main.py                     # Application entry point
 ├── requirements.txt            # Core Python dependencies
-├── requirements-*.txt          # Optional feature dependencies
+├── requirements-full.txt       # Complete installation with AI features
 ├── LICENSE                     # MIT License
 ├── README.md                   # This documentation
 ├── src/                        # Source code (modular architecture)
 │   ├── routes/                 # Flask route handlers
 │   │   ├── main.py            # Main application routes
 │   │   ├── api.py             # API endpoints
-│   │   ├── auth.py            # Authentication routes (optional)
+│   │   ├── auth.py            # Authentication routes
 │   │   └── socket_handlers.py # WebSocket handlers
 │   ├── services/              # Business logic services
 │   │   ├── transcription.py   # Core transcription service
@@ -491,26 +519,48 @@ video-transcriber/
 │   ├── forms/                 # WTForms form definitions
 │   │   └── auth.py            # Authentication forms
 │   └── config.py              # Application configuration
-├── data/                      # Application data
-│   └── templates/             # HTML templates
-│       ├── index.html         # Upload interface
-│       ├── results.html       # Results with video player
-│       ├── sessions.html      # Session browser
-│       ├── config.html        # Keyword configuration
-│       ├── performance.html   # Performance dashboard
-│       └── auth/              # Authentication templates
+├── templates/                 # HTML templates
+│   ├── index.html             # Upload interface
+│   ├── results.html           # Results with video player
+│   ├── sessions.html          # Session browser
+│   ├── config.html            # Keyword configuration
+│   ├── performance.html       # Performance dashboard
+│   └── auth/                  # Authentication templates
+├── scripts/                   # Utility and maintenance scripts
+│   ├── setup/                 # Installation scripts
+│   │   └── setup_and_run.py   # Main setup & launch script
+│   ├── maintenance/           # Environment management
+│   │   ├── clean_environment.py # Complete environment cleanup
+│   │   ├── clean.sh           # Cleanup wrapper (macOS/Linux)
+│   │   └── clean.bat          # Cleanup wrapper (Windows)
+│   ├── testing/               # Testing and validation
+│   │   ├── test_installation.py # Installation test suite
+│   │   └── check_installation.py # Installation status checker
+│   ├── validation/            # Advanced validation scripts
+│   │   ├── validate_ci.py     # CI validation
+│   │   ├── validate_exports.py # Export features validation
+│   │   ├── validate_performance_optimization.py # Performance validation
+│   │   └── validate_ux_improvements.py # UX validation
+│   ├── utils/                 # Utility scripts
+│   │   ├── kill_app.sh        # Process cleanup
+│   │   ├── run.sh             # Runner script
+│   │   └── run.bat            # Windows runner
+│   ├── install_ai_features.py # AI features upgrade script
+│   ├── validate_ai_features.py # AI features validator
+│   └── transcribe.py          # CLI transcription tool
+├── docs/                      # Documentation
+│   ├── setup/                 # Setup guides
+│   │   ├── QUICKSTART.md      # Quick start guide
+│   │   └── ENVIRONMENT_MANAGEMENT.md # Environment management
+│   ├── ENHANCED_EXPORTS.md    # Export features documentation
+│   ├── SYNCHRONIZED_VIDEO_PLAYER.md # Video player features
+│   └── CONTRIBUTING.md        # Contribution guidelines
 ├── tests/                     # Test suite
 │   ├── unit/                  # Unit tests
 │   ├── integration/           # Integration tests
 │   └── benchmarks/            # Performance benchmarks
 ├── config/                    # Configuration files
-│   ├── keywords_config.json   # Keyword configuration
-│   └── requirements/          # Organized requirements files
-├── scripts/                   # Utility scripts
-│   ├── transcribe.py          # CLI transcription tool
-│   ├── setup/                 # Setup and installation scripts
-│   └── validation/            # Validation and testing scripts
-├── docs/                      # Documentation
+│   └── keywords_config.json   # Keyword configuration
 ├── uploads/                   # Temporary upload storage
 └── results/                   # Transcription results
 ```

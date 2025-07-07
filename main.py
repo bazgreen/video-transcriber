@@ -16,6 +16,7 @@ from flask_socketio import SocketIO
 from src.config import AppConfig
 from src.models import MemoryManager, ProgressiveFileManager, ProgressTracker
 from src.routes import api_bp, main_bp, register_socket_handlers
+from src.routes.ai_insights_routes import ai_insights_bp
 from src.routes.api import init_api_globals
 from src.routes.batch_routes import batch_bp
 from src.routes.socket_handlers import init_socket_globals
@@ -89,6 +90,9 @@ def create_app() -> Tuple[Flask, SocketIO]:
         cors_allowed_origins=cors_origins,
         logger=False,  # Disable socketio logging to reduce noise
         engineio_logger=False,
+        async_mode="threading",  # Explicit async mode for compatibility
+        ping_timeout=60,
+        ping_interval=25,
     )
 
     return app, socketio
@@ -180,6 +184,7 @@ def register_routes(
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(batch_bp)
+    app.register_blueprint(ai_insights_bp)
 
     # Initialize batch processor with transcriber
     from src.services.batch_processing import batch_processor
@@ -321,6 +326,7 @@ def main() -> None:
             host=config.DEFAULT_HOST,
             port=config.DEFAULT_PORT,
             use_reloader=False,  # Disable reloader in production
+            allow_unsafe_werkzeug=True,  # Allow Werkzeug for development/demo
         )
 
     except Exception as e:

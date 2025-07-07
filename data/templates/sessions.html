@@ -29,7 +29,7 @@
                 <div class="card-header">
                     <h3 class="session-title">{{ session.display_name or session.session_id }}</h3>
                     <div class="session-meta">
-                        <span class="session-date">📅 {{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else 'Unknown' }}</span>
+                        <span class="session-date">📅 {{ session.created_at if session.created_at and session.created_at != 'Unknown' else 'Unknown' }}</span>
                         {% if session.file_count %}
                         <span class="session-files">📁 {{ session.file_count }} file{{ 's' if session.file_count != 1 else '' }}</span>
                         {% endif %}
@@ -122,11 +122,19 @@
     .session-card {
         border: 1px solid var(--gray-200);
         transition: var(--transition-base);
+        background: white;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
     }
 
     .session-card:hover {
         transform: translateY(-4px);
         box-shadow: var(--shadow-xl);
+    }
+
+    .card-header {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--gray-200);
     }
 
     .session-title {
@@ -141,6 +149,10 @@
         gap: var(--spacing-sm);
         font-size: var(--font-size-sm);
         color: var(--gray-600);
+    }
+
+    .card-body {
+        padding: var(--spacing-lg);
     }
 
     .session-preview {
@@ -165,10 +177,40 @@
         font-weight: 500;
     }
 
+    .card-footer {
+        padding: var(--spacing-lg);
+        background: var(--gray-50);
+        border-top: 1px solid var(--gray-200);
+    }
+
     .session-actions {
         display: flex;
         gap: var(--spacing-sm);
         flex-wrap: wrap;
+    }
+
+    .search-section {
+        margin-bottom: var(--spacing-xl);
+        padding: var(--spacing-lg);
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .search-box {
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .search-input {
+        flex: 1;
+        min-width: 300px;
+        padding: var(--spacing-md);
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-base);
     }
 
     .empty-state {
@@ -176,6 +218,9 @@
         text-align: center;
         padding: var(--spacing-3xl);
         color: var(--gray-600);
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
     }
 
     .empty-icon {
@@ -280,606 +325,3 @@
     });
 </script>
 {% endblock %}
-            border-color: #667eea;
-        }
-
-        .search-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .search-btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .clear-search {
-            background: #6c757d;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .clear-search:hover {
-            background: #5a6268;
-        }
-
-        .stats-bar {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .stats-info {
-            font-size: 1.1rem;
-            color: #666;
-        }
-
-        .stats-count {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .sort-options {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .sort-select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .sessions-grid {
-            display: grid;
-            gap: 20px;
-        }
-
-        .session-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .session-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .session-header {
-            padding: 20px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .session-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .session-filename {
-            color: #667eea;
-            font-size: 0.9rem;
-        }
-
-        .session-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .session-stats {
-            padding: 15px 20px;
-            background: #f8f9ff;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            text-align: center;
-        }
-
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        .session-actions {
-            padding: 15px 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-processing {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-unknown {
-            background: #e2e3e5;
-            color: #6c757d;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .empty-title {
-            font-size: 1.5rem;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .empty-text {
-            color: #999;
-            margin-bottom: 30px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .search-box {
-                flex-direction: column;
-            }
-
-            .search-input {
-                min-width: 100%;
-            }
-
-            .stats-bar {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .session-actions {
-                justify-content: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="header-content">
-            <h1>📚 Previous Sessions</h1>
-            <div class="nav-buttons">
-                <a href="/" class="nav-btn">🏠 Home</a>
-                <a href="/" class="nav-btn">➕ New Transcription</a>
-                <a href="/config" class="nav-btn">🔤 Keyword Config</a>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="search-section">
-            <div class="search-box">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search sessions by name, filename, or content...">
-                <button id="searchBtn" class="search-btn">🔍 Search</button>
-                <button id="clearSearch" class="clear-search">✕ Clear</button>
-            </div>
-        </div>
-
-        <div class="stats-bar">
-            <div class="stats-info">
-                <span class="stats-count" id="sessionCount">{{ sessions|length }}</span> sessions found
-            </div>
-            <div class="sort-options">
-                <label for="sortSelect">Sort by:</label>
-                <select id="sortSelect" class="sort-select">
-                    <option value="date-desc">Newest First</option>
-                    <option value="date-asc">Oldest First</option>
-                    <option value="name-asc">Name A-Z</option>
-                    <option value="name-desc">Name Z-A</option>
-                    <option value="words-desc">Most Words</option>
-                    <option value="keywords-desc">Most Keywords</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="loadingIndicator" class="loading" style="display: none;">
-            <div class="loading-spinner"></div>
-            <div>Searching sessions...</div>
-        </div>
-
-        <div class="sessions-grid" id="sessionsGrid">
-            {% if sessions %}
-                {% for session in sessions %}
-                <div class="session-card" data-session-id="{{ session.session_id }}">
-                    <div class="session-header">
-                        <div class="session-title">
-                            <span>{{ session.session_name or 'Unnamed Session' }}</span>
-                            <span class="status-badge status-{{ session.status or 'unknown' }}">{{ session.status or 'unknown' }}</span>
-                        </div>
-                        <div class="session-filename">📹 {{ session.original_filename or 'Unknown file' }}</div>
-                        <div class="session-meta">
-                            <div class="meta-item">
-                                <span>📅</span>
-                                <span>{{ session.created_at[:19].replace('T', ' ') if session.created_at else 'Unknown date' }}</span>
-                            </div>
-                            {% if session.processing_time %}
-                            <div class="meta-item">
-                                <span>⏱️</span>
-                                <span>{{ "%.1f"|format(session.processing_time) }}s processing</span>
-                            </div>
-                            {% endif %}
-                            {% if session.total_chunks %}
-                            <div class="meta-item">
-                                <span>🎬</span>
-                                <span>{{ session.total_chunks }} chunks</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if session.total_words %}
-                    <div class="session-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">{{ session.total_words or 0 }}</div>
-                            <div class="stat-label">Words</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ session.keywords_found or 0 }}</div>
-                            <div class="stat-label">Keywords</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ session.questions_found or 0 }}</div>
-                            <div class="stat-label">Questions</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">{{ session.emphasis_cues_found or 0 }}</div>
-                            <div class="stat-label">Emphasis</div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <div class="session-actions">
-                        <a href="/results/{{ session.session_id }}" class="action-btn btn-primary">📊 View Results</a>
-                        <a href="/transcript/{{ session.session_id }}" class="action-btn btn-secondary" target="_blank">🔍 View Transcript</a>
-                        <a href="/download/{{ session.session_id }}/full_transcript.txt" class="action-btn btn-secondary">📄 Download</a>
-                        <button onclick="deleteSession('{{ session.session_id }}')" class="action-btn btn-danger">🗑️ Delete</button>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">📭</div>
-                    <div class="empty-title">No Sessions Yet</div>
-                    <div class="empty-text">You haven't transcribed any videos yet. Upload your first video to get started!</div>
-                    <a href="/" class="action-btn btn-primary">➕ Start Your First Transcription</a>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <script>
-        let allSessions = {{ sessions|tojson|safe }};
-        let currentSessions = [...allSessions];
-        let isSearching = false;
-
-        // DOM elements
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const clearSearch = document.getElementById('clearSearch');
-        const sortSelect = document.getElementById('sortSelect');
-        const sessionsGrid = document.getElementById('sessionsGrid');
-        const sessionCount = document.getElementById('sessionCount');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-
-        // Event listeners
-        searchInput.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                performSearch();
-            }
-        });
-
-        searchBtn.addEventListener('click', performSearch);
-        clearSearch.addEventListener('click', clearSearchResults);
-        sortSelect.addEventListener('change', sortSessions);
-
-        function performSearch() {
-            const query = searchInput.value.trim();
-
-            if (!query) {
-                clearSearchResults();
-                return;
-            }
-
-            showLoading(true);
-
-            fetch(`/sessions/search?q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(sessions => {
-                    currentSessions = sessions;
-                    renderSessions(currentSessions);
-                    updateSessionCount(currentSessions.length);
-                    isSearching = true;
-                    showLoading(false);
-                })
-                .catch(error => {
-                    console.error('Search error:', error);
-                    showLoading(false);
-                });
-        }
-
-        function clearSearchResults() {
-            searchInput.value = '';
-            currentSessions = [...allSessions];
-            renderSessions(currentSessions);
-            updateSessionCount(currentSessions.length);
-            isSearching = false;
-        }
-
-        function sortSessions() {
-            const sortBy = sortSelect.value;
-
-            currentSessions.sort((a, b) => {
-                switch (sortBy) {
-                    case 'date-desc':
-                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                    case 'date-asc':
-                        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-                    case 'name-asc':
-                        return (a.session_name || a.original_filename || '').localeCompare(b.session_name || b.original_filename || '');
-                    case 'name-desc':
-                        return (b.session_name || b.original_filename || '').localeCompare(a.session_name || a.original_filename || '');
-                    case 'words-desc':
-                        return (b.total_words || 0) - (a.total_words || 0);
-                    case 'keywords-desc':
-                        return (b.keywords_found || 0) - (a.keywords_found || 0);
-                    default:
-                        return 0;
-                }
-            });
-
-            renderSessions(currentSessions);
-        }
-
-        function renderSessions(sessions) {
-            if (sessions.length === 0) {
-                const emptyMessage = isSearching ?
-                    'No sessions found matching your search.' :
-                    'No sessions yet. Upload your first video to get started!';
-
-                sessionsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">🔍</div>
-                        <div class="empty-title">${isSearching ? 'No Results' : 'No Sessions Yet'}</div>
-                        <div class="empty-text">${emptyMessage}</div>
-                        <a href="/" class="action-btn btn-primary">➕ ${isSearching ? 'Try Different Search' : 'Start Your First Transcription'}</a>
-                    </div>
-                `;
-                return;
-            }
-
-            sessionsGrid.innerHTML = sessions.map(session => `
-                <div class="session-card" data-session-id="${session.session_id}">
-                    <div class="session-header">
-                        <div class="session-title">
-                            <span>${session.session_name || 'Unnamed Session'}</span>
-                            <span class="status-badge status-${session.status || 'unknown'}">${session.status || 'unknown'}</span>
-                        </div>
-                        <div class="session-filename">📹 ${session.original_filename || 'Unknown file'}</div>
-                        <div class="session-meta">
-                            <div class="meta-item">
-                                <span>📅</span>
-                                <span>${session.created_at ? session.created_at.slice(0, 19).replace('T', ' ') : 'Unknown date'}</span>
-                            </div>
-                            ${session.processing_time ? `
-                            <div class="meta-item">
-                                <span>⏱️</span>
-                                <span>${session.processing_time.toFixed(1)}s processing</span>
-                            </div>
-                            ` : ''}
-                            ${session.total_chunks ? `
-                            <div class="meta-item">
-                                <span>🎬</span>
-                                <span>${session.total_chunks} chunks</span>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    ${session.total_words ? `
-                    <div class="session-stats">
-                        <div class="stat-item">
-                            <div class="stat-number">${session.total_words || 0}</div>
-                            <div class="stat-label">Words</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${session.keywords_found || 0}</div>
-                            <div class="stat-label">Keywords</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${session.questions_found || 0}</div>
-                            <div class="stat-label">Questions</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number">${session.emphasis_cues_found || 0}</div>
-                            <div class="stat-label">Emphasis</div>
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <div class="session-actions">
-                        <a href="/results/${session.session_id}" class="action-btn btn-primary">📊 View Results</a>
-                        <a href="/transcript/${session.session_id}" class="action-btn btn-secondary" target="_blank">🔍 View Transcript</a>
-                        <a href="/download/${session.session_id}/full_transcript.txt" class="action-btn btn-secondary">📄 Download</a>
-                        <button onclick="deleteSession('${session.session_id}')" class="action-btn btn-danger">🗑️ Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateSessionCount(count) {
-            sessionCount.textContent = count;
-        }
-
-        function showLoading(show) {
-            loadingIndicator.style.display = show ? 'block' : 'none';
-            sessionsGrid.style.display = show ? 'none' : 'block';
-        }
-
-        function deleteSession(sessionId) {
-            if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-                return;
-            }
-
-            fetch(`/sessions/delete/${sessionId}`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    // Remove from current sessions
-                    currentSessions = currentSessions.filter(s => s.session_id !== sessionId);
-                    allSessions = allSessions.filter(s => s.session_id !== sessionId);
-
-                    // Re-render
-                    renderSessions(currentSessions);
-                    updateSessionCount(currentSessions.length);
-
-                    // Show success message (you could add a toast here)
-                    const sessionCard = document.querySelector(`[data-session-id="${sessionId}"]`);
-                    if (sessionCard) {
-                        sessionCard.style.opacity = '0';
-                        setTimeout(() => sessionCard.remove(), 300);
-                    }
-                } else {
-                    alert('Error deleting session: ' + result.error);
-                }
-            })
-            .catch(error => {
-                console.error('Delete error:', error);
-                alert('Error deleting session. Please try again.');
-            });
-        }
-
-        // Initial sort
-        sortSessions();
-    </script>
-</body>
-</html>

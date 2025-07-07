@@ -20,6 +20,43 @@ def print_header():
     print("=" * 60 + "\n")
 
 
+def choose_installation_type():
+    """Let user choose between minimal and full installation"""
+    print("📦 Choose your installation type:")
+    print("=" * 40)
+    print("\n1. 🚀 MINIMAL INSTALLATION (Recommended for quick start)")
+    print("   • Fast video transcription with OpenAI Whisper")
+    print("   • Basic keyword detection and analysis")
+    print("   • Export formats: SRT, VTT, Text, JSON, HTML")
+    print("   • Session management and search")
+    print("   • Performance monitoring")
+    print("   • ~2-3 minutes install time")
+
+    print("\n2. 🧠 FULL INSTALLATION (Complete feature set)")
+    print("   • Everything from Minimal installation")
+    print("   • AI-powered sentiment analysis")
+    print("   • Advanced topic modeling")
+    print("   • Named entity recognition (NLP)")
+    print("   • Professional PDF and DOCX exports")
+    print("   • Advanced analytics dashboard")
+    print("   • ~5-8 minutes install time")
+
+    print("\n" + "-" * 40)
+
+    while True:
+        choice = input("Enter your choice (1 for Minimal, 2 for Full) [1]: ").strip()
+
+        if choice == "" or choice == "1":
+            print("\n✅ Minimal installation selected")
+            return "minimal"
+        elif choice == "2":
+            print("\n✅ Full installation selected")
+            return "full"
+        else:
+            print("❌ Invalid choice. Please enter 1 or 2.")
+            continue
+
+
 def check_python_version():
     """Check if Python version is 3.8 or higher"""
     if sys.version_info < (3, 8):
@@ -58,8 +95,11 @@ def get_venv_python():
             return os.path.join("env", "venv311", "Scripts", "python.exe")
         elif os.path.exists(os.path.join("venv311", "Scripts", "python.exe")):
             return os.path.join("venv311", "Scripts", "python.exe")
-        else:
+        elif os.path.exists(os.path.join("env", "venv", "Scripts", "python.exe")):
             return os.path.join("env", "venv", "Scripts", "python.exe")
+        else:
+            # Default to .venv for newly created environments
+            return os.path.join(".venv", "Scripts", "python.exe")
     else:
         if os.path.exists(os.path.join(".venv", "bin", "python")):
             return os.path.join(".venv", "bin", "python")
@@ -67,8 +107,11 @@ def get_venv_python():
             return os.path.join("env", "venv311", "bin", "python")
         elif os.path.exists(os.path.join("venv311", "bin", "python")):
             return os.path.join("venv311", "bin", "python")
-        else:
+        elif os.path.exists(os.path.join("env", "venv", "bin", "python")):
             return os.path.join("env", "venv", "bin", "python")
+        else:
+            # Default to .venv for newly created environments
+            return os.path.join(".venv", "bin", "python")
 
 
 def setup_virtualenv():
@@ -95,9 +138,31 @@ def setup_virtualenv():
     return venv_python
 
 
-def install_dependencies(venv_python):
-    """Install required dependencies"""
-    print("\n📚 Checking dependencies...")
+def install_dependencies(venv_python, installation_type="minimal"):
+    """Install required dependencies based on installation type"""
+    print(f"\n📚 Installing dependencies ({installation_type} installation)...")
+
+    # Define package sets
+    minimal_packages = [
+        "torch",
+        "numpy>=2.0.0",
+        "flask>=3.0.0",
+        "flask-socketio>=5.5.0",
+        "ffmpeg-python>=0.2.0",
+        "openai-whisper>=20231117",
+        "psutil>=7.0.0",
+    ]
+
+    ai_packages = [
+        "textblob>=0.17.1",
+        "scikit-learn>=1.3.0",
+        "spacy>=3.7.0",
+    ]
+
+    export_packages = [
+        "reportlab>=4.0.0",
+        "python-docx>=1.1.0",
+    ]
 
     # Check if dependencies are already installed
     try:
@@ -105,12 +170,32 @@ def install_dependencies(venv_python):
             [venv_python, "-c", "import whisper, flask, ffmpeg"], capture_output=True
         )
         if result.returncode == 0:
-            print("✅ All dependencies are already installed")
-            return
+            print("✅ Core dependencies are already installed")
+
+            # Check AI features for full installation
+            if installation_type == "full":
+                try:
+                    subprocess.run(
+                        [
+                            venv_python,
+                            "-c",
+                            "import textblob, sklearn, spacy; spacy.load('en_core_web_sm')",
+                        ],
+                        capture_output=True,
+                        check=True,
+                    )
+                    print("✅ AI features are already installed")
+                    return
+                except subprocess.CalledProcessError:
+                    print("🔧 Installing AI features...")
+                    install_ai_features(venv_python)
+                    return
+            else:
+                return
     except Exception:
         pass
 
-    print("📥 Installing dependencies (this may take a few minutes on first run)...")
+    print(f"📥 Installing dependencies (this may take a few minutes on first run)...")
 
     try:
         # Upgrade pip first
@@ -121,105 +206,128 @@ def install_dependencies(venv_python):
             check=True,
         )
 
-        # Install requirements
-        if os.path.exists("requirements.txt"):
-            print("📦 Installing from requirements.txt...")
+        # Determine which requirements file to use
+        if installation_type == "minimal":
+            requirements_file = "requirements.txt"
+        elif installation_type == "full":
+            requirements_file = "requirements-full.txt"
+        else:
+            requirements_file = "requirements.txt"
+
+        # Install from requirements file if it exists
+        if os.path.exists(requirements_file):
+            print(f"📦 Installing from {requirements_file}...")
             result = subprocess.run(
-                [venv_python, "-m", "pip", "install", "-r", "requirements.txt"],
+                [venv_python, "-m", "pip", "install", "-r", requirements_file],
                 capture_output=True,
                 text=True,
             )
-            if result.returncode != 0:
+            if result.returncode == 0:
+                print("✅ Dependencies installed successfully")
+                if installation_type == "full":
+                    install_spacy_model(venv_python)
+                return
+            else:
                 print(
-                    "⚠️  Standard installation failed, trying alternative approach..."
+                    "⚠️ Requirements file installation failed, trying individual packages..."
                 )
-                # Try installing packages individually for better error handling
-                packages = [
-                    "torch",
-                    "numpy",
-                    "flask",
-                    "ffmpeg-python",
-                    "openai-whisper",
-                ]
-                for package in packages:
-                    try:
-                        print(f"📦 Installing {package}...")
-                        subprocess.run(
-                            [venv_python, "-m", "pip", "install", package],
-                            capture_output=True,
-                            check=True,
-                        )
-                        print(f"✅ {package} installed successfully")
-                    except subprocess.CalledProcessError:
-                        print(
-                            f"⚠️  Failed to install {package}, trying without version constraints..."
-                        )
+
+        # Fallback: install packages individually
+        packages_to_install = minimal_packages.copy()
+
+        if installation_type == "full":
+            packages_to_install.extend(ai_packages)
+            packages_to_install.extend(export_packages)
+
+        for package in packages_to_install:
+            try:
+                print(f"📦 Installing {package}...")
+                subprocess.run(
+                    [venv_python, "-m", "pip", "install", package],
+                    capture_output=True,
+                    check=True,
+                )
+                print(f"✅ {package} installed successfully")
+            except subprocess.CalledProcessError:
+                print(
+                    f"⚠️ Failed to install {package}, trying without version constraints..."
+                )
+                try:
+                    # Try without version constraints
+                    base_package = package.split(">=")[0].split("==")[0]
+                    subprocess.run(
+                        [venv_python, "-m", "pip", "install", base_package],
+                        capture_output=True,
+                        check=True,
+                    )
+                    print(f"✅ {base_package} installed successfully (latest version)")
+                except subprocess.CalledProcessError:
+                    if package == "openai-whisper":
+                        print("⚠️ Trying to install whisper from GitHub repository...")
                         try:
-                            # Try without version constraints
-                            base_package = package.split(">=")[0].split("==")[0]
                             subprocess.run(
-                                [venv_python, "-m", "pip", "install", base_package],
+                                [
+                                    venv_python,
+                                    "-m",
+                                    "pip",
+                                    "install",
+                                    "git+https://github.com/openai/whisper.git",
+                                ],
                                 capture_output=True,
                                 check=True,
                             )
-                            print(
-                                f"✅ {base_package} installed successfully (latest version)"
-                            )
+                            print("✅ openai-whisper installed successfully from GitHub")
                         except subprocess.CalledProcessError:
-                            if package == "openai-whisper":
-                                print(
-                                    "⚠️  Trying to install whisper from GitHub repository..."
-                                )
-                                try:
-                                    subprocess.run(
-                                        [
-                                            venv_python,
-                                            "-m",
-                                            "pip",
-                                            "install",
-                                            "git+https://github.com/openai/whisper.git",
-                                        ],
-                                        capture_output=True,
-                                        check=True,
-                                    )
-                                    print(
-                                        "✅ openai-whisper installed successfully from GitHub"
-                                    )
-                                except subprocess.CalledProcessError:
-                                    print("❌ Failed to install openai-whisper")
-                                    print(
-                                        "   You may need to install openai-whisper manually:"
-                                    )
-                                    print(
-                                        "   source venv/bin/activate && pip install git+https://github.com/openai/whisper.git"
-                                    )
-                            else:
-                                print(f"❌ Failed to install {package}")
-        else:
-            # Fallback if requirements.txt is missing
-            packages = ["torch", "numpy", "flask", "ffmpeg-python", "openai-whisper"]
-            for package in packages:
-                try:
-                    print(f"📦 Installing {package}...")
-                    subprocess.run(
-                        [venv_python, "-m", "pip", "install", package], check=True
-                    )
-                except subprocess.CalledProcessError:
-                    print(f"⚠️  Failed to install {package}")
+                            print("❌ Failed to install openai-whisper")
+                    else:
+                        print(f"❌ Failed to install {package}")
 
         print("✅ Dependencies installation completed")
+
+        # Install SpaCy model for full installation
+        if installation_type == "full":
+            install_spacy_model(venv_python)
 
     except subprocess.CalledProcessError as e:
         print(f"❌ Error during dependency installation: {e}")
         print(
             "You may need to install dependencies manually in the virtual environment."
         )
-        print("Common solutions:")
-        print("1. Update your Python version (3.8-3.12 recommended)")
-        print(
-            "2. Install dependencies manually: source venv/bin/activate && pip install flask torch numpy ffmpeg-python"
+
+
+def install_ai_features(venv_python):
+    """Install AI features separately"""
+    packages = ["textblob>=0.17.1", "scikit-learn>=1.3.0", "spacy>=3.7.0"]
+
+    for package in packages:
+        try:
+            print(f"🧠 Installing {package}...")
+            subprocess.run(
+                [venv_python, "-m", "pip", "install", package],
+                capture_output=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            print(f"❌ Failed to install {package}")
+
+    install_spacy_model(venv_python)
+
+
+def install_spacy_model(venv_python):
+    """Install SpaCy English language model"""
+    try:
+        print("🧠 Installing SpaCy English language model...")
+        subprocess.run(
+            [venv_python, "-m", "spacy", "download", "en_core_web_sm"],
+            capture_output=True,
+            check=True,
         )
-        print("3. For whisper: pip install git+https://github.com/openai/whisper.git")
+        print("✅ SpaCy English model installed successfully")
+        print("🚀 AI insights features are now fully enabled!")
+    except subprocess.CalledProcessError:
+        print("⚠️  Failed to install SpaCy English model")
+        print("   You can install it manually later with:")
+        print(f"   {venv_python} -m spacy download en_core_web_sm")
 
 
 def create_directories():
@@ -277,13 +385,16 @@ def main():
     os.chdir(project_root)
     print(f"✅ Working directory set to: {os.getcwd()}")
 
+    # Choose installation type
+    installation_type = choose_installation_type()
+
     # Run checks and setup
     check_python_version()
     ffmpeg_installed = check_ffmpeg()
 
     print("\n🔧 Setting up environment...")
     venv_python = setup_virtualenv()
-    install_dependencies(venv_python)
+    install_dependencies(venv_python, installation_type)
     create_directories()
 
     if not ffmpeg_installed:
@@ -292,6 +403,27 @@ def main():
         if response.lower() != "y":
             print("Setup cancelled.")
             sys.exit(0)
+
+    # Display installation summary
+    print("\n" + "=" * 50)
+    print("🎉 Installation Complete!")
+    print("=" * 50)
+
+    if installation_type == "minimal":
+        print("✅ Minimal installation ready with:")
+        print("   • Fast video transcription")
+        print("   • Basic analysis and keywords")
+        print("   • Export: SRT, VTT, Text, JSON, HTML")
+        print("   • Session management")
+        print("\n💡 To upgrade to full features later, run:")
+        print("   python install_ai_features.py")
+    else:
+        print("✅ Full installation ready with:")
+        print("   • Advanced AI insights and NLP")
+        print("   • Professional PDF and DOCX exports")
+        print("   • Complete feature set")
+
+    print(f"\n🚀 Starting Video Transcriber...")
 
     # Run the application
     run_app(venv_python)

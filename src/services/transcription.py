@@ -35,6 +35,15 @@ from src.services.export import EnhancedExportService
 from src.utils import format_timestamp, load_keywords
 from src.utils.performance_optimizer import performance_optimizer
 
+# Import AI insights engine
+try:
+    from src.services.ai_insights import create_ai_insights_engine
+
+    AI_INSIGHTS_AVAILABLE = True
+except ImportError:
+    AI_INSIGHTS_AVAILABLE = False
+    create_ai_insights_engine = None
+
 logger = logging.getLogger(__name__)
 
 # Configuration instances
@@ -210,6 +219,20 @@ class VideoTranscriber:
         # Memory-aware performance tuning
         self.max_workers = memory_manager.get_optimal_workers()
         self.chunk_duration = video_config.DEFAULT_CHUNK_DURATION_SECONDS
+
+        # Initialize AI insights engine if available
+        self.ai_insights_engine = None
+        if AI_INSIGHTS_AVAILABLE:
+            try:
+                self.ai_insights_engine = create_ai_insights_engine()
+                logger.info("AI Insights Engine initialized successfully")
+            except Exception as e:
+                logger.warning(f"AI Insights Engine initialization failed: {e}")
+                self.ai_insights_engine = None
+        else:
+            logger.info(
+                "AI Insights Engine not available (install optional dependencies for full AI features)"
+            )
 
         # Log memory and worker configuration
         memory_info = memory_manager.get_memory_info()
@@ -686,6 +709,28 @@ class VideoTranscriber:
             results["full_transcript"], all_segments
         )
 
+        # Enhanced AI insights analysis
+        if self.ai_insights_engine:
+            self.progress_tracker.update_progress(
+                session_id,
+                current_task="Generating AI-powered insights...",
+                progress=93,
+                stage="ai_analysis",
+            )
+            try:
+                results["ai_insights"] = self.ai_insights_engine.analyze_comprehensive(
+                    results["full_transcript"], all_segments, results["analysis"]
+                )
+                logger.info("AI insights analysis completed successfully")
+            except Exception as e:
+                logger.warning(f"AI insights analysis failed: {e}")
+                results["ai_insights"] = {"error": str(e), "available": False}
+        else:
+            results["ai_insights"] = {
+                "available": False,
+                "message": "AI insights engine not available",
+            }
+
     def _transcribe_chunks_parallel(
         self, session_id: str, session_dir: str, chunks: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -906,6 +951,11 @@ class VideoTranscriber:
         # Save analysis results
         with open(os.path.join(session_dir, "analysis.json"), "w") as f:
             json.dump(results["analysis"], f, indent=2)
+
+        # Save AI insights if available
+        if "ai_insights" in results and results["ai_insights"].get("available", True):
+            with open(os.path.join(session_dir, "ai_insights.json"), "w") as f:
+                json.dump(results["ai_insights"], f, indent=2)
 
         # Save keyword highlights
         with open(os.path.join(session_dir, "assessment_mentions.txt"), "w") as f:

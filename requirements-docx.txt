@@ -1,8 +1,0 @@
-# DOCX export only dependencies
-# Use: pip install -r requirements-docx.txt
-
-# Core dependencies
--r requirements.txt
-
-# DOCX export support only
-python-docx>=1.1.0

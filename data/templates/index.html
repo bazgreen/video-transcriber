@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Video Transcription Tool{% endblock %}
+{% block title %}Video Transcriber{% endblock %}
 
 {% block body_class %}layout-centered{% endblock %}
 
@@ -20,6 +20,9 @@
         </a>
         <a href="{{ url_for('main.batch') }}" class="nav-link">
             <span>🔄</span> Batch Processing
+        </a>
+        <a href="{{ url_for('main.ai_insights') }}" class="nav-link">
+            <span>🤖</span> AI Insights
         </a>
         <a href="{{ url_for('main.config_page') }}" class="nav-link">
             <span>⚙️</span> Keywords
@@ -343,7 +346,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <script>
     // Essential JavaScript for upload functionality
     let selectedFiles = [];

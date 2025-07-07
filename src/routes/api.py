@@ -254,6 +254,76 @@ def apply_keyword_scenario():
     )
 
 
+# Config endpoints for frontend compatibility
+@api_bp.route("/config/keywords", methods=["GET"])
+@handle_user_friendly_error
+def get_config_keywords():
+    """Get current keywords configuration (alias for /api/keywords)"""
+    keywords = load_keywords()
+    return jsonify({"success": True, "keywords": keywords})
+
+
+@api_bp.route("/config/keywords", methods=["POST"])
+@handle_user_friendly_error
+def update_config_keywords():
+    """Update keywords configuration (alias for /api/keywords)"""
+    data = request.get_json()
+    if not data or "keywords" not in data:
+        raise UserFriendlyError("Invalid request: 'keywords' field is required")
+
+    keywords = data["keywords"]
+    if not isinstance(keywords, list):
+        raise UserFriendlyError("Keywords must be a list")
+
+    # Filter and validate keywords
+    valid_keywords = [k.strip() for k in keywords if k.strip()]
+    save_keywords(valid_keywords)
+
+    logger.info(f"Updated keywords configuration with {len(valid_keywords)} items")
+
+    return jsonify(
+        {
+            "success": True,
+            "message": f"Updated {len(valid_keywords)} keywords",
+            "keywords": valid_keywords,
+        }
+    )
+
+
+@api_bp.route("/config/keywords/<keyword_type>/reset", methods=["POST"])
+@handle_user_friendly_error
+def reset_keyword_type(keyword_type):
+    """Reset specific keyword type to defaults"""
+    # This endpoint supports resetting different keyword categories
+    # For now, we'll just reset all keywords
+    default_keywords = [
+        "assessment",
+        "evaluation",
+        "test",
+        "quiz",
+        "exam",
+        "question",
+        "answer",
+        "grade",
+        "score",
+        "mark",
+        "result",
+        "feedback",
+    ]
+
+    save_keywords(default_keywords)
+
+    logger.info(f"Reset keyword type '{keyword_type}' to defaults")
+
+    return jsonify(
+        {
+            "success": True,
+            "message": f"Reset {keyword_type} keywords to defaults",
+            "keywords": default_keywords,
+        }
+    )
+
+
 @api_bp.route("/performance", methods=["GET"])
 @handle_user_friendly_error
 def get_performance_settings():
@@ -1272,3 +1342,53 @@ def _is_question_boundary(
             return True
 
     return False
+
+
+@api_bp.route("/sessions", methods=["GET"])
+@handle_user_friendly_error
+def get_sessions():
+    """Get all available transcription sessions"""
+    config = AppConfig()
+    results_folder = config.RESULTS_FOLDER
+
+    if not os.path.exists(results_folder):
+        return jsonify({"sessions": []})
+
+    sessions = []
+
+    try:
+        # Get all session directories
+        session_dirs = [
+            d
+            for d in os.listdir(results_folder)
+            if os.path.isdir(os.path.join(results_folder, d)) and is_valid_session_id(d)
+        ]
+
+        for session_id in sorted(session_dirs, reverse=True):  # Most recent first
+            session_path = os.path.join(results_folder, session_id)
+
+            # Load session metadata
+            metadata = load_session_metadata(session_id, session_path)
+
+            session_info = {
+                "session_id": session_id,
+                "session_name": metadata.get("session_name", session_id),
+                "created_at": metadata.get("created_at", "Unknown"),
+                "duration": metadata.get("duration", "Unknown"),
+                "file_name": metadata.get("file_name", "Unknown"),
+                "status": metadata.get("status", "completed"),
+                "has_analysis": os.path.exists(
+                    os.path.join(session_path, "analysis.json")
+                ),
+                "has_transcript": os.path.exists(
+                    os.path.join(session_path, "full_transcript.txt")
+                ),
+            }
+
+            sessions.append(session_info)
+
+    except Exception as e:
+        logger.error(f"Error loading sessions: {e}")
+        return jsonify({"error": "Failed to load sessions", "sessions": []})
+
+    return jsonify({"sessions": sessions})
