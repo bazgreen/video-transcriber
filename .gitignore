@@ -199,6 +199,10 @@ bandit-report.json
 *.bandit
 *.security-report
 
+# Test output files (project-specific)
+test_ai_insights_output.json
+*test*output*.json
+
 # Large files
 *.zip
 *.tar.gz
