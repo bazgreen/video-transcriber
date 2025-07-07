@@ -338,61 +338,80 @@ def create_directories():
     print("✅ Required directories created")
 
 
-def wait_for_app_ready(url="http://localhost:5001", max_wait=30):
+def wait_for_app_ready(venv_python, url="http://localhost:5001", max_wait=30):
     """
     Wait for the Flask app to be ready by checking the health endpoint.
     
     Args:
+        venv_python: Path to the virtual environment python
         url: Base URL of the application
         max_wait: Maximum time to wait in seconds
         
     Returns:
         bool: True if app is ready, False if timeout
     """
-    try:
-        import requests
-    except ImportError:
-        # If requests not available, fall back to basic delay
-        print("📦 Installing requests for health checking...")
-        try:
-            subprocess.run([sys.executable, "-m", "pip", "install", "requests"], 
-                         capture_output=True, check=True)
-            import requests
-        except:
-            print("⚠️  Could not install requests, using basic delay instead...")
-            time.sleep(5)  # Basic fallback delay
-            return True
-    
     import time
     
-    health_url = f"{url}/health"
-    start_time = time.time()
+    try:
+        # Try importing requests from the virtual environment
+        result = subprocess.run([venv_python, "-c", "import requests"], 
+                              capture_output=True)
+        if result.returncode != 0:
+            # Install requests in the virtual environment
+            print("📦 Installing requests for health checking...")
+            subprocess.run([venv_python, "-m", "pip", "install", "requests"], 
+                         capture_output=True, check=True)
+    except:
+        print("⚠️  Could not install requests, using basic delay instead...")
+        time.sleep(5)  # Basic fallback delay
+        return True
+    
+    # Use the virtual environment python to run the health check
+    health_check_script = f'''
+import requests
+import time
+import sys
+
+url = "{url}/health"
+start_time = time.time()
+max_wait = {max_wait}
+
+while time.time() - start_time < max_wait:
+    try:
+        response = requests.get(url, timeout=2)
+        if response.status_code == 200:
+            print("\\n✅ Application is ready!")
+            sys.exit(0)
+    except:
+        pass
+    
+    elapsed = int(time.time() - start_time)
+    dots = "." * (elapsed % 4)
+    print(f"\\r⏳ Starting up{{dots}}    ", end="", flush=True)
+    time.sleep(1)
+
+print(f"\\n⚠️  Application didn't respond within {{max_wait}} seconds")
+sys.exit(1)
+'''
     
     print("🔍 Waiting for application to start...")
     
-    while time.time() - start_time < max_wait:
-        try:
-            response = requests.get(health_url, timeout=2)
-            if response.status_code == 200:
-                print("✅ Application is ready!")
-                return True
-        except (requests.exceptions.RequestException, requests.exceptions.Timeout):
-            # App not ready yet, continue waiting
-            pass
-        
-        # Show progress dots
-        elapsed = int(time.time() - start_time)
-        dots = "." * (elapsed % 4)
-        print(f"\r⏳ Starting up{dots}    ", end="", flush=True)
-        time.sleep(1)
-    
-    print(f"\n⚠️  Application didn't respond within {max_wait} seconds")
-    return False
+    try:
+        result = subprocess.run([venv_python, "-c", health_check_script], 
+                              timeout=max_wait + 5, capture_output=False)
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        print(f"\n⚠️  Health check timed out after {max_wait} seconds")
+        return False
+    except:
+        print("\n⚠️  Health check failed, using fallback delay...")
+        time.sleep(5)
+        return True
 
 
-def open_browser_when_ready(url):
+def open_browser_when_ready(venv_python, url):
     """Open browser only after the app is confirmed to be ready."""
-    if wait_for_app_ready(url):
+    if wait_for_app_ready(venv_python, url):
         print(f"\n🌐 Opening browser at {url}")
         webbrowser.open(url)
     else:
@@ -417,7 +436,7 @@ def run_app(venv_python):
     import threading
 
     browser_thread = threading.Thread(
-        target=open_browser_when_ready, args=("http://localhost:5001",)
+        target=open_browser_when_ready, args=(venv_python, "http://localhost:5001")
     )
     browser_thread.daemon = True
     browser_thread.start()
