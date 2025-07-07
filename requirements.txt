@@ -21,6 +21,7 @@ numpy>=2.0.0
 # Core transcription engine
 openai-whisper>=20231117
 psutil>=7.0.0
+requests>=2.25.0          # HTTP client for health checks
 
 # Mathematical and ML foundation
 torch>=2.0.0

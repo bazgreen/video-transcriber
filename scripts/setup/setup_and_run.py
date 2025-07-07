@@ -338,6 +338,68 @@ def create_directories():
     print("✅ Required directories created")
 
 
+def wait_for_app_ready(url="http://localhost:5001", max_wait=30):
+    """
+    Wait for the Flask app to be ready by checking the health endpoint.
+    
+    Args:
+        url: Base URL of the application
+        max_wait: Maximum time to wait in seconds
+        
+    Returns:
+        bool: True if app is ready, False if timeout
+    """
+    try:
+        import requests
+    except ImportError:
+        # If requests not available, fall back to basic delay
+        print("📦 Installing requests for health checking...")
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "requests"], 
+                         capture_output=True, check=True)
+            import requests
+        except:
+            print("⚠️  Could not install requests, using basic delay instead...")
+            time.sleep(5)  # Basic fallback delay
+            return True
+    
+    import time
+    
+    health_url = f"{url}/health"
+    start_time = time.time()
+    
+    print("🔍 Waiting for application to start...")
+    
+    while time.time() - start_time < max_wait:
+        try:
+            response = requests.get(health_url, timeout=2)
+            if response.status_code == 200:
+                print("✅ Application is ready!")
+                return True
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+            # App not ready yet, continue waiting
+            pass
+        
+        # Show progress dots
+        elapsed = int(time.time() - start_time)
+        dots = "." * (elapsed % 4)
+        print(f"\r⏳ Starting up{dots}    ", end="", flush=True)
+        time.sleep(1)
+    
+    print(f"\n⚠️  Application didn't respond within {max_wait} seconds")
+    return False
+
+
+def open_browser_when_ready(url):
+    """Open browser only after the app is confirmed to be ready."""
+    if wait_for_app_ready(url):
+        print(f"\n🌐 Opening browser at {url}")
+        webbrowser.open(url)
+    else:
+        print(f"\n🌐 You can manually access the app at: {url}")
+        print("   The application may still be starting up...")
+
+
 def open_browser_delayed(url, delay=2):
     """Open browser after a delay to ensure server is running"""
     time.sleep(delay)
@@ -351,11 +413,11 @@ def run_app(venv_python):
     print("   Access the app at: http://localhost:5001")
     print("   Press Ctrl+C to stop the server\n")
 
-    # Start browser opening in background
+    # Start browser opening in background with health check
     import threading
 
     browser_thread = threading.Thread(
-        target=open_browser_delayed, args=("http://localhost:5001",)
+        target=open_browser_when_ready, args=("http://localhost:5001",)
     )
     browser_thread.daemon = True
     browser_thread.start()

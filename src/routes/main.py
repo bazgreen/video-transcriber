@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 config = AppConfig()
 
 
+@main_bp.route("/health")
+def health():
+    """Health check endpoint for startup verification."""
+    return {"status": "ready", "message": "Video Transcriber is running"}, 200
+
+
 @main_bp.route("/")
 def index():
     """Main page"""
