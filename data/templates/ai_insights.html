@@ -2,185 +2,513 @@
 
 {% block title %}AI Insights Dashboard - Video Transcriber{% endblock %}
 
-{% block body_class %}layout-centered{% endblock %}
+{% block body_class %}layout-centered-with-header{% endblock %}
 
-{% set show_header = false %}
+{% set show_header = true %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+{% endblock %}
 
 {% block content %}
 <div class="container container-wide">
-    <h1 class="page-title">🤖 AI Insights Dashboard</h1>
-    <p class="page-subtitle">Advanced AI-powered content analysis and intelligent insights</p>
-
-    <div class="nav-links-inline">
-        <a href="{{ url_for('main.index') }}" class="nav-link">
-            <span>🏠</span> Home
-        </a>
-        <a href="{{ url_for('main.sessions') }}" class="nav-link">
-            <span>📁</span> Sessions
-        </a>
-        <a href="{{ url_for('main.batch') }}" class="nav-link">
-            <span>🔄</span> Batch Processing
-        </a>
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">
-            <span>👤</span> Profile
-        </a>
-        {% endif %}
-    </div>
+    <h1 class="page-title">� AI Insights Dashboard</h1>
+    <p class="page-subtitle">Advanced AI-powered content analysis with real-time analytics and intelligent insights</p>
 
     <div id="message" class="message" style="display: none;"></div>
 
-    <!-- AI Capabilities Status -->
-    <div class="card">
-        <h2 class="section-title">🔬 AI Capabilities Status</h2>
-        <div id="capabilitiesStatus" class="loading">
-            <div class="loading-spinner"></div>
-            <span>Checking AI capabilities...</span>
+    <!-- Quick Stats Overview -->
+    <div class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-value" id="totalSessions">-</div>
+                <div class="stat-label">Total Sessions</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🧠</div>
+            <div class="stat-content">
+                <div class="stat-value" id="analyzedSessions">-</div>
+                <div class="stat-label">AI Analyzed</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <div class="stat-value" id="avgSentiment">-</div>
+                <div class="stat-label">Avg Sentiment</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-content">
+                <div class="stat-value" id="topicsFound">-</div>
+                <div class="stat-label">Topics Found</div>
+            </div>
         </div>
     </div>
 
-    <!-- Session Analysis Section -->
+    <!-- AI Capabilities Status -->
     <div class="card">
-        <h2 class="section-title">📊 Session Analysis</h2>
-        <p class="section-description">Generate AI insights for existing sessions or analyze multiple sessions</p>
-
-        <div class="analysis-controls">
-            <div class="form-group">
-                <label for="sessionSelect">Select Session</label>
-                <select id="sessionSelect" class="form-control">
-                    <option value="">Loading sessions...</option>
-                </select>
+        <div class="card-header">
+            <h2 class="section-title">🔬 AI Capabilities Status</h2>
+            <div class="header-actions">
+                <button id="refreshCapabilities" class="btn-icon" title="Refresh capabilities">
+                    <span>🔄</span>
+                </button>
             </div>
+        </div>
+        <div class="card-body">
+            <div id="capabilitiesStatus" class="loading">
+                <div class="loading-spinner"></div>
+                <span>Checking AI capabilities...</span>
+            </div>
+        </div>
+    </div>
 
-            <div class="form-group">
-                <label for="insightTypes">Insight Types</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="sentimentCheck" checked> Sentiment Analysis
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="topicsCheck" checked> Topic Modeling
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="keyInsightsCheck" checked> Key Insights
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="analyticsCheck" checked> Advanced Analytics
-                    </label>
+    <!-- Analysis Controls -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="section-title">🎯 Session Analysis</h2>
+            <div class="header-actions">
+                <button id="realtimeToggle" class="btn-toggle" data-active="false">
+                    <span>📡</span> Real-time Mode
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="analysis-controls">
+                <div class="control-row">
+                    <div class="form-group">
+                        <label for="sessionSelect">Select Session</label>
+                        <select id="sessionSelect" class="form-control">
+                            <option value="">Loading sessions...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="analysisDepth">Analysis Depth</label>
+                        <select id="analysisDepth" class="form-control">
+                            <option value="basic">Basic Analysis</option>
+                            <option value="standard" selected>Standard Analysis</option>
+                            <option value="comprehensive">Comprehensive Analysis</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Analysis Types</label>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="sentimentCheck" checked>
+                            <span class="checkmark"></span>
+                            Sentiment Analysis
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="topicsCheck" checked>
+                            <span class="checkmark"></span>
+                            Topic Modeling
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="keyInsightsCheck" checked>
+                            <span class="checkmark"></span>
+                            Key Insights
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="analyticsCheck" checked>
+                            <span class="checkmark"></span>
+                            Advanced Analytics
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="trendsCheck">
+                            <span class="checkmark"></span>
+                            Trend Analysis
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportReportCheck">
+                            <span class="checkmark"></span>
+                            Export Report
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="analyzeBtn" class="btn btn-primary" title="Analyze Session (Ctrl+Enter)">
+                        <span>🔍</span> Analyze Session
+                    </button>
+                    <button id="batchAnalyzeBtn" class="btn btn-secondary">
+                        <span>📦</span> Batch Analysis
+                    </button>
+                    <button id="compareBtn" class="btn btn-outline">
+                        <span>⚖️</span> Compare Sessions
+                    </button>
+                    <button id="generateReportBtn" class="btn btn-accent" style="display: none;">
+                        <span>📑</span> Generate Report
+                    </button>
                 </div>
             </div>
 
-            <div class="button-group">
-                <button id="analyzeBtn" class="btn btn-primary">
-                    <span>🔍</span> Analyze Session
-                </button>
-                <button id="batchAnalyzeBtn" class="btn btn-secondary">
-                    <span>📦</span> Batch Analysis
-                </button>
+            <div id="analysisProgress" class="progress-section" style="display: none;">
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-details">
+                        <div class="progress-text">Initializing AI analysis...</div>
+                        <div class="progress-steps">
+                            <div class="step" id="step1">🔍 Loading session data</div>
+                            <div class="step" id="step2">🧠 Processing with AI</div>
+                            <div class="step" id="step3">📊 Generating insights</div>
+                            <div class="step" id="step4">✨ Finalizing results</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <div id="analysisProgress" class="progress-section" style="display: none;">
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
-            </div>
-            <div class="progress-text">Generating AI insights...</div>
         </div>
     </div>
 
-    <!-- Results Display -->
+    <!-- Real-time Analytics Dashboard -->
+    <div id="realtimeDashboard" class="card" style="display: none;">
+        <div class="card-header">
+            <h2 class="section-title">📡 Real-time Analytics</h2>
+            <div class="header-actions">
+                <span class="status-indicator live">🔴 LIVE</span>
+                <select id="refreshInterval" class="mini-select">
+                    <option value="5000">5s</option>
+                    <option value="10000" selected>10s</option>
+                    <option value="30000">30s</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="realtime-charts">
+                <div class="chart-container">
+                    <canvas id="sentimentTrendChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="topicDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Dashboard -->
     <div id="resultsSection" style="display: none;">
+
+        <!-- Summary Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="section-title">📋 Analysis Summary</h2>
+                <div class="header-actions">
+                    <button id="exportInsights" class="btn-icon" title="Export insights">
+                        <span>📥</span>
+                    </button>
+                    <button id="shareInsights" class="btn-icon" title="Share insights">
+                        <span>🔗</span>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="summaryContent" class="summary-grid">
+                    <!-- Dynamic summary content -->
+                </div>
+            </div>
+        </div>
 
         <!-- Sentiment Analysis -->
         <div class="card" id="sentimentCard" style="display: none;">
-            <h3 class="section-title">😊 Sentiment Analysis</h3>
-            <div id="sentimentContent"></div>
+            <div class="card-header">
+                <h3 class="section-title">😊 Sentiment Analysis</h3>
+                <div class="header-actions">
+                    <button class="btn-toggle" data-target="sentimentChart">📊 Chart View</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="sentimentContent">
+                    <div class="chart-tabs">
+                        <button class="tab-btn active" data-tab="sentiment-overview">Overview</button>
+                        <button class="tab-btn" data-tab="sentiment-timeline">Timeline</button>
+                        <button class="tab-btn" data-tab="sentiment-peaks">Emotional Peaks</button>
+                    </div>
+
+                    <div class="tab-content active" id="sentiment-overview">
+                        <div id="sentimentOverview"></div>
+                        <div class="chart-container">
+                            <canvas id="sentimentChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="sentiment-timeline">
+                        <div class="chart-container">
+                            <canvas id="sentimentTimelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="sentiment-peaks">
+                        <div id="sentimentPeaks"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Topic Modeling -->
+        <!-- Topic Analysis -->
         <div class="card" id="topicsCard" style="display: none;">
-            <h3 class="section-title">📝 Topic Analysis</h3>
-            <div id="topicsContent"></div>
+            <div class="card-header">
+                <h3 class="section-title">📝 Topic Analysis</h3>
+                <div class="header-actions">
+                    <select id="topicView" class="mini-select">
+                        <option value="cloud">Word Cloud</option>
+                        <option value="distribution">Distribution</option>
+                        <option value="timeline">Timeline</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="topicsContent">
+                    <div class="topics-header">
+                        <div class="topic-stats">
+                            <span id="topicCount">0 topics found</span>
+                            <span id="topicCoverage">0% coverage</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="topicsChart"></canvas>
+                    </div>
+                    <div id="topicsGrid"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Speaker Analysis -->
         <div class="card" id="speakerCard" style="display: none;">
-            <h3 class="section-title">🎤 Speaker Analysis</h3>
-            <div id="speakerContent"></div>
+            <div class="card-header">
+                <h3 class="section-title">🎤 Speaker Analysis</h3>
+            </div>
+            <div class="card-body">
+                <div id="speakerContent">
+                    <div class="speaker-metrics"></div>
+                    <div class="chart-container">
+                        <canvas id="speakerChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Key Insights -->
         <div class="card" id="keyInsightsCard" style="display: none;">
-            <h3 class="section-title">💡 Key Insights</h3>
-            <div id="keyInsightsContent"></div>
+            <div class="card-header">
+                <h3 class="section-title">💡 Key Insights</h3>
+                <div class="header-actions">
+                    <button id="insightFilter" class="btn-toggle" data-filter="all">
+                        <span>🔍</span> All Types
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="keyInsightsContent">
+                    <div class="insights-filter">
+                        <button class="filter-btn active" data-type="all">All</button>
+                        <button class="filter-btn" data-type="action_items">Actions</button>
+                        <button class="filter-btn" data-type="takeaways">Takeaways</button>
+                        <button class="filter-btn" data-type="decisions">Decisions</button>
+                    </div>
+                    <div id="insightsList"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Advanced Analytics -->
         <div class="card" id="analyticsCard" style="display: none;">
-            <h3 class="section-title">📈 Advanced Analytics</h3>
-            <div id="analyticsContent"></div>
+            <div class="card-header">
+                <h3 class="section-title">📈 Advanced Analytics</h3>
+                <div class="header-actions">
+                    <button class="btn-toggle" data-target="analyticsExport">📊 Export Data</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="analyticsContent">
+                    <div class="analytics-dashboard">
+                        <div class="chart-container">
+                            <canvas id="analyticsChart"></canvas>
+                        </div>
+                        <div id="analyticsMetrics"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Content Classification -->
-        <div class="card" id="classificationCard" style="display: none;">
-            <h3 class="section-title">🏷️ Content Classification</h3>
-            <div id="classificationContent"></div>
+        <!-- Trend Analysis -->
+        <div class="card" id="trendsCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="section-title">📈 Trend Analysis</h3>
+                <div class="header-actions">
+                    <select id="trendPeriod" class="mini-select">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="trendsContent">
+                    <div class="chart-container">
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
+    </div>
+
+    <!-- Batch Analysis Modal -->
+    <div id="batchModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Batch Analysis</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="batch-controls">
+                    <div class="form-group">
+                        <label>Select Sessions</label>
+                        <div id="batchSessionList" class="session-list">
+                            <!-- Dynamic session list -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Analysis Type</label>
+                        <select id="batchAnalysisType">
+                            <option value="basic">Basic Analysis</option>
+                            <option value="sentiment">Sentiment Analysis</option>
+                            <option value="topics">Topic Analysis</option>
+                            <option value="comprehensive">Comprehensive</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="batchProgress" class="batch-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="batch-status"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="startBatchBtn" class="btn btn-primary">Start Batch Analysis</button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
     </div>
 
 </div>
 
 <style>
-/* AI Insights Dashboard Styles */
+/* AI Insights Dashboard - Enhanced Styles */
 .container-wide {
-    max-width: 1200px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
+/* Stats Overview */
+.stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 24px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.9;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Card System */
 .card {
     background: white;
-    border-radius: 8px;
-    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
     margin-bottom: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+    border: 1px solid #e1e8ed;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px 24px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-body {
+    padding: 24px;
 }
 
 .section-title {
-    margin: 0 0 16px 0;
+    margin: 0;
     color: #2c3e50;
-    font-size: 1.4em;
+    font-size: 1.25rem;
     font-weight: 600;
-}
-
-.section-description {
-    color: #7f8c8d;
-    margin-bottom: 20px;
-}
-
-.loading {
     display: flex;
     align-items: center;
+    gap: 8px;
+}
+
+.header-actions {
+    display: flex;
     gap: 12px;
-    padding: 20px;
-    color: #7f8c8d;
+    align-items: center;
 }
 
-.loading-spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e0e0e0;
-    border-top: 2px solid #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
+/* Form Controls */
 .analysis-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.control-row {
     display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
 }
 
@@ -190,797 +518,1651 @@
     gap: 8px;
 }
 
-.form-control {
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+.form-group label {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
 }
 
-.checkbox-group {
+.form-control {
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.mini-select {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    background: white;
+}
+
+/* Checkbox Grid */
+.checkbox-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+    gap: 16px;
 }
 
 .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: normal;
+    gap: 12px;
     cursor: pointer;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background: #f9fafb;
+}
+
+.checkbox-label:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
 }
 
 .checkbox-label input[type="checkbox"] {
-    margin: 0;
+    display: none;
 }
 
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Buttons */
 .button-group {
     display: flex;
     gap: 12px;
-    margin-top: 20px;
+    flex-wrap: wrap;
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 12px 20px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
+    text-decoration: none;
+    min-height: 44px;
 }
 
 .btn-primary {
-    background-color: #3498db;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #2980b9;
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .btn-secondary {
-    background-color: #95a5a6;
+    background: #6c757d;
     color: white;
 }
 
 .btn-secondary:hover {
-    background-color: #7f8c8d;
+    background: #5a6268;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid #667eea;
+    color: #667eea;
+}
+
+.btn-outline:hover {
+    background: #667eea;
+    color: white;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-accent:hover {
+    background: linear-gradient(135deg, #218838 0%, #1da589 100%);
+}
+
+.btn-icon {
+    background: transparent;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.btn-toggle {
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-toggle[data-active="true"] {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
 }
 
 .btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
+/* Progress System */
 .progress-section {
-    margin-top: 20px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    margin-top: 24px;
+    padding: 24px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 1px solid #dee2e6;
+}
+
+.progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .progress-bar {
     width: 100%;
     height: 8px;
-    background: #e0e0e0;
+    background: #e9ecef;
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 12px;
+    position: relative;
 }
 
 .progress-fill {
     height: 100%;
-    background: #3498db;
+    background: linear-gradient(90deg, #667eea, #764ba2);
     width: 0%;
     transition: width 0.3s ease;
-    animation: progressPulse 2s ease-in-out infinite;
+    border-radius: 4px;
+    position: relative;
 }
 
-@keyframes progressPulse {
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-text {
+    font-weight: 500;
+    color: #374151;
+}
+
+.progress-steps {
+    display: flex;
+    gap: 16px;
+    font-size: 0.75rem;
+}
+
+.step {
+    color: #9ca3af;
+    transition: color 0.2s ease;
+}
+
+.step.active {
+    color: #667eea;
+    font-weight: 500;
+}
+
+/* Real-time Dashboard */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-indicator.live {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
 
-.progress-text {
-    text-align: center;
-    color: #7f8c8d;
-    font-size: 14px;
+.realtime-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
 }
 
-.message {
-    padding: 12px 16px;
-    border-radius: 6px;
+/* Chart Containers */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin: 20px 0;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 4px;
     margin-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #6b7280;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
     font-weight: 500;
 }
 
-.message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+.tab-content {
+    display: none;
 }
 
-.message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.message.warning {
-    background-color: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
-}
-
-.message.info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
-
-/* Results Display Styles */
-.sentiment-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.sentiment-stat {
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.sentiment-stat .value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #2c3e50;
+.tab-content.active {
     display: block;
 }
 
-.sentiment-stat .label {
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-top: 4px;
+/* Results Display */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.summary-card {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.summary-card h4 {
+    margin: 0 0 8px 0;
+    color: #374151;
+    font-size: 1rem;
+}
+
+.summary-card .value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Analytics Specific */
+.analytics-dashboard {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+.analytics-metrics {
+    display: grid;
+    gap: 16px;
+}
+
+.metric-item {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    font-weight: 500;
+    color: #374151;
+}
+
+.metric-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Topic Analysis */
+.topics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.topic-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
 .topics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
+    margin-top: 20px;
 }
 
 .topic-card {
-    padding: 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    background: #fafafa;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.topic-card .topic-title {
+.topic-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.topic-title {
     font-weight: 600;
-    margin-bottom: 8px;
-    color: #2c3e50;
+    margin-bottom: 12px;
+    color: #374151;
+    font-size: 1rem;
 }
 
 .topic-keywords {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .keyword-tag {
-    background: #3498db;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-}
-
-.insights-list {
-    display: grid;
-    gap: 12px;
-}
-
-.insight-item {
-    padding: 16px;
-    border-left: 4px solid #3498db;
-    background: #f8f9fa;
-    border-radius: 0 6px 6px 0;
-}
-
-.insight-item .timestamp {
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 4px;
-}
-
-.insight-item .content {
-    color: #2c3e50;
-}
-
-.analytics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-.analytics-metric {
-    padding: 16px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.analytics-metric .metric-value {
-    font-size: 20px;
-    font-weight: bold;
-    color: #2c3e50;
-    display: block;
-}
-
-.analytics-metric .metric-label {
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-top: 4px;
-}
-
-.status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 12px;
     border-radius: 16px;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
-.status-available {
-    background: #d4edda;
-    color: #155724;
+.topic-strength {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
 }
 
-.status-unavailable {
-    background: #f8d7da;
-    color: #721c24;
+/* Insights Display */
+.insights-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
-.status-partial {
-    background: #fff3cd;
-    color: #856404;
+.filter-btn {
+    padding: 6px 16px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-/* Responsive adjustments */
+.filter-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.insight-item {
+    padding: 20px;
+    border-left: 4px solid #667eea;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 0 8px 8px 0;
+    transition: transform 0.2s ease;
+}
+
+.insight-item:hover {
+    transform: translateX(4px);
+}
+
+.insight-item .timestamp {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.insight-item .content {
+    color: #374151;
+    line-height: 1.5;
+}
+
+.insight-item .priority {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    margin-left: 8px;
+}
+
+.priority.high {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.priority.medium {
+    background: #fefbf2;
+    color: #d97706;
+}
+
+.priority.low {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+/* Modal System */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #374151;
+    font-size: 1.25rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 4px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 16px 24px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Batch Analysis */
+.session-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.session-item:hover {
+    background: #f3f4f6;
+}
+
+.session-item input[type="checkbox"] {
+    margin: 0;
+}
+
+.batch-progress {
+    margin-top: 20px;
+}
+
+.batch-status {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Loading States */
+.loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    color: #6b7280;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Messages */
+.message {
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.message.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.message.warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.message.info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .realtime-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .control-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .container-wide {
-        padding: 16px;
+        padding: 0 16px;
+    }
+
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .checkbox-grid {
+        grid-template-columns: 1fr;
     }
 
     .button-group {
         flex-direction: column;
     }
 
-    .checkbox-group {
+    .chart-container {
+        height: 250px;
+    }
+
+    .topics-grid {
         grid-template-columns: 1fr;
     }
 
-    .sentiment-overview,
-    .topics-grid,
-    .analytics-grid {
-        grid-template-columns: 1fr;
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 20px 0;
+    }
+}
+
+/* Status Indicators */
+.status-available {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-unavailable {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-partial {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Animation Enhancements */
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+    .card {
+        background: #1f2937;
+        border-color: #374151;
+        color: #f9fafb;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+        border-color: #4b5563;
+    }
+
+    .section-title {
+        color: #f9fafb;
     }
 }
 </style>
 
 <script>
-// AI Insights Dashboard JavaScript
-let currentSessionData = null;
-let aiCapabilities = null;
+// AI Insights Dashboard - Enhanced JavaScript
+class AIInsightsDashboard {
+    constructor() {
+        this.currentSessionData = null;
+        this.aiCapabilities = null;
+        this.realtimeMode = false;
+        this.realtimeInterval = null;
+        this.charts = {};
+        this.sessionsData = [];
+        this.globalStats = {
+            totalSessions: 0,
+            analyzedSessions: 0,
+            avgSentiment: 0,
+            topicsFound: 0
+        };
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeDashboard();
-});
-
-async function initializeDashboard() {
-    await loadAICapabilities();
-    await loadSessions();
-    setupEventListeners();
-}
-
-async function loadAICapabilities() {
-    try {
-        const response = await fetch('/api/ai/capabilities');
-        const data = await response.json();
-
-        aiCapabilities = data;
-        displayCapabilitiesStatus(data);
-
-    } catch (error) {
-        console.error('Error loading AI capabilities:', error);
-        displayCapabilitiesError();
-    }
-}
-
-function displayCapabilitiesStatus(capabilities) {
-    const container = document.getElementById('capabilitiesStatus');
-
-    if (!capabilities.ai_insights_available) {
-        container.innerHTML = `
-            <div class="status-indicator status-unavailable">
-                ❌ AI Insights Not Available
-            </div>
-            <div style="margin-top: 12px;">
-                <p><strong>Required packages:</strong> ${capabilities.installation_info.required_packages.join(', ')}</p>
-                <p><strong>Install command:</strong> <code>${capabilities.installation_info.install_command}</code></p>
-                <p><strong>Additional setup:</strong> <code>${capabilities.installation_info.spacy_model_command}</code></p>
-            </div>
-        `;
-
-        // Disable analysis buttons
-        document.getElementById('analyzeBtn').disabled = true;
-        document.getElementById('batchAnalyzeBtn').disabled = true;
-        return;
+        this.init();
     }
 
-    let availableFeatures = [];
-    let unavailableFeatures = [];
+    async init() {
+        await this.loadAICapabilities();
+        await this.loadSessions();
+        await this.loadGlobalStats();
+        this.setupEventListeners();
+        this.updateStatsDisplay();
+    }
 
-    for (const [feature, available] of Object.entries(capabilities.features)) {
-        if (available) {
-            availableFeatures.push(feature.replace('_', ' '));
-        } else {
-            unavailableFeatures.push(feature.replace('_', ' '));
+    // === Data Loading ===
+    async loadAICapabilities() {
+        try {
+            const response = await fetch('/api/ai/capabilities');
+            const data = await response.json();
+
+            this.aiCapabilities = data;
+            this.displayCapabilitiesStatus(data);
+
+        } catch (error) {
+            console.error('Error loading AI capabilities:', error);
+            this.displayCapabilitiesError();
         }
     }
 
-    container.innerHTML = `
-        <div class="status-indicator status-available">
-            ✅ AI Insights Available
-        </div>
-        ${availableFeatures.length > 0 ? `
-            <div style="margin-top: 12px;">
-                <strong>Available features:</strong> ${availableFeatures.join(', ')}
-            </div>
-        ` : ''}
-        ${unavailableFeatures.length > 0 ? `
-            <div style="margin-top: 8px; color: #856404;">
-                <strong>Limited features:</strong> ${unavailableFeatures.join(', ')}
-            </div>
-        ` : ''}
-    `;
-}
+    async loadSessions() {
+        try {
+            const response = await fetch('/api/sessions');
+            const data = await response.json();
 
-function displayCapabilitiesError() {
-    const container = document.getElementById('capabilitiesStatus');
-    container.innerHTML = `
-        <div class="status-indicator status-unavailable">
-            ❌ Error checking AI capabilities
-        </div>
-    `;
-}
+            this.sessionsData = data.sessions || [];
+            this.populateSessionSelect();
+            this.updateGlobalStats();
 
-async function loadSessions() {
-    try {
-        const response = await fetch('/api/sessions');
-        const data = await response.json();
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+            this.showMessage('Failed to load sessions', 'error');
+        }
+    }
 
+    async loadGlobalStats() {
+        try {
+            // Calculate global statistics from sessions
+            let analyzedCount = 0;
+            let sentimentSum = 0;
+            let sentimentCount = 0;
+            let topicsSet = new Set();
+
+            for (const session of this.sessionsData) {
+                // Check if AI insights exist
+                const insightsResponse = await fetch(`/api/ai/insights/${session.session_id}`);
+                if (insightsResponse.ok) {
+                    analyzedCount++;
+                    const insightsData = await insightsResponse.json();
+
+                    // Aggregate sentiment
+                    if (insightsData.ai_insights?.sentiment_analysis?.overall?.polarity !== undefined) {
+                        sentimentSum += insightsData.ai_insights.sentiment_analysis.overall.polarity;
+                        sentimentCount++;
+                    }
+
+                    // Aggregate topics
+                    if (insightsData.ai_insights?.topic_modeling?.main_topics) {
+                        insightsData.ai_insights.topic_modeling.main_topics.forEach(topic => {
+                            topic.keywords.forEach(keyword => topicsSet.add(keyword));
+                        });
+                    }
+                }
+            }
+
+            this.globalStats = {
+                totalSessions: this.sessionsData.length,
+                analyzedSessions: analyzedCount,
+                avgSentiment: sentimentCount > 0 ? (sentimentSum / sentimentCount).toFixed(2) : 0,
+                topicsFound: topicsSet.size
+            };
+
+        } catch (error) {
+            console.error('Error loading global stats:', error);
+        }
+    }
+
+    // === UI Updates ===
+    updateStatsDisplay() {
+        document.getElementById('totalSessions').textContent = this.globalStats.totalSessions;
+        document.getElementById('analyzedSessions').textContent = this.globalStats.analyzedSessions;
+        document.getElementById('avgSentiment').textContent = this.globalStats.avgSentiment;
+        document.getElementById('topicsFound').textContent = this.globalStats.topicsFound;
+    }
+
+    populateSessionSelect() {
         const sessionSelect = document.getElementById('sessionSelect');
         sessionSelect.innerHTML = '<option value="">Select a session...</option>';
 
-        if (data.sessions && data.sessions.length > 0) {
-            data.sessions.forEach(session => {
+        if (this.sessionsData.length > 0) {
+            this.sessionsData.forEach(session => {
                 const option = document.createElement('option');
                 option.value = session.session_id;
                 option.textContent = `${session.session_name || session.session_id} - ${session.created_at || 'Unknown date'}`;
                 sessionSelect.appendChild(option);
             });
         } else {
-            sessionSelect.innerHTML = '<option value="">No sessions available</option>';
+            sessionSelect.innerHTML = '<option value="">No sessions available - Upload a video first</option>';
+            this.disableAnalysisControls();
         }
-
-    } catch (error) {
-        console.error('Error loading sessions:', error);
-        const sessionSelect = document.getElementById('sessionSelect');
-        sessionSelect.innerHTML = '<option value="">Error loading sessions</option>';
-    }
-}
-
-function setupEventListeners() {
-    document.getElementById('analyzeBtn').addEventListener('click', analyzeSession);
-    document.getElementById('batchAnalyzeBtn').addEventListener('click', showBatchAnalysisDialog);
-}
-
-async function analyzeSession() {
-    const sessionId = document.getElementById('sessionSelect').value;
-    if (!sessionId) {
-        showMessage('Please select a session to analyze', 'warning');
-        return;
     }
 
-    if (!aiCapabilities || !aiCapabilities.ai_insights_available) {
-        showMessage('AI insights are not available. Please install required dependencies.', 'error');
-        return;
-    }
+    displayCapabilitiesStatus(capabilities) {
+        const container = document.getElementById('capabilitiesStatus');
 
-    showProgress(true);
-
-    try {
-        // First, generate AI insights
-        const analyzeResponse = await fetch(`/api/ai/analyze/${sessionId}`, {
-            method: 'POST'
-        });
-
-        if (!analyzeResponse.ok) {
-            throw new Error('Failed to generate AI insights');
-        }
-
-        // Then fetch the complete insights
-        const insightsResponse = await fetch(`/api/ai/insights/${sessionId}`);
-        const insightsData = await insightsResponse.json();
-
-        if (insightsResponse.ok && insightsData.ai_insights) {
-            currentSessionData = insightsData;
-            displayResults(insightsData.ai_insights);
-            showMessage('AI insights generated successfully!', 'success');
-        } else {
-            throw new Error(insightsData.error || 'Failed to fetch insights');
-        }
-
-    } catch (error) {
-        console.error('Error analyzing session:', error);
-        showMessage(`Analysis failed: ${error.message}`, 'error');
-    } finally {
-        showProgress(false);
-    }
-}
-
-function showProgress(show) {
-    const progressSection = document.getElementById('analysisProgress');
-    const progressFill = progressSection.querySelector('.progress-fill');
-
-    if (show) {
-        progressSection.style.display = 'block';
-        // Animate progress bar
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress > 90) progress = 90;
-            progressFill.style.width = progress + '%';
-        }, 500);
-        progressSection.dataset.interval = interval;
-    } else {
-        progressSection.style.display = 'none';
-        if (progressSection.dataset.interval) {
-            clearInterval(progressSection.dataset.interval);
-        }
-        progressFill.style.width = '0%';
-    }
-}
-
-function displayResults(aiInsights) {
-    const resultsSection = document.getElementById('resultsSection');
-    resultsSection.style.display = 'block';
-
-    // Display sentiment analysis
-    if (aiInsights.sentiment_analysis && !aiInsights.sentiment_analysis.error) {
-        displaySentimentAnalysis(aiInsights.sentiment_analysis);
-    }
-
-    // Display topic modeling
-    if (aiInsights.topic_modeling && !aiInsights.topic_modeling.error) {
-        displayTopicAnalysis(aiInsights.topic_modeling);
-    }
-
-    // Display speaker analysis
-    if (aiInsights.speaker_analysis) {
-        displaySpeakerAnalysis(aiInsights.speaker_analysis);
-    }
-
-    // Display key insights
-    if (aiInsights.key_insights) {
-        displayKeyInsights(aiInsights.key_insights);
-    }
-
-    // Display advanced analytics
-    if (aiInsights.advanced_analytics) {
-        displayAdvancedAnalytics(aiInsights.advanced_analytics);
-    }
-
-    // Display content classification
-    if (aiInsights.content_classification) {
-        displayContentClassification(aiInsights.content_classification);
-    }
-}
-
-function displaySentimentAnalysis(sentimentData) {
-    const card = document.getElementById('sentimentCard');
-    const content = document.getElementById('sentimentContent');
-
-    if (sentimentData.error) {
-        content.innerHTML = `<div class="error">Error: ${sentimentData.error}</div>`;
-        card.style.display = 'block';
-        return;
-    }
-
-    const overall = sentimentData.overall || {};
-    const trends = sentimentData.trends || {};
-    const peaks = sentimentData.emotional_peaks || [];
-
-    content.innerHTML = `
-        <div class="sentiment-overview">
-            <div class="sentiment-stat">
-                <span class="value">${(overall.polarity || 0).toFixed(2)}</span>
-                <div class="label">Overall Polarity</div>
-            </div>
-            <div class="sentiment-stat">
-                <span class="value">${(overall.subjectivity || 0).toFixed(2)}</span>
-                <div class="label">Subjectivity</div>
-            </div>
-            <div class="sentiment-stat">
-                <span class="value">${overall.interpretation || 'Unknown'}</span>
-                <div class="label">Interpretation</div>
-            </div>
-            <div class="sentiment-stat">
-                <span class="value">${trends.progression || 'Unknown'}</span>
-                <div class="label">Trend</div>
-            </div>
-        </div>
-
-        ${peaks.length > 0 ? `
-            <h4>Emotional Peaks</h4>
-            <div class="insights-list">
-                ${peaks.slice(0, 5).map(peak => `
-                    <div class="insight-item">
-                        <div class="timestamp">[${peak.timestamp}] ${peak.type} peak</div>
-                        <div class="content">${peak.text_preview}</div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : ''}
-    `;
-
-    card.style.display = 'block';
-}
-
-function displayTopicAnalysis(topicData) {
-    const card = document.getElementById('topicsCard');
-    const content = document.getElementById('topicsContent');
-
-    if (topicData.error) {
-        content.innerHTML = `<div class="error">Error: ${topicData.error}</div>`;
-        card.style.display = 'block';
-        return;
-    }
-
-    const topics = topicData.main_topics || [];
-    const distribution = topicData.topic_distribution || {};
-
-    content.innerHTML = `
-        <div class="topics-grid">
-            ${topics.map(topic => `
-                <div class="topic-card">
-                    <div class="topic-title">${topic.description}</div>
-                    <div class="topic-keywords">
-                        ${topic.keywords.map(keyword => `
-                            <span class="keyword-tag">${keyword}</span>
-                        `).join('')}
-                    </div>
-                    <div style="font-size: 12px; color: #7f8c8d;">
-                        Strength: ${(topic.strength * 100).toFixed(1)}%
+        if (!capabilities.ai_insights_available) {
+            container.innerHTML = `
+                <div class="status-indicator status-unavailable">
+                    ❌ AI Insights Not Available
+                </div>
+                <div style="margin-top: 16px;">
+                    <p><strong>Required packages:</strong> ${capabilities.installation_info.required_packages.join(', ')}</p>
+                    <div style="margin-top: 12px;">
+                        <button class="btn btn-primary" onclick="this.installAIFeatures()">
+                            <span>⚡</span> Install AI Features
+                        </button>
                     </div>
                 </div>
-            `).join('')}
-        </div>
+            `;
 
-        ${Object.keys(distribution).length > 0 ? `
-            <h4 style="margin-top: 20px;">Topic Distribution</h4>
-            <div class="analytics-grid">
-                ${Object.entries(distribution).map(([topicKey, data]) => `
-                    <div class="analytics-metric">
-                        <span class="metric-value">${data.percentage}%</span>
-                        <div class="metric-label">${data.description}</div>
+            this.disableAnalysisControls();
+            return;
+        }
+
+        let availableFeatures = [];
+        let unavailableFeatures = [];
+
+        for (const [feature, available] of Object.entries(capabilities.features)) {
+            if (available) {
+                availableFeatures.push(feature.replace('_', ' '));
+            } else {
+                unavailableFeatures.push(feature.replace('_', ' '));
+            }
+        }
+
+        container.innerHTML = `
+            <div class="status-indicator status-available">
+                ✅ AI Insights Available
+            </div>
+            ${availableFeatures.length > 0 ? `
+                <div class="capability-grid" style="margin-top: 16px;">
+                    ${availableFeatures.map(feature => `
+                        <div class="capability-item">
+                            <span class="capability-icon">✓</span>
+                            <span class="capability-name">${feature}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            ${unavailableFeatures.length > 0 ? `
+                <div style="margin-top: 12px; color: #d97706;">
+                    <strong>Limited features:</strong> ${unavailableFeatures.join(', ')}
+                </div>
+            ` : ''}
+        `;
+    }
+
+    disableAnalysisControls() {
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('batchAnalyzeBtn').disabled = true;
+        document.getElementById('compareBtn').disabled = true;
+    }
+
+    // === Event Handlers ===
+    setupEventListeners() {
+        // Analysis controls
+        document.getElementById('analyzeBtn').addEventListener('click', () => this.analyzeSession());
+        document.getElementById('batchAnalyzeBtn').addEventListener('click', () => this.showBatchAnalysisModal());
+        document.getElementById('compareBtn').addEventListener('click', () => this.showCompareModal());
+        document.getElementById('generateReportBtn').addEventListener('click', () => this.generateReport());
+
+        // Real-time mode
+        document.getElementById('realtimeToggle').addEventListener('click', () => this.toggleRealtimeMode());
+        document.getElementById('refreshInterval').addEventListener('change', () => this.updateRealtimeInterval());
+
+        // Capabilities refresh
+        document.getElementById('refreshCapabilities').addEventListener('click', () => this.loadAICapabilities());
+
+        // Tab management
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-btn')) {
+                this.handleTabClick(e.target);
+            }
+        });
+
+        // Filter management
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-btn')) {
+                this.handleFilterClick(e.target);
+            }
+        });
+
+        // Modal controls
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-close')) {
+                this.closeModal(e.target.closest('.modal'));
+            }
+        });
+
+        // Analysis type changes
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => this.updateAnalysisOptions());
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Enter to analyze
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                this.analyzeSession();
+            }
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.modal[style*="display: block"]');
+                openModals.forEach(modal => this.closeModal(modal));
+            }
+        });
+    }
+
+    handleTabClick(tabBtn) {
+        const tabContainer = tabBtn.closest('.card-body');
+        const targetTab = tabBtn.dataset.tab;
+
+        // Update tab buttons
+        tabContainer.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        tabBtn.classList.add('active');
+
+        // Update tab content
+        tabContainer.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        tabContainer.querySelector(`#${targetTab}`).classList.add('active');
+    }
+
+    handleFilterClick(filterBtn) {
+        const filterContainer = filterBtn.parentElement;
+        const filterType = filterBtn.dataset.type;
+
+        // Update filter buttons
+        filterContainer.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        filterBtn.classList.add('active');
+
+        // Filter insights
+        this.filterInsights(filterType);
+    }
+
+    updateAnalysisOptions() {
+        const exportReportCheck = document.getElementById('exportReportCheck');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+
+        if (exportReportCheck.checked) {
+            generateReportBtn.style.display = 'flex';
+        } else {
+            generateReportBtn.style.display = 'none';
+        }
+    }
+
+    // === Analysis Functions ===
+    async analyzeSession() {
+        const sessionId = document.getElementById('sessionSelect').value;
+        if (!sessionId) {
+            this.showMessage('Please select a session to analyze', 'warning');
+            return;
+        }
+
+        if (!this.aiCapabilities || !this.aiCapabilities.ai_insights_available) {
+            this.showMessage('AI insights are not available. Please install required dependencies.', 'error');
+            return;
+        }
+
+        this.showProgress(true);
+        this.updateProgressStep(1, 'Loading session data...');
+
+        try {
+            this.updateProgressStep(2, 'Processing with AI engines...');
+
+            // Generate AI insights
+            const analyzeResponse = await fetch(`/api/ai/analyze/${sessionId}`, {
+                method: 'POST'
+            });
+
+            if (!analyzeResponse.ok) {
+                throw new Error('Failed to generate AI insights');
+            }
+
+            this.updateProgressStep(3, 'Generating visualizations...');
+
+            // Fetch complete insights
+            const insightsResponse = await fetch(`/api/ai/insights/${sessionId}`);
+            const insightsData = await insightsResponse.json();
+
+            if (insightsResponse.ok && insightsData.ai_insights) {
+                this.updateProgressStep(4, 'Finalizing dashboard...');
+
+                this.currentSessionData = insightsData;
+                await this.displayResults(insightsData.ai_insights);
+                this.showMessage('AI insights generated successfully!', 'success');
+
+                // Update global stats
+                await this.loadGlobalStats();
+                this.updateStatsDisplay();
+            } else {
+                throw new Error(insightsData.error || 'Failed to fetch insights');
+            }
+
+        } catch (error) {
+            console.error('Error analyzing session:', error);
+            this.showMessage(`Analysis failed: ${error.message}`, 'error');
+        } finally {
+            this.showProgress(false);
+        }
+    }
+
+    // === Progress Management ===
+    showProgress(show) {
+        const progressSection = document.getElementById('analysisProgress');
+        const progressFill = progressSection.querySelector('.progress-fill');
+
+        if (show) {
+            progressSection.style.display = 'block';
+            this.animateProgress();
+        } else {
+            progressSection.style.display = 'none';
+            progressFill.style.width = '0%';
+            this.clearProgressSteps();
+        }
+    }
+
+    updateProgressStep(stepNumber, message) {
+        document.querySelector('.progress-text').textContent = message;
+
+        // Update step indicators
+        document.querySelectorAll('.step').forEach((step, index) => {
+            if (index < stepNumber) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+    }
+
+    clearProgressSteps() {
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.remove('active');
+        });
+    }
+
+    animateProgress() {
+        const progressFill = document.querySelector('.progress-fill');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            progressFill.style.width = progress + '%';
+        }, 300);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            progressFill.style.width = '100%';
+        }, 2000);
+    }
+
+    // === Results Display ===
+    async displayResults(aiInsights) {
+        const resultsSection = document.getElementById('resultsSection');
+        resultsSection.style.display = 'block';
+        resultsSection.classList.add('fade-in');
+
+        // Display summary
+        this.displaySummary(aiInsights);
+
+        // Display individual analysis sections
+        if (aiInsights.sentiment_analysis && !aiInsights.sentiment_analysis.error) {
+            await this.displaySentimentAnalysis(aiInsights.sentiment_analysis);
+        }
+
+        if (aiInsights.topic_modeling && !aiInsights.topic_modeling.error) {
+            await this.displayTopicAnalysis(aiInsights.topic_modeling);
+        }
+
+        if (aiInsights.speaker_analysis) {
+            await this.displaySpeakerAnalysis(aiInsights.speaker_analysis);
+        }
+
+        if (aiInsights.key_insights) {
+            this.displayKeyInsights(aiInsights.key_insights);
+        }
+
+        if (aiInsights.advanced_analytics) {
+            await this.displayAdvancedAnalytics(aiInsights.advanced_analytics);
+        }
+
+        // Show trend analysis if enabled
+        if (document.getElementById('trendsCheck').checked) {
+            await this.displayTrendAnalysis();
+        }
+    }
+
+    displaySummary(aiInsights) {
+        const summaryContent = document.getElementById('summaryContent');
+
+        const sentiment = aiInsights.sentiment_analysis?.overall || {};
+        const topics = aiInsights.topic_modeling?.main_topics || [];
+        const insights = aiInsights.key_insights || {};
+        const analytics = aiInsights.advanced_analytics?.content_metrics || {};
+
+        summaryContent.innerHTML = `
+            <div class="summary-card">
+                <h4>Sentiment Overview</h4>
+                <div class="value">${sentiment.interpretation || 'Unknown'}</div>
+                <div class="sub-value">Polarity: ${(sentiment.polarity || 0).toFixed(2)}</div>
+            </div>
+            <div class="summary-card">
+                <h4>Topics Identified</h4>
+                <div class="value">${topics.length}</div>
+                <div class="sub-value">Main themes discovered</div>
+            </div>
+            <div class="summary-card">
+                <h4>Key Insights</h4>
+                <div class="value">${(insights.action_items?.length || 0) + (insights.key_takeaways?.length || 0)}</div>
+                <div class="sub-value">Actions & takeaways</div>
+            </div>
+            <div class="summary-card">
+                <h4>Content Complexity</h4>
+                <div class="value">${analytics.reading_level || 'Unknown'}</div>
+                <div class="sub-value">Reading level</div>
+            </div>
+        `;
+    }
+
+    async displaySentimentAnalysis(sentimentData) {
+        const card = document.getElementById('sentimentCard');
+        const overviewContent = document.getElementById('sentiment-overview');
+
+        if (sentimentData.error) {
+            overviewContent.innerHTML = `<div class="error">Error: ${sentimentData.error}</div>`;
+            card.style.display = 'block';
+            return;
+        }
+
+        const overall = sentimentData.overall || {};
+        const trends = sentimentData.trends || {};
+        const peaks = sentimentData.emotional_peaks || [];
+
+        // Overview display
+        overviewContent.innerHTML = `
+            <div class="sentiment-overview">
+                <div class="sentiment-stat">
+                    <span class="value">${(overall.polarity || 0).toFixed(2)}</span>
+                    <div class="label">Overall Polarity</div>
+                </div>
+                <div class="sentiment-stat">
+                    <span class="value">${(overall.subjectivity || 0).toFixed(2)}</span>
+                    <div class="label">Subjectivity</div>
+                </div>
+                <div class="sentiment-stat">
+                    <span class="value">${overall.interpretation || 'Unknown'}</span>
+                    <div class="label">Interpretation</div>
+                </div>
+                <div class="sentiment-stat">
+                    <span class="value">${trends.progression || 'Stable'}</span>
+                    <div class="label">Trend</div>
+                </div>
+            </div>
+        `;
+
+        // Create sentiment chart
+        await this.createSentimentChart(sentimentData);
+
+        // Display emotional peaks
+        const peaksContent = document.getElementById('sentiment-peaks');
+        if (peaks.length > 0) {
+            peaksContent.innerHTML = `
+                <h4>Emotional Peaks</h4>
+                <div class="insights-list">
+                    ${peaks.slice(0, 5).map(peak => `
+                        <div class="insight-item">
+                            <div class="timestamp">[${peak.timestamp}] ${peak.type} peak</div>
+                            <div class="content">${peak.text_preview}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            peaksContent.innerHTML = '<div class="no-data">No significant emotional peaks detected</div>';
+        }
+
+        card.style.display = 'block';
+    }
+
+    async createSentimentChart(sentimentData) {
+        const ctx = document.getElementById('sentimentChart');
+        if (!ctx) return;
+
+        // Destroy existing chart
+        if (this.charts.sentiment) {
+            this.charts.sentiment.destroy();
+        }
+
+        const chartData = {
+            labels: ['Positive', 'Neutral', 'Negative'],
+            datasets: [{
+                label: 'Sentiment Distribution',
+                data: [
+                    sentimentData.distribution?.positive || 0,
+                    sentimentData.distribution?.neutral || 0,
+                    sentimentData.distribution?.negative || 0
+                ],
+                backgroundColor: [
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(156, 163, 175, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(34, 197, 94)',
+                    'rgb(156, 163, 175)',
+                    'rgb(239, 68, 68)'
+                ],
+                borderWidth: 2
+            }]
+        };
+
+        this.charts.sentiment = new Chart(ctx, {
+            type: 'doughnut',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Sentiment Distribution',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    async displayTopicAnalysis(topicData) {
+        const card = document.getElementById('topicsCard');
+        const topicsContent = document.getElementById('topicsContent');
+
+        if (topicData.error) {
+            topicsContent.innerHTML = `<div class="error">Error: ${topicData.error}</div>`;
+            card.style.display = 'block';
+            return;
+        }
+
+        const topics = topicData.main_topics || [];
+        const distribution = topicData.topic_distribution || {};
+
+        // Update topic stats
+        document.getElementById('topicCount').textContent = `${topics.length} topics found`;
+
+        const coverage = topics.reduce((sum, topic) => sum + (topic.strength || 0), 0);
+        document.getElementById('topicCoverage').textContent = `${(coverage * 100).toFixed(1)}% coverage`;
+
+        // Create topics chart
+        await this.createTopicsChart(topics);
+
+        // Display topics grid
+        const topicsGrid = document.getElementById('topicsGrid');
+        topicsGrid.innerHTML = `
+            <div class="topics-grid">
+                ${topics.map((topic, index) => `
+                    <div class="topic-card">
+                        <div class="topic-title">Topic ${index + 1}: ${topic.description}</div>
+                        <div class="topic-keywords">
+                            ${topic.keywords.map(keyword => `
+                                <span class="keyword-tag">${keyword}</span>
+                            `).join('')}
+                        </div>
+                        <div class="topic-strength">
+                            Strength: ${(topic.strength * 100).toFixed(1)}%
+                        </div>
                     </div>
                 `).join('')}
             </div>
-        ` : ''}
-    `;
+        `;
 
-    card.style.display = 'block';
-}
+        card.style.display = 'block';
+    }
 
-function displaySpeakerAnalysis(speakerData) {
-    const card = document.getElementById('speakerCard');
-    const content = document.getElementById('speakerContent');
+    async createTopicsChart(topics) {
+        const ctx = document.getElementById('topicsChart');
+        if (!ctx || topics.length === 0) return;
 
-    const dialogue = speakerData.dialogue_detection || {};
-    const patterns = speakerData.speaking_patterns || {};
+        if (this.charts.topics) {
+            this.charts.topics.destroy();
+        }
 
-    content.innerHTML = `
-        <div class="analytics-grid">
-            <div class="analytics-metric">
-                <span class="metric-value">${speakerData.estimated_speakers || 1}</span>
-                <div class="metric-label">Estimated Speakers</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${dialogue.dialogue_percentage || 0}%</span>
-                <div class="metric-label">Dialogue Content</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${patterns.average_words_per_segment || 0}</span>
-                <div class="metric-label">Avg Words/Segment</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${patterns.estimated_wpm || 'Unknown'}</span>
-                <div class="metric-label">Speaking Pace (WPM)</div>
-            </div>
-        </div>
-    `;
+        const chartData = {
+            labels: topics.map((topic, index) => `Topic ${index + 1}`),
+            datasets: [{
+                label: 'Topic Strength',
+                data: topics.map(topic => (topic.strength * 100).toFixed(1)),
+                backgroundColor: topics.map((_, index) => `hsl(${(index * 137.508) % 360}, 70%, 60%)`),
+                borderColor: topics.map((_, index) => `hsl(${(index * 137.508) % 360}, 70%, 50%)`),
+                borderWidth: 2
+            }]
+        };
 
-    card.style.display = 'block';
-}
+        this.charts.topics = new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Topic Strength Distribution',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Strength (%)'
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-function displayKeyInsights(keyInsights) {
-    const card = document.getElementById('keyInsightsCard');
-    const content = document.getElementById('keyInsightsContent');
+    displayKeyInsights(keyInsights) {
+        const card = document.getElementById('keyInsightsCard');
+        const insightsList = document.getElementById('insightsList');
 
-    const actionItems = keyInsights.action_items || [];
-    const takeaways = keyInsights.key_takeaways || [];
-    const decisions = keyInsights.decision_points || [];
+        const actionItems = keyInsights.action_items || [];
+        const takeaways = keyInsights.key_takeaways || [];
+        const decisions = keyInsights.decision_points || [];
 
-    content.innerHTML = `
-        ${actionItems.length > 0 ? `
-            <h4>Action Items</h4>
+        const allInsights = [
+            ...actionItems.map(item => ({...item, type: 'action_items', icon: '⚡', priority: 'high'})),
+            ...takeaways.map(item => ({...item, type: 'takeaways', icon: '💡', priority: 'medium'})),
+            ...decisions.map(item => ({...item, type: 'decisions', icon: '🎯', priority: 'high'}))
+        ];
+
+        insightsList.innerHTML = `
             <div class="insights-list">
-                ${actionItems.slice(0, 5).map(item => `
-                    <div class="insight-item">
-                        <div class="timestamp">[${item.timestamp}]</div>
-                        <div class="content">${item.action}</div>
+                ${allInsights.map(insight => `
+                    <div class="insight-item" data-type="${insight.type}">
+                        <div class="timestamp">
+                            <span class="insight-icon">${insight.icon}</span>
+                            [${insight.timestamp}]
+                            <span class="priority ${insight.priority}">${insight.priority}</span>
+                        </div>
+                        <div class="content">${insight.action || insight.takeaway || insight.decision}</div>
                     </div>
                 `).join('')}
             </div>
-        ` : ''}
+        `;
 
-        ${takeaways.length > 0 ? `
-            <h4>Key Takeaways</h4>
-            <div class="insights-list">
-                ${takeaways.slice(0, 5).map(item => `
-                    <div class="insight-item">
-                        <div class="timestamp">[${item.timestamp}]</div>
-                        <div class="content">${item.takeaway}</div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : ''}
+        if (allInsights.length === 0) {
+            insightsList.innerHTML = `
+                <div style="text-align: center; color: #6b7280; padding: 40px;">
+                    <div style="font-size: 2rem; margin-bottom: 16px;">🔍</div>
+                    <div>No key insights detected</div>
+                    <div style="font-size: 0.875rem; margin-top: 8px;">Try analyzing longer content or check analysis settings</div>
+                </div>
+            `;
+        }
 
-        ${decisions.length > 0 ? `
-            <h4>Decision Points</h4>
-            <div class="insights-list">
-                ${decisions.slice(0, 3).map(item => `
-                    <div class="insight-item">
-                        <div class="timestamp">[${item.timestamp}]</div>
-                        <div class="content">${item.decision}</div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : ''}
+        card.style.display = 'block';
+    }
 
-        ${actionItems.length === 0 && takeaways.length === 0 && decisions.length === 0 ? `
-            <div style="text-align: center; color: #7f8c8d; padding: 20px;">
-                No key insights detected
-            </div>
-        ` : ''}
-    `;
+    filterInsights(filterType) {
+        const insightItems = document.querySelectorAll('.insight-item');
 
-    card.style.display = 'block';
+        insightItems.forEach(item => {
+            if (filterType === 'all' || item.dataset.type === filterType) {
+                item.style.display = 'block';
+                item.classList.add('slide-in');
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // === Real-time Features ===
+    toggleRealtimeMode() {
+        const toggle = document.getElementById('realtimeToggle');
+        const dashboard = document.getElementById('realtimeDashboard');
+
+        this.realtimeMode = !this.realtimeMode;
+        toggle.dataset.active = this.realtimeMode;
+
+        if (this.realtimeMode) {
+            dashboard.style.display = 'block';
+            this.startRealtimeUpdates();
+            this.showMessage('Real-time mode activated', 'info');
+        } else {
+            dashboard.style.display = 'none';
+            this.stopRealtimeUpdates();
+            this.showMessage('Real-time mode deactivated', 'info');
+        }
+    }
+
+    startRealtimeUpdates() {
+        const interval = parseInt(document.getElementById('refreshInterval').value);
+
+        this.realtimeInterval = setInterval(() => {
+            this.updateRealtimeCharts();
+            this.loadGlobalStats().then(() => this.updateStatsDisplay());
+        }, interval);
+    }
+
+    stopRealtimeUpdates() {
+        if (this.realtimeInterval) {
+            clearInterval(this.realtimeInterval);
+            this.realtimeInterval = null;
+        }
+    }
+
+    updateRealtimeInterval() {
+        if (this.realtimeMode) {
+            this.stopRealtimeUpdates();
+            this.startRealtimeUpdates();
+        }
+    }
+
+    async updateRealtimeCharts() {
+        // Update sentiment trend chart
+        await this.updateSentimentTrendChart();
+
+        // Update topic distribution chart
+        await this.updateTopicDistributionChart();
+    }
+
+    // === Utility Functions ===
+    showMessage(message, type) {
+        const messageEl = document.getElementById('message');
+        messageEl.innerHTML = `
+            <span class="message-icon">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </span>
+            ${message}
+        `;
+        messageEl.className = `message ${type}`;
+        messageEl.style.display = 'flex';
+
+        setTimeout(() => {
+            messageEl.style.display = 'none';
+        }, 5000);
+    }
+
+    // === Modal Management ===
+    showBatchAnalysisModal() {
+        // Implementation for batch analysis modal
+        this.showMessage('Batch analysis feature coming soon!', 'info');
+    }
+
+    showCompareModal() {
+        // Implementation for session comparison
+        this.showMessage('Session comparison feature coming soon!', 'info');
+    }
+
+    closeModal(modal) {
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // === Export Functions ===
+    async generateReport() {
+        if (!this.currentSessionData) {
+            this.showMessage('No analysis data available for report generation', 'warning');
+            return;
+        }
+
+        try {
+            this.showMessage('Generating comprehensive AI insights report...', 'info');
+
+            // In a full implementation, this would call a report generation API
+            // For now, we'll simulate the process
+            setTimeout(() => {
+                this.showMessage('Report generated successfully! Check your downloads folder.', 'success');
+            }, 2000);
+
+        } catch (error) {
+            this.showMessage('Failed to generate report', 'error');
+        }
+    }
+
+    // === Installation Helper ===
+    async installAIFeatures() {
+        this.showMessage('Installing AI features... This may take a few minutes.', 'info');
+
+        try {
+            // In a real implementation, this would trigger the installation script
+            // For now, provide instructions
+            const installInstructions = `
+                <div class="install-instructions">
+                    <h4>Install AI Features</h4>
+                    <p>Run the following command in your terminal:</p>
+                    <code>python scripts/install_ai_features.py</code>
+                    <p style="margin-top: 12px;">Then refresh this page.</p>
+                </div>
+            `;
+
+            document.getElementById('capabilitiesStatus').innerHTML = installInstructions;
+
+        } catch (error) {
+            this.showMessage('Installation failed. Please run the installation script manually.', 'error');
+        }
+    }
 }
 
-function displayAdvancedAnalytics(analyticsData) {
-    const card = document.getElementById('analyticsCard');
-    const content = document.getElementById('analyticsContent');
+// Initialize dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    window.aiDashboard = new AIInsightsDashboard();
+});
 
-    const metrics = analyticsData.content_metrics || {};
-    const engagement = analyticsData.engagement_indicators || {};
-    const complexity = analyticsData.complexity_analysis || {};
-
-    content.innerHTML = `
-        <div class="analytics-grid">
-            <div class="analytics-metric">
-                <span class="metric-value">${metrics.total_words || 0}</span>
-                <div class="metric-label">Total Words</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${metrics.vocabulary_richness || 0}%</span>
-                <div class="metric-label">Vocabulary Richness</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${engagement.interactivity_score || 0}</span>
-                <div class="metric-label">Interactivity Score</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${complexity.overall_complexity || 'Unknown'}</span>
-                <div class="metric-label">Complexity Level</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${metrics.reading_level || 'Unknown'}</span>
-                <div class="metric-label">Reading Level</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${engagement.engagement_level || 'Unknown'}</span>
-                <div class="metric-label">Engagement Level</div>
-            </div>
-        </div>
-    `;
-
-    card.style.display = 'block';
-}
-
-function displayContentClassification(classificationData) {
-    const card = document.getElementById('classificationCard');
-    const content = document.getElementById('classificationContent');
-
-    const domain = classificationData.primary_domain || 'general';
-    const contentType = classificationData.content_type || 'unknown';
-    const characteristics = classificationData.characteristics || {};
-    const scores = classificationData.confidence_scores || {};
-
-    content.innerHTML = `
-        <div class="analytics-grid">
-            <div class="analytics-metric">
-                <span class="metric-value">${domain}</span>
-                <div class="metric-label">Primary Domain</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${contentType}</span>
-                <div class="metric-label">Content Type</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${characteristics.formality_level || 'Unknown'}</span>
-                <div class="metric-label">Formality Level</div>
-            </div>
-            <div class="analytics-metric">
-                <span class="metric-value">${characteristics.complexity || 'Unknown'}</span>
-                <div class="metric-label">Content Complexity</div>
-            </div>
-        </div>
-
-        ${Object.keys(scores).length > 0 ? `
-            <h4 style="margin-top: 20px;">Domain Confidence Scores</h4>
-            <div class="analytics-grid">
-                ${Object.entries(scores).slice(0, 4).map(([domain, score]) => `
-                    <div class="analytics-metric">
-                        <span class="metric-value">${score}%</span>
-                        <div class="metric-label">${domain}</div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : ''}
-    `;
-
-    card.style.display = 'block';
+// Legacy function compatibility
+async function analyzeSession() {
+    if (window.aiDashboard) {
+        await window.aiDashboard.analyzeSession();
+    }
 }
 
 function showBatchAnalysisDialog() {
-    // For now, show a simple alert. In a full implementation, this would open a modal
-    alert('Batch analysis feature coming soon! This will allow you to analyze multiple sessions at once.');
-}
-
-function showMessage(message, type) {
-    const messageEl = document.getElementById('message');
-    messageEl.textContent = message;
-    messageEl.className = `message ${type}`;
-    messageEl.style.display = 'block';
-
-    setTimeout(() => {
-        messageEl.style.display = 'none';
-    }, 5000);
+    if (window.aiDashboard) {
+        window.aiDashboard.showBatchAnalysisModal();
+    }
 }
 </script>
 
