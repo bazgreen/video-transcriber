@@ -427,9 +427,12 @@ class BatchProcessor:
 
             # Update batch completion status
             batch.completed_at = datetime.now()
-            batch.total_duration = (
-                batch.completed_at - batch.started_at
-            ).total_seconds()
+            if batch.started_at:
+                batch.total_duration = (
+                    batch.completed_at - batch.started_at
+                ).total_seconds()
+            else:
+                batch.total_duration = 0.0
 
             # Determine final batch status
             failed_jobs = [j for j in batch.jobs if j.status == VideoStatus.FAILED]
@@ -474,6 +477,10 @@ class BatchProcessor:
         self, batch: BatchSession, job: BatchJob
     ) -> None:
         """Process a single video job with proper context."""
+        assert (
+            self.transcriber is not None
+        ), "Transcriber must be set before processing jobs"
+
         try:
             job.status = VideoStatus.PROCESSING
             job.started_at = datetime.now()
