@@ -40,6 +40,9 @@
                     <a href="{{ url_for('main.config_page') }}" class="nav-btn">
                         <span>⚙️</span> Config
                     </a>
+                    <a href="{{ url_for('main.ai_insights') }}" class="nav-btn">
+                        <span>🧠</span> AI Insights
+                    </a>
                     {% if current_user.is_authenticated %}
                         <a href="{{ url_for('auth.profile') }}" class="nav-btn">
                             <span>👤</span> Profile
