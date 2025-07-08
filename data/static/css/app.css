@@ -112,12 +112,28 @@ body {
 }
 
 /* Page Layouts */
+/* Layout Classes */
 .layout-centered {
     background: var(--gradient-bg);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+/* Layout for pages with headers */
+.layout-centered-with-header {
+    background: var(--gradient-bg);
+    min-height: 100vh;
+    padding-top: 0;
+}
+
+.layout-centered-with-header main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 120px); /* Subtract header height */
     padding: var(--spacing-lg);
 }
 
