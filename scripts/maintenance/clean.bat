@@ -23,7 +23,15 @@ if errorlevel 1 (
 
 REM Run the Python cleanup script
 %PYTHON_CMD% clean_environment.py
+set CLEANUP_EXIT_CODE=%ERRORLEVEL%
 
 echo.
-echo ✅ Cleanup script completed
+if %CLEANUP_EXIT_CODE% equ 0 (
+    echo ✅ Cleanup script completed successfully
+    echo 🎯 Environment has been reset to pristine state
+    echo 🚀 Ready for fresh installation testing
+) else (
+    echo ❌ Cleanup script encountered issues (exit code: %CLEANUP_EXIT_CODE%^)
+    echo ⚠️  Some manual cleanup may be required
+)
 pause

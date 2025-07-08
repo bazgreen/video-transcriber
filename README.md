@@ -260,9 +260,31 @@ python scripts/testing/check_installation.py  # See current features
 **Something not working?**
 
 ```bash
+# Stop the application if it's running
+./kill.sh     # macOS/Linux
+kill.bat      # Windows
+
 # Start fresh (keeps your sessions)
 rm -rf .venv  # Remove virtual environment
 ./run.sh      # Re-run installer
+```
+
+**Need a complete fresh start?**
+
+```bash
+# Clean environment (removes everything except source code)
+./clean.sh    # macOS/Linux
+clean.bat     # Windows
+
+# This removes:
+# • Virtual environments (.venv, env/, venv*)
+# • Python cache files (__pycache__, *.pyc)
+# • Upload files and results
+# • Log files and temporary data
+# • Development artifacts
+
+# Then start fresh:
+./run.sh      # Clean installation
 ```
 
 ## 📖 Usage Guide
@@ -490,6 +512,8 @@ video-transcriber/
 ├── Makefile                     # Development workflow automation
 ├── run.sh                      # macOS/Linux launcher
 ├── run.bat                     # Windows launcher
+├── kill.sh                     # Stop app processes (macOS/Linux)
+├── kill.bat                    # Stop app processes (Windows)
 ├── clean.sh                    # Environment cleanup (macOS/Linux)
 ├── clean.bat                   # Environment cleanup (Windows)
 ├── main.py                     # Application entry point
@@ -542,7 +566,6 @@ video-transcriber/
 │   │   ├── validate_performance_optimization.py # Performance validation
 │   │   └── validate_ux_improvements.py # UX validation
 │   ├── utils/                 # Utility scripts
-│   │   ├── kill_app.sh        # Process cleanup
 │   │   ├── run.sh             # Runner script
 │   │   └── run.bat            # Windows runner
 │   ├── install_ai_features.py # AI features upgrade script

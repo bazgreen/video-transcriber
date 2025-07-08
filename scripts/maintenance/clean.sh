@@ -14,6 +14,14 @@ fi
 
 # Run the Python cleanup script
 python3 clean_environment.py
+CLEANUP_EXIT_CODE=$?
 
 echo ""
-echo "✅ Cleanup script completed"
+if [ $CLEANUP_EXIT_CODE -eq 0 ]; then
+    echo "✅ Cleanup script completed successfully"
+    echo "🎯 Environment has been reset to pristine state"
+    echo "🚀 Ready for fresh installation testing"
+else
+    echo "❌ Cleanup script encountered issues (exit code: $CLEANUP_EXIT_CODE)"
+    echo "⚠️  Some manual cleanup may be required"
+fi

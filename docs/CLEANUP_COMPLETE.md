@@ -25,9 +25,14 @@ Comprehensive cleanup and reorganization completed on July 4, 2025, significantl
 ```
 ❌ validate_ux_improvements.py (root) → ✅ scripts/validation/validate_ux_improvements.py
 ❌ install_auth.py (root) → ✅ scripts/setup/install_auth.py
-❌ kill_app.sh (root) → ✅ scripts/utils/kill_app.sh
 ❌ run.sh (root) → ✅ scripts/utils/run.sh
 ❌ run.bat (root) → ✅ scripts/utils/run.bat
+```
+
+#### Utility Scripts (Moved back to root for accessibility)
+```
+✅ kill.sh (root) - Process termination script
+✅ kill.bat (root) - Windows process termination script
 ```
 
 #### Documentation Organization
@@ -157,10 +162,21 @@ tests/
 - ✅ Improved code discoverability
 
 ## Next Steps
-1. Update any remaining hardcoded paths in documentation
+1. ✅ Update any remaining hardcoded paths in documentation (COMPLETED)
 2. Consider creating a `.gitignore` update for new structure
 3. Update CI/CD pipelines if needed for new paths
-4. Document the new structure in README.md
+4. ✅ Document the new structure in README.md (COMPLETED)
+5. ✅ Fix browser timing issue in setup script (COMPLETED - July 7, 2025)
+
+## Recent Updates (July 7, 2025)
+- ✅ Moved kill scripts to project root for easier access (`kill.sh`, `kill.bat`)
+- ✅ Fixed browser opening timing issue in setup script
+- ✅ Improved health check logic for reliable browser opening
+- ✅ Updated documentation to reflect script accessibility improvements
+- ✅ Enhanced cleanup scripts with comprehensive exit messages (`clean.sh`, `clean.bat`)
+- ✅ Fixed CSRF token error in authentication forms
+- ✅ Improved health check reliability (127.0.0.1 vs localhost)
+- ✅ Implemented toast notification system for better flash message UX
 
 ---
 *Cleanup completed: July 4, 2025*  

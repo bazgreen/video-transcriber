@@ -190,6 +190,7 @@ def register_routes(
     from src.services.batch_processing import batch_processor
 
     batch_processor.set_transcriber(transcriber)
+    batch_processor.set_app(app)
 
     # Register socket handlers
     register_socket_handlers(socketio)

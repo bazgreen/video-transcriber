@@ -61,19 +61,26 @@
 
     {% block flash_messages %}
     {% if get_flashed_messages() %}
-    <div class="flash-messages">
+    <div class="toast-container" id="toast-container">
         {% for category, message in get_flashed_messages(with_categories=true) %}
-        <div class="alert alert-{{ 'error' if category == 'error' else 'success' if category == 'success' else 'info' }}">
-            {% if category == 'success' %}
-                <span>✅</span>
-            {% elif category == 'error' %}
-                <span>❌</span>
-            {% elif category == 'warning' %}
-                <span>⚠️</span>
-            {% else %}
-                <span>ℹ️</span>
-            {% endif %}
-            {{ message }}
+        <div class="toast toast-{{ 'error' if category == 'error' else 'success' if category == 'success' else 'info' }}" data-auto-dismiss="true">
+            <div class="toast-icon">
+                {% if category == 'success' %}
+                    <span>✅</span>
+                {% elif category == 'error' %}
+                    <span>❌</span>
+                {% elif category == 'warning' %}
+                    <span>⚠️</span>
+                {% else %}
+                    <span>ℹ️</span>
+                {% endif %}
+            </div>
+            <div class="toast-content">
+                <div class="toast-message">{{ message }}</div>
+            </div>
+            <button class="toast-close" onclick="dismissToast(this.parentElement)">
+                <span>×</span>
+            </button>
         </div>
         {% endfor %}
     </div>

@@ -7,42 +7,89 @@
 // Global utilities
 window.VideoTranscriber = window.VideoTranscriber || {};
 
-// Message/Alert system
-VideoTranscriber.showMessage = function(message, type = 'info', duration = 5000) {
-    // Remove existing messages if any
-    const existingMessages = document.querySelectorAll('.alert');
-    existingMessages.forEach(msg => msg.remove());
-
-    const alertClass = `alert-${type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info'}`;
-
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert ${alertClass}`;
-    alertDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        max-width: 400px;
-        box-shadow: var(--shadow-lg);
-    `;
-
-    alertDiv.innerHTML = `
-        ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
-        ${message}
-    `;
-
-    document.body.appendChild(alertDiv);
-
-    // Auto-remove after specified duration
-    if (duration > 0) {
+// Toast notification functions
+function dismissToast(toastElement) {
+    if (toastElement) {
+        toastElement.style.animation = 'slideOutRight 0.3s ease-in';
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
+            if (toastElement.parentNode) {
+                toastElement.remove();
             }
-        }, duration);
+        }, 300);
+    }
+}
+
+// Auto-dismiss toasts after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const toasts = document.querySelectorAll('.toast[data-auto-dismiss="true"]');
+    toasts.forEach(function(toast) {
+        // Auto-dismiss after 5 seconds
+        setTimeout(function() {
+            dismissToast(toast);
+        }, 5000);
+
+        // Add click-to-dismiss functionality
+        toast.addEventListener('click', function(e) {
+            if (!e.target.matches('.toast-close, .toast-close *')) {
+                dismissToast(toast);
+            }
+        });
+    });
+});
+
+// Create toast programmatically
+VideoTranscriber.showToast = function(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('toast-container') || createToastContainer();
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.setAttribute('data-auto-dismiss', 'true');
+
+    const icon = type === 'success' ? '✅' :
+                 type === 'error' ? '❌' :
+                 type === 'warning' ? '⚠️' : 'ℹ️';
+
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <span>${icon}</span>
+        </div>
+        <div class="toast-content">
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="dismissToast(this.parentElement)">
+            <span>×</span>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => dismissToast(toast), duration);
     }
 
-    return alertDiv;
+    // Click to dismiss
+    toast.addEventListener('click', function(e) {
+        if (!e.target.matches('.toast-close, .toast-close *')) {
+            dismissToast(toast);
+        }
+    });
+
+    return toast;
+};
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+// Message/Alert system (legacy support)
+VideoTranscriber.showMessage = function(message, type = 'info', duration = 5000) {
+    // Use the new toast system
+    return VideoTranscriber.showToast(message, type, duration);
 };
 
 // File size formatting

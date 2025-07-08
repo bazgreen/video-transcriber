@@ -341,81 +341,99 @@ def create_directories():
 def wait_for_app_ready(venv_python, url="http://localhost:5001", max_wait=30):
     """
     Wait for the Flask app to be ready by checking the health endpoint.
-    
+
     Args:
         venv_python: Path to the virtual environment python
         url: Base URL of the application
         max_wait: Maximum time to wait in seconds
-        
+
     Returns:
         bool: True if app is ready, False if timeout
     """
     import time
-    
+
     try:
         # Try importing requests from the virtual environment
-        result = subprocess.run([venv_python, "-c", "import requests"], 
-                              capture_output=True)
+        result = subprocess.run(
+            [venv_python, "-c", "import requests"], capture_output=True
+        )
         if result.returncode != 0:
             # Install requests in the virtual environment
             print("📦 Installing requests for health checking...")
-            subprocess.run([venv_python, "-m", "pip", "install", "requests"], 
-                         capture_output=True, check=True)
-    except:
+            subprocess.run(
+                [venv_python, "-m", "pip", "install", "requests"],
+                capture_output=True,
+                check=True,
+            )
+    except Exception:
         print("⚠️  Could not install requests, using basic delay instead...")
         time.sleep(5)  # Basic fallback delay
         return True
-    
-    # Use the virtual environment python to run the health check
-    health_check_script = f'''
+
+    print(f"🔍 Waiting for application at {url}/health...")
+    start_time = time.time()
+    health_url = f"{url}/health"
+    success_count = 0  # Count consecutive successes for reliability
+
+    while time.time() - start_time < max_wait:
+        try:
+            # Run a simple health check in subprocess
+            check_script = f"""
 import requests
-import time
-import sys
+try:
+    response = requests.get("{health_url}", timeout=2)
+    exit(0 if response.status_code == 200 else 1)
+except Exception as e:
+    exit(1)
+"""
+            result = subprocess.run(
+                [venv_python, "-c", check_script], capture_output=True, timeout=5
+            )
 
-url = "{url}/health"
-start_time = time.time()
-max_wait = {max_wait}
+            if result.returncode == 0:
+                success_count += 1
+                print(f"\n✅ Health check passed ({success_count}/2)")
+                if success_count >= 2:  # Require 2 consecutive successes
+                    print("✅ Application is ready and stable!")
+                    return True
+            else:
+                success_count = 0  # Reset on failure
 
-while time.time() - start_time < max_wait:
-    try:
-        response = requests.get(url, timeout=2)
-        if response.status_code == 200:
-            print("\\n✅ Application is ready!")
-            sys.exit(0)
-    except:
-        pass
-    
-    elapsed = int(time.time() - start_time)
-    dots = "." * (elapsed % 4)
-    print(f"\\r⏳ Starting up{{dots}}    ", end="", flush=True)
-    time.sleep(1)
+        except subprocess.TimeoutExpired:
+            success_count = 0
+            pass
+        except Exception:
+            success_count = 0
+            pass
 
-print(f"\\n⚠️  Application didn't respond within {{max_wait}} seconds")
-sys.exit(1)
-'''
-    
-    print("🔍 Waiting for application to start...")
-    
-    try:
-        result = subprocess.run([venv_python, "-c", health_check_script], 
-                              timeout=max_wait + 5, capture_output=False)
-        return result.returncode == 0
-    except subprocess.TimeoutExpired:
-        print(f"\n⚠️  Health check timed out after {max_wait} seconds")
-        return False
-    except:
-        print("\n⚠️  Health check failed, using fallback delay...")
-        time.sleep(5)
-        return True
+        elapsed = int(time.time() - start_time)
+        dots = "." * ((elapsed % 4) + 1)
+        print(f"\r⏳ Starting up{dots:<4}", end="", flush=True)
+        time.sleep(1)
+
+    print(f"\n⚠️  Application didn't respond within {max_wait} seconds")
+    return False
 
 
 def open_browser_when_ready(venv_python, url):
     """Open browser only after the app is confirmed to be ready."""
-    if wait_for_app_ready(venv_python, url):
-        print(f"\n🌐 Opening browser at {url}")
-        webbrowser.open(url)
+    # Use 127.0.0.1 instead of localhost for more reliable health check
+    health_url = url.replace("localhost", "127.0.0.1")
+
+    print("🔍 Checking if application is ready...")
+
+    if wait_for_app_ready(venv_python, health_url):
+        print(f"🌐 Opening browser at {url}")
+        try:
+            import webbrowser
+
+            webbrowser.open(url)
+            print("✅ Browser opened successfully!")
+        except Exception as e:
+            print(f"⚠️  Could not open browser automatically: {e}")
+            print(f"   Please open manually: {url}")
     else:
-        print(f"\n🌐 You can manually access the app at: {url}")
+        print(f"🌐 You can manually access the app at: {url}")
         print("   The application may still be starting up...")
 
 

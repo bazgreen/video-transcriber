@@ -12,6 +12,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from flask import Blueprint, Response, jsonify, request
 from werkzeug.utils import secure_filename
 
+from src.services.batch_processing import batch_processor
+from src.utils.helpers import is_safe_path, is_valid_session_id
+
+# Type alias for Flask response types
+FlaskResponse = Union[Response, Tuple[Response, int]]
+
 # Import CSRF exemption
 try:
     from flask_wtf.csrf import exempt
@@ -20,12 +26,10 @@ try:
 except ImportError:
     # Fallback decorator if CSRF not available
     def exempt(func):
+        """Fallback CSRF exemption decorator when flask-wtf is not available."""
         return func
 
     CSRF_AVAILABLE = False
-
-from src.services.batch_processing import batch_processor
-from src.utils.helpers import is_safe_path, is_valid_session_id
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +85,7 @@ def create_batch() -> Response:
 
 @batch_bp.route("/add-video", methods=["POST"])
 @exempt
-def add_video_to_batch() -> Dict[str, Any]:
+def add_video_to_batch() -> FlaskResponse:
     """Add a video file to an existing batch."""
     try:
         # Check if file was uploaded
@@ -143,7 +147,7 @@ def add_video_to_batch() -> Dict[str, Any]:
 
 @batch_bp.route("/<batch_id>/start", methods=["POST"])
 @exempt
-def start_batch(batch_id: str) -> Dict[str, Any]:
+def start_batch(batch_id: str) -> FlaskResponse:
     """Start processing a batch."""
     try:
         success = batch_processor.start_batch(batch_id)
@@ -161,7 +165,7 @@ def start_batch(batch_id: str) -> Dict[str, Any]:
 
 
 @batch_bp.route("/<batch_id>", methods=["GET"])
-def get_batch(batch_id: str) -> Dict[str, Any]:
+def get_batch(batch_id: str) -> FlaskResponse:
     """Get batch details and progress."""
     try:
         batch = batch_processor.get_batch(batch_id)
@@ -177,7 +181,7 @@ def get_batch(batch_id: str) -> Dict[str, Any]:
 
 
 @batch_bp.route("/list", methods=["GET"])
-def list_batches() -> Dict[str, Any]:
+def list_batches() -> FlaskResponse:
     """List all batches with summary information."""
     try:
         batches = batch_processor.list_batches()
@@ -191,7 +195,7 @@ def list_batches() -> Dict[str, Any]:
 
 @batch_bp.route("/<batch_id>/cancel", methods=["POST"])
 @exempt
-def cancel_batch(batch_id: str) -> Dict[str, Any]:
+def cancel_batch(batch_id: str) -> FlaskResponse:
     """Cancel a batch."""
     try:
         success = batch_processor.cancel_batch(batch_id)
@@ -215,7 +219,7 @@ def cancel_batch(batch_id: str) -> Dict[str, Any]:
 
 
 @batch_bp.route("/<batch_id>", methods=["DELETE"])
-def delete_batch(batch_id: str) -> Dict[str, Any]:
+def delete_batch(batch_id: str) -> FlaskResponse:
     """Delete a batch and its metadata."""
     try:
         success = batch_processor.delete_batch(batch_id)
@@ -231,7 +235,7 @@ def delete_batch(batch_id: str) -> Dict[str, Any]:
 
 
 @batch_bp.route("/<batch_id>/results", methods=["GET"])
-def get_batch_results(batch_id: str) -> Dict[str, Any]:
+def get_batch_results(batch_id: str) -> FlaskResponse:
     """Get results from all completed jobs in a batch."""
     try:
         batch = batch_processor.get_batch(batch_id)

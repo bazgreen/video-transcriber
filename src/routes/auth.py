@@ -1,6 +1,4 @@
-"""
-Authentication routes for user login, registration, and profile management.
-"""
+"""Authentication routes for user login, registration, and profile management."""
 
 import logging
 from typing import Optional
@@ -44,13 +42,22 @@ def login():
             else:
                 flash("Invalid username/email or password.", "error")
         else:
-            # Handle validation errors including CSRF
-            if form.csrf_token.errors:
-                flash("Security token expired. Please try again.", "error")
-            elif form.errors:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        flash(f"{field.title()}: {error}", "error")
+            # Handle validation errors
+            if form.errors:
+                # Check for CSRF errors specifically
+                if "csrf_token" in form.errors:
+                    flash("Security token expired. Please try again.", "error")
+                else:
+                    # Handle other validation errors
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            if (
+                                field != "csrf_token"
+                            ):  # Skip CSRF token field name in display
+                                flash(
+                                    f"{field.replace('_', ' ').title()}: {error}",
+                                    "error",
+                                )
 
     return render_template("auth/login.html", form=form)
 
@@ -86,13 +93,22 @@ def register():
                 logger.error(f"Registration error: {e}")
                 flash("Registration failed. Please try again.", "error")
         else:
-            # Handle validation errors including CSRF
-            if form.csrf_token.errors:
-                flash("Security token expired. Please try again.", "error")
-            elif form.errors:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        flash(f"{field.title()}: {error}", "error")
+            # Handle validation errors
+            if form.errors:
+                # Check for CSRF errors specifically
+                if "csrf_token" in form.errors:
+                    flash("Security token expired. Please try again.", "error")
+                else:
+                    # Handle other validation errors
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            if (
+                                field != "csrf_token"
+                            ):  # Skip CSRF token field name in display
+                                flash(
+                                    f"{field.replace('_', ' ').title()}: {error}",
+                                    "error",
+                                )
 
     return render_template("auth/register.html", form=form)
 
@@ -176,13 +192,22 @@ def change_password():
             else:
                 flash("Current password is incorrect.", "error")
         else:
-            # Handle validation errors including CSRF
-            if form.csrf_token.errors:
-                flash("Security token expired. Please try again.", "error")
-            elif form.errors:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        flash(f"{field.title()}: {error}", "error")
+            # Handle validation errors
+            if form.errors:
+                # Check for CSRF errors specifically
+                if "csrf_token" in form.errors:
+                    flash("Security token expired. Please try again.", "error")
+                else:
+                    # Handle other validation errors
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            if (
+                                field != "csrf_token"
+                            ):  # Skip CSRF token field name in display
+                                flash(
+                                    f"{field.replace('_', ' ').title()}: {error}",
+                                    "error",
+                                )
 
     return render_template("auth/change_password.html", form=form)
 

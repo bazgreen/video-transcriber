@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toast Test</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <div style="padding: 20px; text-align: center;">
+        <h1>Toast Notification Test</h1>
+        <p>Test the new toast notification system</p>
+
+        <button onclick="VideoTranscriber.showToast('✅ Registration successful! Welcome to Video Transcriber!', 'success')">
+            Test Success Toast
+        </button>
+
+        <button onclick="VideoTranscriber.showToast('❌ Invalid username or password. Please try again.', 'error')">
+            Test Error Toast
+        </button>
+
+        <button onclick="VideoTranscriber.showToast('ℹ️ Please check your email to verify your account.', 'info')">
+            Test Info Toast
+        </button>
+
+        <button onclick="VideoTranscriber.showToast('⚠️ Session will expire in 5 minutes.', 'warning')">
+            Test Warning Toast
+        </button>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <style>
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</body>
+</html>
