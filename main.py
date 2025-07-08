@@ -2,7 +2,26 @@
 Main application entry point for the modularized video transcriber.
 
 This module initializes and configures the Flask application with all required
-components including routing, WebSocket handling, and dependency injection.
+components including routi    # Initialize global references
+    init_api_globals(memory_manager, file_manager, progress_tracker)
+
+    # Initialize batch processor with dependencies
+    from src.services.batch_processing import batch_processor
+    batch_processor.set_transcriber(transcriber)
+    batch_processor.set_app(app)
+    batch_processor.set_socketio(socketio)
+
+    # Initialize socket globals with batch processor
+    init_socket_globals(progress_tracker, batch_processor)
+
+    # Register blueprints
+    app.register_blueprint(main_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(batch_bp)
+    app.register_blueprint(ai_insights_bp)
+
+    # Register socket handlers
+    register_socket_handlers(socketio)ling, and dependency injection.
 """
 
 import logging

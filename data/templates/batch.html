@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Batch Processing - Video Transcriber</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -27,6 +28,78 @@
         .progress-container {
             position: relative;
             margin: 1rem 0;
+        }
+
+        /* Real-time update animations */
+        .batch-card {
+            transition: all 0.3s ease, transform 0.2s ease;
+        }
+
+        .batch-card[data-batch-id] {
+            position: relative;
+        }
+
+        .batch-card[data-batch-id]::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #007bff, #28a745);
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .batch-card.processing::before {
+            opacity: 0.1;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.3; }
+        }
+
+        .progress-bar.progress-bar-animated {
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+
+        .batch-timestamp {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .job-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        /* WebSocket connection status */
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .job-item {
@@ -151,6 +224,11 @@
     </style>
 </head>
 <body>
+    <!-- WebSocket Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status" style="display: none;">
+        <i class="bi bi-wifi"></i> <span id="connectionText">Connecting...</span>
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
@@ -280,6 +358,7 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            initializeWebSocket(); // Start real-time updates
             loadBatches();
             setupEventListeners();
             startAutoRefresh();
@@ -555,17 +634,25 @@
             }
 
             container.innerHTML = batches.map(batch => `
-                <div class="batch-card p-3">
+                <div class="batch-card p-3" data-batch-id="${batch.batch_id}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             <h5 class="mb-1">${batch.name || 'Unnamed Batch'}</h5>
                             <small class="text-muted">Created: ${formatDate(batch.created_at)}</small>
+                            <div class="batch-timestamp">
+                                <small class="text-muted">Last updated: ${new Date().toLocaleTimeString()}</small>
+                            </div>
                         </div>
                         <div class="batch-actions">
                             ${getStatusBadge(batch.status)}
                             <div class="btn-group" role="group">
+                                ${batch.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-outline-success" onclick="startBatchRealTime('${batch.batch_id}')">
+                                        <i class="bi bi-play"></i> Start
+                                    </button>
+                                ` : ''}
                                 ${batch.status === 'processing' ? `
-                                    <button class="btn btn-sm btn-outline-warning" onclick="cancelBatch('${batch.batch_id}')">
+                                    <button class="btn btn-sm btn-outline-warning" onclick="cancelBatchRealTime('${batch.batch_id}')">
                                         <i class="bi bi-stop"></i> Cancel
                                     </button>
                                 ` : ''}
@@ -577,7 +664,7 @@
                                         <i class="bi bi-download"></i> Download
                                     </button>
                                 ` : ''}
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBatch('${batch.batch_id}')">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBatchRealTime('${batch.batch_id}')">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -586,12 +673,20 @@
 
                     <div class="progress-container">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>${batch.progress.completed_jobs}/${batch.progress.total_jobs} jobs completed</span>
-                            <span class="fw-bold">${batch.progress.progress_percentage}%</span>
+                            <div class="job-info">
+                                <span>${batch.progress.completed_jobs}/${batch.progress.total_jobs} jobs completed</span>
+                                ${batch.progress.failed_jobs > 0 ? `<span class="text-danger ms-2">• ${batch.progress.failed_jobs} failed</span>` : ''}
+                                ${batch.progress.estimated_remaining ? `<span class="text-muted ms-2">• ETA: ${batch.progress.estimated_remaining}</span>` : ''}
+                            </div>
+                            <span class="fw-bold progress-text">${batch.progress.progress_percentage}%</span>
                         </div>
                         <div class="progress">
                             <div class="progress-bar ${getProgressBarClass(batch.status)}"
-                                 style="width: ${batch.progress.progress_percentage}%"></div>
+                                 style="width: ${batch.progress.progress_percentage}%"
+                                 role="progressbar"
+                                 aria-valuenow="${batch.progress.progress_percentage}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"></div>
                         </div>
                         ${batch.progress.estimated_remaining ? `
                             <small class="text-muted">Estimated remaining: ${batch.progress.estimated_remaining}</small>
@@ -599,6 +694,13 @@
                     </div>
                 </div>
             `).join('');
+
+            // Join WebSocket rooms for all batches to receive real-time updates
+            if (socket && socket.connected) {
+                batches.forEach(batch => {
+                    joinBatchRoom(batch.batch_id);
+                });
+            }
         }
 
         function updateStats(batches) {
@@ -708,6 +810,275 @@
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // ========================================
+        // REAL-TIME WEBSOCKET FUNCTIONALITY
+        // ========================================
+
+        let socket = null;
+        let connectedBatches = new Set();
+
+        function initializeWebSocket() {
+            if (socket && socket.connected) {
+                return; // Already connected
+            }
+
+            socket = io();
+
+            socket.on('connect', function() {
+                console.log('🔌 Connected to WebSocket server');
+                updateConnectionStatus(true);
+
+                // Join rooms for currently visible batches
+                document.querySelectorAll('.batch-card').forEach(card => {
+                    const batchId = card.getAttribute('data-batch-id');
+                    if (batchId) {
+                        joinBatchRoom(batchId);
+                    }
+                });
+            });
+
+            socket.on('disconnect', function() {
+                console.log('🔌 Disconnected from WebSocket server');
+                updateConnectionStatus(false);
+                connectedBatches.clear();
+            });
+
+            // Real-time batch progress updates
+            socket.on('batch_progress_update', function(data) {
+                console.log('📊 Batch progress update:', data);
+                updateBatchCardRealTime(data);
+            });
+
+            // Individual job status updates
+            socket.on('job_status_update', function(data) {
+                console.log('🔄 Job status update:', data);
+                updateJobStatusRealTime(data);
+            });
+
+            // Batch status changes
+            socket.on('batch_status_update', function(data) {
+                console.log('📋 Batch status update:', data);
+                updateBatchStatusRealTime(data);
+            });
+
+            // Handle batch control results
+            socket.on('batch_control_result', function(data) {
+                console.log('🎮 Batch control result:', data);
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    loadBatches(); // Refresh the list
+                } else {
+                    showToast(data.message, 'error');
+                }
+            });
+
+            socket.on('error', function(data) {
+                console.error('❌ WebSocket error:', data);
+                showToast('WebSocket error: ' + data.message, 'error');
+            });
+        }
+
+        function joinBatchRoom(batchId) {
+            if (socket && socket.connected && !connectedBatches.has(batchId)) {
+                socket.emit('join_batch', { batch_id: batchId });
+                connectedBatches.add(batchId);
+                console.log(`🏠 Joined room for batch ${batchId}`);
+            }
+        }
+
+        function leaveBatchRoom(batchId) {
+            if (socket && socket.connected && connectedBatches.has(batchId)) {
+                socket.emit('leave_batch', { batch_id: batchId });
+                connectedBatches.delete(batchId);
+                console.log(`🚪 Left room for batch ${batchId}`);
+            }
+        }
+
+        function updateBatchCardRealTime(data) {
+            const batchCard = document.querySelector(`[data-batch-id="${data.batch_id}"]`);
+            if (!batchCard) return;
+
+            // Update overall progress
+            if (data.progress && typeof data.progress.progress_percentage === 'number') {
+                const progressBar = batchCard.querySelector('.progress-bar');
+                const progressText = batchCard.querySelector('.progress-text');
+
+                if (progressBar && progressText) {
+                    const percentage = Math.round(data.progress.progress_percentage);
+                    progressBar.style.width = percentage + '%';
+                    progressBar.setAttribute('aria-valuenow', percentage);
+                    progressText.textContent = `${percentage}%`;
+
+                    // Update progress bar color based on status
+                    progressBar.className = 'progress-bar';
+                    if (data.status === 'completed') {
+                        progressBar.classList.add('bg-success');
+                    } else if (data.status === 'failed') {
+                        progressBar.classList.add('bg-danger');
+                    } else if (data.status === 'processing') {
+                        progressBar.classList.add('bg-primary', 'progress-bar-animated', 'progress-bar-striped');
+                    }
+                }
+
+                // Update job counts
+                if (data.progress.total_jobs) {
+                    const jobInfo = batchCard.querySelector('.job-info');
+                    if (jobInfo) {
+                        jobInfo.innerHTML = `
+                            <small class="text-muted">
+                                ${data.progress.completed_jobs}/${data.progress.total_jobs} jobs completed
+                                ${data.progress.failed_jobs > 0 ? `• ${data.progress.failed_jobs} failed` : ''}
+                                ${data.progress.estimated_remaining ? `• ETA: ${data.progress.estimated_remaining}` : ''}
+                            </small>
+                        `;
+                    }
+                }
+            }
+
+            // Update status badge
+            const statusBadge = batchCard.querySelector('.status-badge');
+            if (statusBadge && data.status) {
+                statusBadge.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                statusBadge.className = 'badge status-badge ms-2';
+
+                switch (data.status) {
+                    case 'pending':
+                        statusBadge.classList.add('bg-secondary');
+                        break;
+                    case 'processing':
+                        statusBadge.classList.add('bg-primary');
+                        break;
+                    case 'completed':
+                        statusBadge.classList.add('bg-success');
+                        break;
+                    case 'failed':
+                        statusBadge.classList.add('bg-danger');
+                        break;
+                    case 'cancelled':
+                        statusBadge.classList.add('bg-warning');
+                        break;
+                }
+            }
+
+            // Update timestamp
+            const timestamp = batchCard.querySelector('.batch-timestamp');
+            if (timestamp && data.timestamp) {
+                const date = new Date(data.timestamp);
+                timestamp.textContent = `Updated: ${date.toLocaleTimeString()}`;
+            }
+        }
+
+        function updateJobStatusRealTime(data) {
+            // This could be used for detailed job view if implemented
+            console.log(`Job ${data.job_id} in batch ${data.batch_id}: ${data.status} (${Math.round(data.progress * 100)}%)`);
+
+            // You could implement a detailed job list view here
+            // For now, we'll just trigger a batch card update
+            const batchCard = document.querySelector(`[data-batch-id="${data.batch_id}"]`);
+            if (batchCard) {
+                // Add a subtle animation to show activity
+                batchCard.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    batchCard.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+
+        function updateBatchStatusRealTime(data) {
+            updateBatchCardRealTime(data);
+        }
+
+        // Enhanced batch operations with real-time feedback
+        async function startBatchRealTime(batchId) {
+            try {
+                // Join the batch room before starting to get real-time updates
+                joinBatchRoom(batchId);
+
+                const response = await fetch(`/api/batch/${batchId}/start`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Batch started! Watch for real-time progress updates.', 'success');
+                } else {
+                    showToast('Error starting batch: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error starting batch: ' + error.message, 'error');
+            }
+        }
+
+        async function cancelBatchRealTime(batchId) {
+            if (!confirm('Are you sure you want to cancel this batch?')) return;
+
+            // Use WebSocket for immediate feedback
+            if (socket && socket.connected) {
+                socket.emit('batch_control', {
+                    batch_id: batchId,
+                    action: 'cancel'
+                });
+            } else {
+                // Fallback to HTTP request
+                await cancelBatch(batchId);
+            }
+        }
+
+        async function deleteBatchRealTime(batchId) {
+            if (!confirm('Are you sure you want to delete this batch? This cannot be undone.')) return;
+
+            // Leave the room first
+            leaveBatchRoom(batchId);
+
+            // Use WebSocket for immediate feedback
+            if (socket && socket.connected) {
+                socket.emit('batch_control', {
+                    batch_id: batchId,
+                    action: 'delete'
+                });
+            } else {
+                // Fallback to HTTP request
+                await deleteBatch(batchId);
+            }
+        }
+
+        // Auto-refresh is now handled by WebSocket, but keep as fallback
+        function startAutoRefresh() {
+            // Reduce polling frequency since we have real-time updates
+            refreshInterval = setInterval(() => {
+                // Only refresh if WebSocket is not connected
+                if (!socket || !socket.connected) {
+                    const hasProcessingBatches = document.querySelector('.badge.bg-primary');
+                    if (hasProcessingBatches) {
+                        loadBatches();
+                    }
+                }
+            }, 10000); // Reduced from 3s to 10s since WebSocket provides real-time updates
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const textElement = document.getElementById('connectionText');
+
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                statusElement.style.display = 'block';
+                textElement.innerHTML = '<i class="bi bi-wifi"></i> Real-time updates active';
+
+                // Hide after 3 seconds when connected
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                statusElement.style.display = 'block';
+                textElement.innerHTML = '<i class="bi bi-wifi-off"></i> Real-time updates disconnected';
+
+                // Keep showing when disconnected
+            }
         }
 
         function showToast(message, type = 'info') {

@@ -286,6 +286,7 @@ class BatchProcessor:
         results_dir: str = "results",
         transcriber: Optional[VideoTranscriber] = None,
         app=None,
+        socketio=None,
     ):
         """Initialize the batch processor.
 
@@ -293,12 +294,14 @@ class BatchProcessor:
             results_dir: Directory to store batch metadata and results
             transcriber: Video transcriber instance (injected later if None)
             app: Flask application instance for context in background threads
+            socketio: SocketIO instance for real-time updates
         """
         self.results_dir = results_dir
         self.batches: Dict[str, BatchSession] = {}
         self.memory_manager = MemoryManager()
         self.transcriber = transcriber  # Will be injected later if not provided
         self.app = app  # Flask app instance for context
+        self.socketio = socketio  # SocketIO instance for real-time updates
 
         # Ensure batch metadata directory exists
         self.batch_metadata_dir = os.path.join(results_dir, "batches")
@@ -314,6 +317,10 @@ class BatchProcessor:
     def set_app(self, app) -> None:
         """Set the Flask app instance (for application context in background threads)."""
         self.app = app
+
+    def set_socketio(self, socketio) -> None:
+        """Set the SocketIO instance (for real-time updates)."""
+        self.socketio = socketio
 
     def create_batch(
         self,
@@ -488,6 +495,9 @@ class BatchProcessor:
             # Generate unique session ID for this job
             job.session_id = f"batch_{batch.batch_id[:8]}_{job.job_id[:8]}"
 
+            # Emit job status update for processing start
+            self._emit_job_update(batch.batch_id, job)
+
             # Save metadata when job starts processing
             self._save_batch_metadata(batch)
 
@@ -508,6 +518,9 @@ class BatchProcessor:
             job.completed_at = datetime.now()
             job.progress = 1.0
 
+            # Emit job completion update
+            self._emit_job_update(batch.batch_id, job)
+
             # Save metadata when job completes
             self._save_batch_metadata(batch)
 
@@ -517,6 +530,9 @@ class BatchProcessor:
             job.status = VideoStatus.FAILED
             job.error_message = str(e)
             job.completed_at = datetime.now()
+
+            # Emit job failure update
+            self._emit_job_update(batch.batch_id, job)
 
             # Save metadata when job fails
             self._save_batch_metadata(batch)
@@ -594,13 +610,86 @@ class BatchProcessor:
         return True
 
     def _save_batch_metadata(self, batch: BatchSession) -> None:
-        """Save batch metadata to disk."""
+        """Save batch metadata to disk and emit real-time updates."""
         metadata_file = os.path.join(self.batch_metadata_dir, f"{batch.batch_id}.json")
         try:
+            batch_data = batch.to_dict()
             with open(metadata_file, "w") as f:
-                json.dump(batch.to_dict(), f, indent=2)
+                json.dump(batch_data, f, indent=2)
+
+            # Emit real-time batch progress update
+            self._emit_batch_update(batch.batch_id, batch_data)
         except Exception as e:
             logger.error(f"Failed to save batch metadata: {e}")
+
+    def _emit_batch_update(self, batch_id: str, batch_data: Dict[str, Any]) -> None:
+        """Emit real-time batch update via WebSocket."""
+        if not self.socketio:
+            return
+            
+        try:
+            # Add timestamp for real-time tracking
+            batch_data["timestamp"] = datetime.now().isoformat()
+
+            # Emit to batch room
+            batch_room = f"batch_{batch_id}"
+            self.socketio.emit(
+                "batch_progress_update",
+                {
+                    "batch_id": batch_id,
+                    "status": batch_data.get("status"),
+                    "progress": batch_data.get("progress"),
+                    "jobs": batch_data.get("jobs", []),
+                    "timestamp": batch_data["timestamp"],
+                    "total_duration": batch_data.get("total_duration"),
+                    "error_message": batch_data.get("error_message"),
+                },
+                room=batch_room,
+            )
+
+            logger.debug(
+                f"Emitted batch progress update for {batch_id}: {batch_data.get('progress', {}).get('progress_percentage', 0)}%"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to emit batch update for {batch_id}: {e}")
+
+    def _emit_job_update(self, batch_id: str, job: "BatchJob") -> None:
+        """Emit real-time individual job update via WebSocket."""
+        if not self.socketio:
+            return
+
+        try:
+            job_data = job.to_dict()
+            job_data["timestamp"] = datetime.now().isoformat()
+
+            # Emit to batch room
+            batch_room = f"batch_{batch_id}"
+            self.socketio.emit(
+                "job_status_update",
+                {
+                    "batch_id": batch_id,
+                    "job_id": job.job_id,
+                    "status": job.status.value,
+                    "progress": job.progress,
+                    "session_name": job.session_name,
+                    "original_filename": job.original_filename,
+                    "error_message": job.error_message,
+                    "started_at": job.started_at.isoformat()
+                    if job.started_at
+                    else None,
+                    "completed_at": job.completed_at.isoformat()
+                    if job.completed_at
+                    else None,
+                    "timestamp": job_data["timestamp"],
+                },
+                room=batch_room,
+            )
+
+            logger.debug(
+                f"Emitted job status update for {job.job_id} in batch {batch_id}: {job.status.value}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to emit job update for {job.job_id}: {e}")
 
     def _load_existing_batches(self) -> None:
         """Load existing batch metadata from disk."""
