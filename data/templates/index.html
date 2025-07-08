@@ -4,7 +4,7 @@
 
 {% block body_class %}layout-centered{% endblock %}
 
-{% set show_header = false %}
+{% set show_header = true %}
 
 {% block main_class %}{% endblock %}
 
@@ -12,47 +12,6 @@
 <div class="container">
     <h1 class="page-title">🎥 Video Transcriber</h1>
     <p class="page-subtitle">Transform your videos into searchable transcripts with AI-powered analysis</p>
-
-    {% if current_user.is_authenticated %}
-    <div class="nav-links-inline">
-        <a href="{{ url_for('main.sessions') }}" class="nav-link">
-            <span>📁</span> My Sessions
-        </a>
-        <a href="{{ url_for('main.batch') }}" class="nav-link">
-            <span>🔄</span> Batch Processing
-        </a>
-        <a href="{{ url_for('main.ai_insights') }}" class="nav-link">
-            <span>🤖</span> AI Insights
-        </a>
-        <a href="{{ url_for('main.config_page') }}" class="nav-link">
-            <span>⚙️</span> Keywords
-        </a>
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">
-            <span>👤</span> Profile
-        </a>
-        <a href="{{ url_for('auth.logout') }}" class="nav-link">
-            <span>🚪</span> Logout
-        </a>
-    </div>
-    {% else %}
-    <div class="nav-links-inline">
-        <a href="{{ url_for('main.sessions') }}" class="nav-link">
-            <span>📁</span> Browse Sessions
-        </a>
-        <a href="{{ url_for('main.batch') }}" class="nav-link">
-            <span>🔄</span> Batch Processing
-        </a>
-        <a href="{{ url_for('main.config_page') }}" class="nav-link">
-            <span>⚙️</span> Keywords
-        </a>
-        <a href="{{ url_for('auth.login') }}" class="nav-link">
-            <span>🔑</span> Sign In
-        </a>
-        <a href="{{ url_for('auth.register') }}" class="nav-link">
-            <span>📝</span> Sign Up
-        </a>
-    </div>
-    {% endif %}
 
     <div class="upload-section">
         <div class="upload-area" id="uploadArea">

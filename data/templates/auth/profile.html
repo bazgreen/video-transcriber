@@ -1,386 +1,310 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - Video Transcriber</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            padding: 20px;
-        }
+{% block title %}Profile - Video Transcriber{% endblock %}
 
+{% block body_class %}layout-centered{% endblock %}
+
+{% set show_header = true %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 40px auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .profile-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .profile-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+
+    .profile-content {
+        padding: 30px;
+    }
+
+    .profile-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .profile-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .profile-section h2 {
+        margin: 0 0 20px 0;
+        color: #495057;
+        font-size: 1.3rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+
+    .profile-info {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .info-value {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+        transition: border-color 0.3s ease;
+    }
+
+    .stat-card:hover {
+        border-color: #667eea;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .actions-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .action-button {
+        display: inline-block;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 500;
+        transition: transform 0.2s ease;
+    }
+
+    .action-button:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: white;
+    }
+
+    .action-button.secondary {
+        background: #6c757d;
+    }
+
+    .action-button.danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+
+    .recent-activity {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    .activity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f3f4;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-description {
+        color: #495057;
+    }
+
+    .activity-time {
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
         .profile-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+            margin: 10px;
+            border-radius: 8px;
         }
 
         .profile-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            padding: 20px;
         }
 
         .profile-header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-
-        .profile-header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
+            font-size: 1.5rem;
         }
 
         .profile-content {
-            padding: 30px;
-        }
-
-        .profile-sections {
-            display: grid;
-            gap: 30px;
-        }
-
-        .profile-section {
-            background: #f8f9fa;
-            border-radius: 8px;
             padding: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .profile-section h2 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .profile-info {
-            display: grid;
-            gap: 15px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            font-weight: 500;
-            color: #495057;
-        }
-
-        .info-value {
-            color: #333;
-            font-weight: 600;
         }
 
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border: 2px solid #e9ecef;
-            transition: border-color 0.3s ease;
-        }
-
-        .stat-card:hover {
-            border-color: #667eea;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.9rem;
+            grid-template-columns: 1fr 1fr;
         }
 
         .actions-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: 1fr;
         }
 
-        .action-button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 500;
-            transition: transform 0.2s ease;
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
         }
+    }
+</style>
+{% endblock %}
 
-        .action-button:hover {
-            transform: translateY(-1px);
-            text-decoration: none;
-            color: white;
-        }
-
-        .action-button.secondary {
-            background: #6c757d;
-        }
-
-        .action-button.danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        }
-
-        .back-link {
-            margin-bottom: 20px;
-        }
-
-        .back-link a {
-            color: white;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 25px;
-            transition: background 0.3s ease;
-        }
-
-        .back-link a:hover {
-            background: rgba(255, 255, 255, 0.3);
-            text-decoration: none;
-        }
-
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-
-        .flash-message {
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.95rem;
-        }
-
-        .flash-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .flash-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .flash-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .recent-activity {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .activity-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f1f3f4;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-description {
-            color: #495057;
-        }
-
-        .activity-time {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 768px) {
-            .profile-container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-
-            .profile-header {
-                padding: 20px;
-            }
-
-            .profile-header h1 {
-                font-size: 1.5rem;
-            }
-
-            .profile-content {
-                padding: 20px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .actions-section {
-                grid-template-columns: 1fr;
-            }
-
-            .info-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 5px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="back-link">
-        <a href="{{ url_for('main.index') }}">← Back to Home</a>
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>👤 User Profile</h1>
+        <p>Manage your account and view your transcription activity</p>
     </div>
 
-    <div class="profile-container">
-        <div class="profile-header">
-            <h1>👤 User Profile</h1>
-            <p>Manage your account and view your transcription activity</p>
-        </div>
-
-        <div class="profile-content">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                            <div class="flash-message flash-{{ category }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
+    <div class="profile-content">
+        <div class="profile-sections">
+            <!-- User Information -->
+            <div class="profile-section">
+                <h2>📋 Account Information</h2>
+                <div class="profile-info">
+                    <div class="info-item">
+                        <span class="info-label">Username</span>
+                        <span class="info-value">{{ current_user.username }}</span>
                     </div>
-                {% endif %}
-            {% endwith %}
-
-            <div class="profile-sections">
-                <!-- User Information -->
-                <div class="profile-section">
-                    <h2>📋 Account Information</h2>
-                    <div class="profile-info">
-                        <div class="info-item">
-                            <span class="info-label">Username</span>
-                            <span class="info-value">{{ current_user.username }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Display Name</span>
-                            <span class="info-value">{{ current_user.display_name or current_user.username }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Email</span>
-                            <span class="info-value">{{ current_user.email }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Member Since</span>
-                            <span class="info-value">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
-                        </div>
-                        {% if current_user.last_login %}
-                        <div class="info-item">
-                            <span class="info-label">Last Login</span>
-                            <span class="info-value">{{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') }}</span>
-                        </div>
-                        {% endif %}
+                    <div class="info-item">
+                        <span class="info-label">Display Name</span>
+                        <span class="info-value">{{ current_user.display_name or current_user.username }}</span>
                     </div>
-                </div>
-
-                <!-- Account Statistics -->
-                <div class="profile-section">
-                    <h2>📊 Your Activity</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number">{{ session_count or 0 }}</div>
-                            <div class="stat-label">Transcription Sessions</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number">{{ ((current_user.created_at | string).split()[0] | length) or 0 }}</div>
-                            <div class="stat-label">Days Active</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number">{{ current_user.display_name | length }}</div>
-                            <div class="stat-label">Profile Completeness</div>
-                        </div>
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">{{ current_user.email }}</span>
                     </div>
-
-                    {% if session_count and session_count > 0 %}
-                    <div class="recent-activity">
-                        <h3>Recent Activity</h3>
-                        <div class="activity-item">
-                            <span class="activity-description">Last transcription session</span>
-                            <span class="activity-time">View your sessions to see details</span>
-                        </div>
-                        <div class="activity-item">
-                            <span class="activity-description">Account created</span>
-                            <span class="activity-time">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
-                        </div>
+                    <div class="info-item">
+                        <span class="info-label">Member Since</span>
+                        <span class="info-value">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+                    {% if current_user.last_login %}
+                    <div class="info-item">
+                        <span class="info-label">Last Login</span>
+                        <span class="info-value">{{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') }}</span>
                     </div>
                     {% endif %}
                 </div>
+            </div>
 
-                <!-- Account Actions -->
-                <div class="profile-section">
-                    <h2>⚙️ Account Management</h2>
-                    <div class="actions-section">
-                        <a href="{{ url_for('auth.change_password') }}" class="action-button">
-                            🔒 Change Password
-                        </a>
-                        <a href="{{ url_for('main.sessions') }}" class="action-button secondary">
-                            📁 View My Sessions
-                        </a>
-                        <a href="{{ url_for('main.index') }}" class="action-button secondary">
-                            🎬 New Transcription
-                        </a>
-                        <a href="{{ url_for('auth.logout') }}" class="action-button danger">
-                            🚪 Sign Out
-                        </a>
+            <!-- Account Statistics -->
+            <div class="profile-section">
+                <h2>📊 Your Activity</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ session_count or 0 }}</div>
+                        <div class="stat-label">Transcription Sessions</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ ((current_user.created_at | string).split()[0] | length) or 0 }}</div>
+                        <div class="stat-label">Days Active</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ current_user.display_name | length }}</div>
+                        <div class="stat-label">Profile Completeness</div>
+                    </div>
+                </div>
+
+                {% if session_count and session_count > 0 %}
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-item">
+                        <span class="activity-description">Last transcription session</span>
+                        <span class="activity-time">View your sessions to see details</span>
+                    </div>
+                    <div class="activity-item">
+                        <span class="activity-description">Account created</span>
+                        <span class="activity-time">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Account Actions -->
+            <div class="profile-section">
+                <h2>⚙️ Account Management</h2>
+                <div class="actions-section">
+                    <a href="{{ url_for('auth.change_password') }}" class="action-button">
+                        🔒 Change Password
+                    </a>
+                    <a href="{{ url_for('main.sessions') }}" class="action-button secondary">
+                        📁 View My Sessions
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="action-button secondary">
+                        🎬 New Transcription
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="action-button danger">
+                        🚪 Sign Out
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

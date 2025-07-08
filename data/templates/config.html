@@ -4,30 +4,12 @@
 
 {% block body_class %}layout-centered{% endblock %}
 
-{% set show_header = false %}
+{% set show_header = true %}
 
 {% block content %}
 <div class="container container-wide">
     <h1 class="page-title">⚙️ Keyword Configuration</h1>
     <p class="page-subtitle">Customize keywords for enhanced content analysis and searchability</p>
-
-    <div class="nav-links-inline">
-        <a href="{{ url_for('main.index') }}" class="nav-link">
-            <span>🏠</span> Home
-        </a>
-        <a href="{{ url_for('main.sessions') }}" class="nav-link">
-            <span>📁</span> Sessions
-        </a>
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('auth.profile') }}" class="nav-link">
-            <span>👤</span> Profile
-        </a>
-        {% else %}
-        <a href="{{ url_for('auth.login') }}" class="nav-link">
-            <span>🔑</span> Sign In
-        </a>
-        {% endif %}
-    </div>
 
     <!-- Assessment Keywords Section -->
     <div class="keyword-section card">
