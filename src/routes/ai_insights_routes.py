@@ -9,6 +9,7 @@ advanced content classification.
 import json
 import logging
 import os
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from flask import Blueprint, jsonify, request
@@ -533,12 +534,197 @@ def analyze_batch_insights() -> Tuple[Dict[str, Any], int]:
         return jsonify({"error": "Batch analysis failed", "details": str(e)}), 500
 
 
+@ai_insights_bp.route("/compare-sessions", methods=["POST"])
+def compare_sessions() -> Tuple[Dict[str, Any], int]:
+    """
+    Compare AI insights across multiple sessions.
+
+    Request body should contain:
+    {
+        "session_ids": ["session1", "session2", ...],
+        "comparison_types": ["sentiment", "topics", "insights"] (optional)
+    }
+
+    Returns:
+        JSON response with comparison analysis
+    """
+    if not AI_INSIGHTS_AVAILABLE:
+        return (
+            jsonify(
+                {
+                    "error": "AI insights not available",
+                    "message": "Install AI dependencies to enable this feature",
+                }
+            ),
+            503,
+        )
+
+    try:
+        data = request.get_json()
+        if not data or "session_ids" not in data:
+            return jsonify({"error": "Missing session_ids"}), 400
+
+        session_ids = data["session_ids"]
+        comparison_types = data.get(
+            "comparison_types", ["sentiment", "topics", "insights"]
+        )
+        results_folder = data.get("results_folder", "data/results")
+
+        if not isinstance(session_ids, list) or len(session_ids) < 2:
+            return jsonify({"error": "Need at least 2 sessions for comparison"}), 400
+
+        if len(session_ids) > 10:  # Limit comparison size
+            return jsonify({"error": "Maximum 10 sessions can be compared"}), 400
+
+        # Load insights for all sessions
+        session_insights = {}
+        for session_id in session_ids:
+            session_data = get_session_data(session_id, results_folder)
+            if session_data and "ai_insights" in session_data:
+                session_insights[session_id] = session_data["ai_insights"]
+            else:
+                logger.warning(f"No AI insights found for session: {session_id}")
+
+        if len(session_insights) < 2:
+            return jsonify({"error": "Need at least 2 sessions with AI insights"}), 400
+
+        # Prepare comparison data
+        comparison_result = {
+            "sessions_compared": len(session_insights),
+            "comparison_types": comparison_types,
+            "analysis_timestamp": datetime.now().isoformat(),
+            "results": {},
+        }
+
+        # Sentiment comparison
+        if "sentiment" in comparison_types:
+            sentiment_comparison = []
+            for session_id, insights in session_insights.items():
+                if "sentiment_analysis" in insights and insights[
+                    "sentiment_analysis"
+                ].get("overall"):
+                    sentiment = insights["sentiment_analysis"]["overall"]
+                    sentiment_comparison.append(
+                        {
+                            "session_id": session_id,
+                            "polarity": sentiment.get("polarity", 0),
+                            "subjectivity": sentiment.get("subjectivity", 0),
+                            "interpretation": sentiment.get(
+                                "interpretation", "Unknown"
+                            ),
+                        }
+                    )
+
+            if sentiment_comparison:
+                # Calculate comparison statistics
+                polarities = [s["polarity"] for s in sentiment_comparison]
+                comparison_result["results"]["sentiment"] = {
+                    "sessions": sentiment_comparison,
+                    "statistics": {
+                        "average_polarity": sum(polarities) / len(polarities),
+                        "polarity_range": max(polarities) - min(polarities),
+                        "most_positive": max(
+                            sentiment_comparison, key=lambda x: x["polarity"]
+                        ),
+                        "most_negative": min(
+                            sentiment_comparison, key=lambda x: x["polarity"]
+                        ),
+                    },
+                }
+
+        # Topic comparison
+        if "topics" in comparison_types:
+            topic_evolution = {}
+            for session_id, insights in session_insights.items():
+                if "topic_modeling" in insights and insights["topic_modeling"].get(
+                    "main_topics"
+                ):
+                    for topic in insights["topic_modeling"]["main_topics"]:
+                        topic_key = topic.get(
+                            "description", f"Topic {topic.get('topic_id', 'Unknown')}"
+                        )
+                        if topic_key not in topic_evolution:
+                            topic_evolution[topic_key] = []
+
+                        topic_evolution[topic_key].append(
+                            {
+                                "session_id": session_id,
+                                "strength": topic.get("strength", 0),
+                                "keywords": topic.get("keywords", []),
+                            }
+                        )
+
+            if topic_evolution:
+                # Find common vs unique topics
+                common_topics = {k: v for k, v in topic_evolution.items() if len(v) > 1}
+                unique_topics = {
+                    k: v for k, v in topic_evolution.items() if len(v) == 1
+                }
+
+                comparison_result["results"]["topics"] = {
+                    "topic_evolution": topic_evolution,
+                    "statistics": {
+                        "total_topics": len(topic_evolution),
+                        "common_topics": len(common_topics),
+                        "unique_topics": len(unique_topics),
+                        "most_common_topic": max(
+                            topic_evolution.items(), key=lambda x: len(x[1])
+                        )[0]
+                        if topic_evolution
+                        else None,
+                    },
+                }
+
+        # Key insights comparison
+        if "insights" in comparison_types:
+            insights_patterns = []
+            for session_id, insights in session_insights.items():
+                if "key_insights" in insights:
+                    key_insights = insights["key_insights"]
+                    action_items = len(key_insights.get("action_items", []))
+                    takeaways = len(key_insights.get("key_takeaways", []))
+                    decisions = len(key_insights.get("decision_points", []))
+
+                    insights_patterns.append(
+                        {
+                            "session_id": session_id,
+                            "action_items": action_items,
+                            "takeaways": takeaways,
+                            "decisions": decisions,
+                            "total": action_items + takeaways + decisions,
+                        }
+                    )
+
+            if insights_patterns:
+                total_insights = sum(p["total"] for p in insights_patterns)
+                comparison_result["results"]["insights"] = {
+                    "patterns": insights_patterns,
+                    "statistics": {
+                        "total_insights": total_insights,
+                        "average_per_session": total_insights / len(insights_patterns),
+                        "most_productive": max(
+                            insights_patterns, key=lambda x: x["total"]
+                        )
+                        if insights_patterns
+                        else None,
+                    },
+                }
+
+        return jsonify(comparison_result), 200
+
+    except Exception as e:
+        logger.error(f"Error in session comparison: {e}")
+        return jsonify({"error": "Session comparison failed", "details": str(e)}), 500
+
+
 # Error handlers
 @ai_insights_bp.errorhandler(404)
 def not_found(error):  # pylint: disable=unused-argument
+    """Handle 404 errors for AI insights endpoints."""
     return jsonify({"error": "AI insights endpoint not found"}), 404
 
 
 @ai_insights_bp.errorhandler(500)
 def internal_error(error):  # pylint: disable=unused-argument
+    """Handle 500 errors for AI insights endpoints."""
     return jsonify({"error": "Internal AI insights error"}), 500

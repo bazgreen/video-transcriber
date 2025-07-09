@@ -626,7 +626,7 @@ class BatchProcessor:
         """Emit real-time batch update via WebSocket."""
         if not self.socketio:
             return
-            
+
         try:
             # Add timestamp for real-time tracking
             batch_data["timestamp"] = datetime.now().isoformat()

@@ -365,6 +365,175 @@
 
     </div>
 
+    <!-- Session Comparison Results -->
+    <div id="comparisonResults" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="section-title">📊 Session Comparison Results</h2>
+                <div class="header-actions">
+                    <button id="exportComparisonBtn" class="btn-icon" title="Export comparison">
+                        <span>📥</span>
+                    </button>
+                    <button id="closeComparisonBtn" class="btn-icon" title="Close comparison">
+                        <span>✕</span>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="comparisonSummary" class="comparison-summary">
+                    <!-- Dynamic comparison summary -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sentiment Comparison -->
+        <div class="card" id="sentimentComparisonCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="section-title">😊 Sentiment Trends Comparison</h3>
+                <div class="header-actions">
+                    <select id="sentimentComparisonView" class="mini-select">
+                        <option value="timeline">Timeline View</option>
+                        <option value="distribution">Distribution</option>
+                        <option value="summary">Summary</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="sentimentComparisonContent">
+                    <div class="chart-container">
+                        <canvas id="sentimentComparisonChart"></canvas>
+                    </div>
+                    <div id="sentimentComparisonInsights"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topic Evolution Comparison -->
+        <div class="card" id="topicComparisonCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="section-title">🏷️ Topic Evolution Analysis</h3>
+                <div class="header-actions">
+                    <select id="topicComparisonView" class="mini-select">
+                        <option value="evolution">Evolution</option>
+                        <option value="distribution">Distribution</option>
+                        <option value="keywords">Keywords</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="topicComparisonContent">
+                    <div class="chart-container">
+                        <canvas id="topicComparisonChart"></canvas>
+                    </div>
+                    <div id="topicEvolutionGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Insights Comparison -->
+        <div class="card" id="insightsComparisonCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="section-title">💡 Key Insights Evolution</h3>
+                <div class="header-actions">
+                    <button class="filter-btn active" data-type="all">All</button>
+                    <button class="filter-btn" data-type="patterns">Patterns</button>
+                    <button class="filter-btn" data-type="changes">Changes</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="insightsComparisonContent">
+                    <div id="insightsEvolution"></div>
+                    <div id="insightsPatterns"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Metrics Comparison -->
+        <div class="card" id="metricsComparisonCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="section-title">📈 Content Metrics Analysis</h3>
+            </div>
+            <div class="card-body">
+                <div id="metricsComparisonContent">
+                    <div class="metrics-comparison-grid">
+                        <div class="chart-container">
+                            <canvas id="metricsComparisonChart"></canvas>
+                        </div>
+                        <div id="metricsComparisonTable"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Comparison Modal -->
+    <div id="comparisonModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>📊 Session Comparison & Analytics</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="comparison-setup">
+                    <div class="form-group">
+                        <label>Select Sessions to Compare (2-5 sessions)</label>
+                        <div id="comparisonSessionList" class="session-list comparison-list">
+                            <!-- Dynamic session list with checkboxes -->
+                        </div>
+                    </div>
+                    <div class="comparison-options">
+                        <div class="form-group">
+                            <label>Comparison Type</label>
+                            <div class="comparison-type-grid">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="compareSentiment" checked>
+                                    <span class="checkmark"></span>
+                                    Sentiment Trends
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="compareTopics" checked>
+                                    <span class="checkmark"></span>
+                                    Topic Evolution
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="compareInsights" checked>
+                                    <span class="checkmark"></span>
+                                    Key Insights
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="compareMetrics">
+                                    <span class="checkmark"></span>
+                                    Content Metrics
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Time Range Analysis</label>
+                            <select id="comparisonTimeRange" class="form-control">
+                                <option value="all" selected>All Sessions</option>
+                                <option value="last7">Last 7 days</option>
+                                <option value="last30">Last 30 days</option>
+                                <option value="last90">Last 90 days</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="comparisonProgress" class="batch-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="batch-status">Preparing comparison analysis...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="startComparisonBtn" class="btn btn-primary">
+                    <span>🔍</span> Start Comparison
+                </button>
+                <button class="btn btn-secondary modal-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Batch Analysis Modal -->
     <div id="batchModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -1132,8 +1301,149 @@
     margin: 0;
 }
 
+/* Session Comparison */
+.comparison-list {
+    max-height: 250px;
+}
+
+.comparison-type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.comparison-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.comparison-stat-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.comparison-stat-card h4 {
+    margin: 0 0 8px 0;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.comparison-stat-card .value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 4px;
+}
+
+.comparison-stat-card .change {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.comparison-stat-card .change.positive {
+    color: #10b981;
+}
+
+.comparison-stat-card .change.negative {
+    color: #ef4444;
+}
+
+.comparison-stat-card .change.neutral {
+    color: #6b7280;
+}
+
+.metrics-comparison-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+.session-comparison-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-label {
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.insights-evolution {
+    display: grid;
+    gap: 16px;
+}
+
+.evolution-timeline {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 16px 0;
+}
+
+.evolution-point {
+    min-width: 200px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.evolution-point h5 {
+    margin: 0 0 8px 0;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.evolution-point .date {
+    color: #6b7280;
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+}
+
+.evolution-point .insights {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.evolution-point .insights li {
+    padding: 2px 0;
+    font-size: 0.8rem;
+    color: #4b5563;
+}
+
+.modal-large {
+    max-width: 800px;
+    width: 90%;
+}
+
 .batch-progress {
-    margin-top: 20px;
+    display: none;
+    margin-top: 16px;
 }
 
 .batch-status {
@@ -1315,7 +1625,10 @@ class AIInsightsDashboard {
         this.realtimeMode = false;
         this.realtimeInterval = null;
         this.charts = {};
+        this.comparisonCharts = {};
         this.sessionsData = [];
+        this.selectedSessionsForComparison = [];
+        this.comparisonData = null;
         this.globalStats = {
             totalSessions: 0,
             analyzedSessions: 0,
@@ -1532,6 +1845,11 @@ class AIInsightsDashboard {
         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', () => this.updateAnalysisOptions());
         });
+
+        // Comparison modal controls
+        document.getElementById('startComparisonBtn').addEventListener('click', () => this.startSessionComparison());
+        document.getElementById('closeComparisonBtn').addEventListener('click', () => this.closeComparisonResults());
+        document.getElementById('exportComparisonBtn').addEventListener('click', () => this.exportComparisonResults());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -2092,8 +2410,37 @@ class AIInsightsDashboard {
     }
 
     showCompareModal() {
-        // Implementation for session comparison
-        this.showMessage('Session comparison feature coming soon!', 'info');
+        const modal = document.getElementById('comparisonModal');
+        const sessionList = document.getElementById('comparisonSessionList');
+
+        // Clear previous selections
+        this.selectedSessionsForComparison = [];
+
+        // Populate session list
+        if (this.sessionsData.length < 2) {
+            this.showMessage('Need at least 2 sessions to perform comparison', 'warning');
+            return;
+        }
+
+        sessionList.innerHTML = '';
+        this.sessionsData.forEach(session => {
+            const sessionItem = document.createElement('div');
+            sessionItem.className = 'session-item';
+            sessionItem.innerHTML = `
+                <input type="checkbox" id="compare_${session.session_id}"
+                       value="${session.session_id}"
+                       onchange="window.aiDashboard.handleComparisonSessionSelection(this)">
+                <label for="compare_${session.session_id}">
+                    ${session.session_name || session.session_id}
+                    <span style="color: #6b7280; font-size: 0.875rem;">
+                        - ${session.created_at || 'Unknown date'}
+                    </span>
+                </label>
+            `;
+            sessionList.appendChild(sessionItem);
+        });
+
+        modal.style.display = 'block';
     }
 
     closeModal(modal) {
@@ -2145,6 +2492,629 @@ class AIInsightsDashboard {
             this.showMessage('Installation failed. Please run the installation script manually.', 'error');
         }
     }
+
+    // === Session Comparison Methods ===
+    handleComparisonSessionSelection(checkbox) {
+        if (checkbox.checked) {
+            if (this.selectedSessionsForComparison.length >= 5) {
+                checkbox.checked = false;
+                this.showMessage('Maximum 5 sessions can be compared at once', 'warning');
+                return;
+            }
+            this.selectedSessionsForComparison.push(checkbox.value);
+        } else {
+            this.selectedSessionsForComparison = this.selectedSessionsForComparison.filter(
+                id => id !== checkbox.value
+            );
+        }
+
+        // Update start button state
+        const startBtn = document.getElementById('startComparisonBtn');
+        startBtn.disabled = this.selectedSessionsForComparison.length < 2;
+    }
+
+    async startSessionComparison() {
+        if (this.selectedSessionsForComparison.length < 2) {
+            this.showMessage('Please select at least 2 sessions to compare', 'warning');
+            return;
+        }
+
+        const modal = document.getElementById('comparisonModal');
+        const progressDiv = document.getElementById('comparisonProgress');
+        const statusDiv = progressDiv.querySelector('.batch-status');
+
+        try {
+            // Show progress
+            progressDiv.style.display = 'block';
+            statusDiv.textContent = `Loading data for ${this.selectedSessionsForComparison.length} sessions...`;
+
+            // Load AI insights for all selected sessions
+            const sessionInsights = {};
+            for (let i = 0; i < this.selectedSessionsForComparison.length; i++) {
+                const sessionId = this.selectedSessionsForComparison[i];
+                statusDiv.textContent = `Loading session ${i + 1} of ${this.selectedSessionsForComparison.length}: ${sessionId}`;
+
+                const response = await fetch(`/api/ai/insights/${sessionId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionInsights[sessionId] = data;
+                } else {
+                    console.warn(`Failed to load insights for session: ${sessionId}`);
+                }
+            }
+
+            // Prepare comparison data
+            statusDiv.textContent = 'Preparing comparison analysis...';
+            this.comparisonData = this.prepareComparisonData(sessionInsights);
+
+            // Close modal and show results
+            modal.style.display = 'none';
+            await this.displayComparisonResults();
+
+            this.showMessage(`Comparison complete for ${this.selectedSessionsForComparison.length} sessions`, 'success');
+
+        } catch (error) {
+            console.error('Comparison failed:', error);
+            this.showMessage(`Comparison failed: ${error.message}`, 'error');
+        } finally {
+            progressDiv.style.display = 'none';
+        }
+    }
+
+    prepareComparisonData(sessionInsights) {
+        const sessions = [];
+        const comparisonMetrics = {
+            sentimentTrends: [],
+            topicEvolution: {},
+            insightsPatterns: [],
+            contentMetrics: []
+        };
+
+        // Process each session
+        Object.entries(sessionInsights).forEach(([sessionId, data]) => {
+            if (!data.ai_insights) return;
+
+            const sessionInfo = this.sessionsData.find(s => s.session_id === sessionId);
+            const insights = data.ai_insights;
+
+            const sessionData = {
+                id: sessionId,
+                name: sessionInfo?.session_name || sessionId,
+                date: sessionInfo?.created_at || 'Unknown',
+                insights: insights
+            };
+
+            sessions.push(sessionData);
+
+            // Extract sentiment data
+            if (insights.sentiment_analysis?.overall) {
+                comparisonMetrics.sentimentTrends.push({
+                    sessionId,
+                    sessionName: sessionData.name,
+                    date: sessionData.date,
+                    polarity: insights.sentiment_analysis.overall.polarity || 0,
+                    subjectivity: insights.sentiment_analysis.overall.subjectivity || 0,
+                    interpretation: insights.sentiment_analysis.overall.interpretation || 'Neutral'
+                });
+            }
+
+            // Extract topic data
+            if (insights.topic_modeling?.main_topics) {
+                insights.topic_modeling.main_topics.forEach(topic => {
+                    const topicKey = topic.description || `Topic ${topic.topic_id}`;
+                    if (!comparisonMetrics.topicEvolution[topicKey]) {
+                        comparisonMetrics.topicEvolution[topicKey] = [];
+                    }
+                    comparisonMetrics.topicEvolution[topicKey].push({
+                        sessionId,
+                        sessionName: sessionData.name,
+                        date: sessionData.date,
+                        strength: topic.strength || 0,
+                        keywords: topic.keywords || []
+                    });
+                });
+            }
+
+            // Extract key insights
+            if (insights.key_insights) {
+                const actionItems = insights.key_insights.action_items?.length || 0;
+                const takeaways = insights.key_insights.key_takeaways?.length || 0;
+                const decisions = insights.key_insights.decision_points?.length || 0;
+
+                comparisonMetrics.insightsPatterns.push({
+                    sessionId,
+                    sessionName: sessionData.name,
+                    date: sessionData.date,
+                    actionItems,
+                    takeaways,
+                    decisions,
+                    total: actionItems + takeaways + decisions
+                });
+            }
+
+            // Extract content metrics
+            if (insights.advanced_analytics?.content_metrics) {
+                const metrics = insights.advanced_analytics.content_metrics;
+                comparisonMetrics.contentMetrics.push({
+                    sessionId,
+                    sessionName: sessionData.name,
+                    date: sessionData.date,
+                    wordCount: metrics.word_count || 0,
+                    readingLevel: metrics.reading_level || 'Unknown',
+                    avgSentenceLength: metrics.avg_sentence_length || 0,
+                    uniqueWords: metrics.unique_words || 0
+                });
+            }
+        });
+
+        return {
+            sessions,
+            metrics: comparisonMetrics,
+            summary: this.generateComparisonSummary(comparisonMetrics)
+        };
+    }
+
+    generateComparisonSummary(metrics) {
+        const summary = {};
+
+        // Sentiment summary
+        if (metrics.sentimentTrends.length > 0) {
+            const polarities = metrics.sentimentTrends.map(s => s.polarity);
+            const avgPolarity = polarities.reduce((a, b) => a + b, 0) / polarities.length;
+            const maxPolarity = Math.max(...polarities);
+            const minPolarity = Math.min(...polarities);
+
+            summary.sentiment = {
+                average: avgPolarity.toFixed(2),
+                range: (maxPolarity - minPolarity).toFixed(2),
+                trend: maxPolarity > Math.abs(minPolarity) ? 'Positive' : 'Negative',
+                mostPositive: metrics.sentimentTrends.find(s => s.polarity === maxPolarity)?.sessionName,
+                mostNegative: metrics.sentimentTrends.find(s => s.polarity === minPolarity)?.sessionName
+            };
+        }
+
+        // Topic summary
+        const topicCount = Object.keys(metrics.topicEvolution).length;
+        summary.topics = {
+            totalTopics: topicCount,
+            commonTopics: Object.entries(metrics.topicEvolution)
+                .filter(([_, sessions]) => sessions.length > 1)
+                .length,
+            emergingTopics: Object.entries(metrics.topicEvolution)
+                .filter(([_, sessions]) => sessions.length === 1)
+                .length
+        };
+
+        // Insights summary
+        if (metrics.insightsPatterns.length > 0) {
+            const totalInsights = metrics.insightsPatterns.reduce((sum, p) => sum + p.total, 0);
+            const avgInsights = totalInsights / metrics.insightsPatterns.length;
+
+            summary.insights = {
+                totalInsights,
+                averagePerSession: avgInsights.toFixed(1),
+                mostProductiveSession: metrics.insightsPatterns
+                    .reduce((max, p) => p.total > max.total ? p : max)?.sessionName
+            };
+        }
+
+        return summary;
+    }
+
+    async displayComparisonResults() {
+        const resultsSection = document.getElementById('comparisonResults');
+        const summaryDiv = document.getElementById('comparisonSummary');
+
+        // Hide single session results
+        document.getElementById('resultsSection').style.display = 'none';
+
+        // Show comparison results
+        resultsSection.style.display = 'block';
+        resultsSection.classList.add('fade-in');
+
+        // Display summary
+        this.displayComparisonSummary();
+
+        // Show comparison charts
+        const compareSentiment = document.getElementById('compareSentiment').checked;
+        const compareTopics = document.getElementById('compareTopics').checked;
+        const compareInsights = document.getElementById('compareInsights').checked;
+        const compareMetrics = document.getElementById('compareMetrics').checked;
+
+        if (compareSentiment) {
+            await this.displaySentimentComparison();
+        }
+
+        if (compareTopics) {
+            await this.displayTopicComparison();
+        }
+
+        if (compareInsights) {
+            await this.displayInsightsComparison();
+        }
+
+        if (compareMetrics) {
+            await this.displayMetricsComparison();
+        }
+    }
+
+    displayComparisonSummary() {
+        const summaryDiv = document.getElementById('comparisonSummary');
+        const summary = this.comparisonData.summary;
+
+        let summaryHTML = `
+            <div class="comparison-stat-card">
+                <h4>Sessions Compared</h4>
+                <div class="value">${this.comparisonData.sessions.length}</div>
+                <div class="sub-value">Analysis period</div>
+            </div>
+        `;
+
+        if (summary.sentiment) {
+            const trendColor = summary.sentiment.trend === 'Positive' ? 'positive' : 'negative';
+            summaryHTML += `
+                <div class="comparison-stat-card">
+                    <h4>Average Sentiment</h4>
+                    <div class="value">${summary.sentiment.average}</div>
+                    <div class="change ${trendColor}">Trend: ${summary.sentiment.trend}</div>
+                </div>
+            `;
+        }
+
+        if (summary.topics) {
+            summaryHTML += `
+                <div class="comparison-stat-card">
+                    <h4>Topics Analysis</h4>
+                    <div class="value">${summary.topics.totalTopics}</div>
+                    <div class="sub-value">${summary.topics.commonTopics} common topics</div>
+                </div>
+            `;
+        }
+
+        if (summary.insights) {
+            summaryHTML += `
+                <div class="comparison-stat-card">
+                    <h4>Key Insights</h4>
+                    <div class="value">${summary.insights.totalInsights}</div>
+                    <div class="sub-value">${summary.insights.averagePerSession} avg per session</div>
+                </div>
+            `;
+        }
+
+        summaryDiv.innerHTML = summaryHTML;
+    }
+
+    async displaySentimentComparison() {
+        const card = document.getElementById('sentimentComparisonCard');
+        const chartCtx = document.getElementById('sentimentComparisonChart');
+
+        if (!this.comparisonData.metrics.sentimentTrends.length) {
+            card.style.display = 'none';
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.comparisonCharts.sentiment) {
+            this.comparisonCharts.sentiment.destroy();
+        }
+
+        // Prepare chart data
+        const trends = this.comparisonData.metrics.sentimentTrends;
+        const sessions = [...new Set(trends.map(t => t.sessionName))];
+        const colors = this.generateColors(sessions.length);
+
+        const datasets = sessions.map((sessionName, index) => {
+            const sessionData = trends.filter(t => t.sessionName === sessionName);
+            return {
+                label: sessionName,
+                data: sessionData.map(d => ({
+                    x: d.date,
+                    y: d.polarity
+                })),
+                borderColor: colors[index],
+                backgroundColor: colors[index] + '20',
+                borderWidth: 2,
+                tension: 0.4
+            };
+        });
+
+        this.comparisonCharts.sentiment = new Chart(chartCtx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Sentiment Polarity Comparison',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Sentiment Polarity'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Sessions'
+                        }
+                    }
+                }
+            }
+        });
+
+        card.style.display = 'block';
+    }
+
+    async displayTopicComparison() {
+        const card = document.getElementById('topicComparisonCard');
+        const chartCtx = document.getElementById('topicComparisonChart');
+        const evolutionGrid = document.getElementById('topicEvolutionGrid');
+
+        if (!Object.keys(this.comparisonData.metrics.topicEvolution).length) {
+            card.style.display = 'none';
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.comparisonCharts.topics) {
+            this.comparisonCharts.topics.destroy();
+        }
+
+        // Show only topics that appear in multiple sessions
+        const commonTopics = Object.entries(this.comparisonData.metrics.topicEvolution)
+            .filter(([_, sessions]) => sessions.length > 1)
+            .slice(0, 10); // Limit to top 10 for readability
+
+        if (commonTopics.length === 0) {
+            evolutionGrid.innerHTML = '<div class="no-data">No common topics found across sessions</div>';
+            card.style.display = 'block';
+            return;
+        }
+
+        // Prepare chart data
+        const topicLabels = commonTopics.map(([topic, _]) => topic.substring(0, 20) + '...');
+        const sessions = [...new Set(this.comparisonData.sessions.map(s => s.name))];
+        const colors = this.generateColors(sessions.length);
+
+        const datasets = sessions.map((sessionName, index) => {
+            const data = commonTopics.map(([topicName, topicSessions]) => {
+                const sessionTopic = topicSessions.find(t => t.sessionName === sessionName);
+                return sessionTopic ? sessionTopic.strength * 100 : 0;
+            });
+
+            return {
+                label: sessionName,
+                data: data,
+                backgroundColor: colors[index] + '80',
+                borderColor: colors[index],
+                borderWidth: 1
+            };
+        });
+
+        this.comparisonCharts.topics = new Chart(chartCtx, {
+            type: 'bar',
+            data: {
+                labels: topicLabels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Topic Strength Comparison',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Topic Strength (%)'
+                        }
+                    }
+                }
+            }
+        });
+
+        card.style.display = 'block';
+    }
+
+    async displayInsightsComparison() {
+        const card = document.getElementById('insightsComparisonCard');
+        const evolutionDiv = document.getElementById('insightsEvolution');
+
+        if (!this.comparisonData.metrics.insightsPatterns.length) {
+            card.style.display = 'none';
+            return;
+        }
+
+        const patterns = this.comparisonData.metrics.insightsPatterns;
+
+        evolutionDiv.innerHTML = `
+            <h4>Key Insights Evolution</h4>
+            <div class="evolution-timeline">
+                ${patterns.map(pattern => `
+                    <div class="evolution-point">
+                        <h5>${pattern.sessionName}</h5>
+                        <div class="date">${pattern.date}</div>
+                        <ul class="insights">
+                            <li>🎯 ${pattern.actionItems} Action Items</li>
+                            <li>💡 ${pattern.takeaways} Key Takeaways</li>
+                            <li>✅ ${pattern.decisions} Decisions</li>
+                            <li><strong>Total: ${pattern.total} insights</strong></li>
+                        </ul>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        card.style.display = 'block';
+    }
+
+    async displayMetricsComparison() {
+        const card = document.getElementById('metricsComparisonCard');
+        const chartCtx = document.getElementById('metricsComparisonChart');
+        const tableDiv = document.getElementById('metricsComparisonTable');
+
+        if (!this.comparisonData.metrics.contentMetrics.length) {
+            card.style.display = 'none';
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.comparisonCharts.metrics) {
+            this.comparisonCharts.metrics.destroy();
+        }
+
+        const metrics = this.comparisonData.metrics.contentMetrics;
+        const sessionNames = metrics.map(m => m.sessionName);
+
+        this.comparisonCharts.metrics = new Chart(chartCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Word Count', 'Unique Words', 'Avg Sentence Length'],
+                datasets: metrics.map((metric, index) => ({
+                    label: metric.sessionName,
+                    data: [
+                        metric.wordCount / 1000, // Scale down for better visualization
+                        metric.uniqueWords / 100,
+                        metric.avgSentenceLength
+                    ],
+                    borderColor: this.generateColors(metrics.length)[index],
+                    backgroundColor: this.generateColors(metrics.length)[index] + '20',
+                    borderWidth: 2
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Content Metrics Comparison',
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Create comparison table
+        tableDiv.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 8px; border: 1px solid #dee2e6;">Session</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;">Word Count</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;">Reading Level</th>
+                        <th style="padding: 8px; border: 1px solid #dee2e6;">Unique Words</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${metrics.map(metric => `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #dee2e6;">${metric.sessionName}</td>
+                            <td style="padding: 8px; border: 1px solid #dee2e6;">${metric.wordCount.toLocaleString()}</td>
+                            <td style="padding: 8px; border: 1px solid #dee2e6;">${metric.readingLevel}</td>
+                            <td style="padding: 8px; border: 1px solid #dee2e6;">${metric.uniqueWords.toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        card.style.display = 'block';
+    }
+
+    generateColors(count) {
+        const colors = [
+            '#667eea', '#f093fb', '#4facfe', '#43e97b',
+            '#fa709a', '#ffecd2', '#a8edea', '#fad0c4',
+            '#ffd89b', '#c2e9fb', '#a1c4fd', '#fbc2eb'
+        ];
+
+        return colors.slice(0, count);
+    }
+
+    closeComparisonResults() {
+        document.getElementById('comparisonResults').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'block';
+
+        // Destroy comparison charts
+        Object.values(this.comparisonCharts).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        this.comparisonCharts = {};
+
+        this.comparisonData = null;
+        this.selectedSessionsForComparison = [];
+    }
+
+    async exportComparisonResults() {
+        if (!this.comparisonData) {
+            this.showMessage('No comparison data to export', 'warning');
+            return;
+        }
+
+        try {
+            this.showMessage('Generating comparison report...', 'info');
+
+            // Create export data
+            const exportData = {
+                comparison_summary: this.comparisonData.summary,
+                sessions_analyzed: this.comparisonData.sessions.length,
+                analysis_date: new Date().toISOString(),
+                sentiment_trends: this.comparisonData.metrics.sentimentTrends,
+                topic_evolution: this.comparisonData.metrics.topicEvolution,
+                insights_patterns: this.comparisonData.metrics.insightsPatterns,
+                content_metrics: this.comparisonData.metrics.contentMetrics
+            };
+
+            // Create downloadable file
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `session_comparison_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.showMessage('Comparison report exported successfully!', 'success');
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            this.showMessage('Failed to export comparison report', 'error');
+        }
+    }
 }
 
 // Initialize dashboard when DOM is loaded
@@ -2162,6 +3132,12 @@ async function analyzeSession() {
 function showBatchAnalysisDialog() {
     if (window.aiDashboard) {
         window.aiDashboard.showBatchAnalysisModal();
+    }
+}
+
+function showComparisonDialog() {
+    if (window.aiDashboard) {
+        window.aiDashboard.showCompareModal();
     }
 }
 </script>

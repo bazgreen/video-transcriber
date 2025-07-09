@@ -10,14 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def is_valid_session_id(session_id: str) -> bool:
-    """Validate session_id to prevent path traversal attacks"""
+    """Validate session_id to prevent path traversal attacks."""
     if not session_id or not isinstance(session_id, str):
         return False
-    return bool(re.match(r"^[a-zA-Z0-9_-]+$", session_id))
+    # Allow alphanumeric, underscores, hyphens, and spaces
+    # but prevent path traversal sequences
+    return bool(re.match(r"^[a-zA-Z0-9_\-\s]+$", session_id)) and ".." not in session_id
 
 
 def is_safe_path(file_path: str, base_dir: str) -> bool:
-    """Check if file_path is within base_dir to prevent path traversal"""
+    """Check if file_path is within base_dir to prevent path traversal."""
     try:
         base_path = os.path.abspath(base_dir)
         requested_path = os.path.abspath(file_path)
@@ -27,7 +29,7 @@ def is_safe_path(file_path: str, base_dir: str) -> bool:
 
 
 def format_timestamp(seconds: float) -> str:
-    """Format seconds as HH:MM:SS"""
+    """Format seconds as HH:MM:SS."""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
