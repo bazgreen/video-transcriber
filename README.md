@@ -40,6 +40,37 @@ A comprehensive Python web application that transforms videos into searchable, a
 - **📊 Historical Performance Data** - Track improvements and trends over time
 - **🚀 Automatic Optimization** - Smart defaults based on system capabilities
 
+### 🌍 Multi-Language Support
+
+- **🗣️ 99+ Language Support** - Comprehensive language detection and transcription
+- **🔍 Automatic Language Detection** - Smart detection using advanced NLP techniques
+- **🎯 Custom Language Preferences** - Set default and fallback languages
+- **📊 Language Confidence Scoring** - Reliability metrics for detected languages
+- **🌐 Localized Interface** - Multi-language UI support and content
+- **⚡ Real-time Language Switching** - Dynamic language changes during processing
+- **🧠 Language-Specific Processing** - Optimized transcription for each language
+
+### 🎭 Speaker Diarization
+
+- **👥 Multi-Speaker Detection** - Identify and separate different speakers
+- **🎤 Speaker Labeling** - Automatic "Speaker 1", "Speaker 2" classification
+- **📊 Speaker Statistics** - Speaking time analysis and participation metrics
+- **🎯 Speaker Segments** - Precise timing for each speaker's contributions
+- **🔄 Speaker Alignment** - Synchronize speaker changes with transcript timing
+- **📈 Conversation Analytics** - Turn-taking patterns and speaking dynamics
+- **🎨 Visual Speaker Indicators** - Color-coded speaker identification in transcripts
+
+### 🖥️ Advanced Monitoring & DevOps
+
+- **📊 Prometheus Metrics** - Comprehensive system monitoring and alerting
+- **📈 Grafana Dashboards** - Real-time visualizations and performance tracking
+- **🐳 Docker Containerization** - Complete containerized deployment stack
+- **⚖️ Kubernetes Orchestration** - Production-ready scaling and management
+- **🔄 CI/CD Pipeline** - Automated testing, building, and deployment
+- **🛡️ Health Monitoring** - Advanced health checks and status reporting
+- **⚡ Background Task Processing** - Celery-based asynchronous job processing
+- **🗃️ PostgreSQL Integration** - Production database with connection pooling
+
 ### 🔐 Authentication System (Optional)
 
 - **👤 User Account Management** - Secure registration and login system
@@ -144,6 +175,47 @@ That's it! The script handles everything automatically:
 - ✅ Installs dependencies
 - ✅ Starts the web server
 - ✅ Opens your browser
+
+### 🐳 Docker Deployment (Production Ready)
+
+For production deployments with full infrastructure stack:
+
+```bash
+# Quick start with Docker Compose
+docker-compose up -d
+
+# Or build and deploy full stack
+docker-compose build
+docker-compose up -d
+```
+
+**Complete Infrastructure Stack:**
+
+- **🚀 Video Transcriber App** - Main application with Gunicorn WSGI server
+- **🗃️ PostgreSQL Database** - Production database with persistent storage
+- **⚡ Redis Cache** - High-performance caching and session storage
+- **🔄 Celery Workers** - Background task processing for transcriptions
+- **📊 Prometheus Monitoring** - Metrics collection and alerting
+- **📈 Grafana Dashboards** - Real-time performance visualization
+- **🌐 Nginx Proxy** - Load balancing and SSL termination
+- **🛡️ Health Monitoring** - Comprehensive health checks and status reporting
+
+**Access Points:**
+
+- **Main App**: <http://localhost> (nginx proxy) or <http://localhost:5001> (direct)
+- **Grafana**: <http://localhost:3000> (admin/admin)
+- **Prometheus**: <http://localhost:9090>
+- **PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
+
+**Kubernetes Deployment:**
+
+```bash
+# Deploy to Kubernetes cluster
+kubectl apply -f k8s/
+```
+
+Complete Kubernetes manifests with auto-scaling, health checks, and persistent volumes.
 
 ### What You Get
 
@@ -268,6 +340,87 @@ kill.bat      # Windows
 rm -rf .venv  # Remove virtual environment
 ./run.sh      # Re-run installer
 ```
+
+## 🐳 Docker Deployment
+
+For production deployments, use our comprehensive Docker stack with monitoring, scaling, and advanced features.
+
+### Quick Docker Start
+
+```bash
+# Production deployment with full monitoring stack
+docker-compose up -d
+
+# Check all services are healthy
+docker-compose ps
+
+# Access the application
+open http://localhost       # Main application (via nginx)
+open http://localhost:3000  # Grafana monitoring dashboards
+open http://localhost:9090  # Prometheus metrics
+```
+
+### Available Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **Video Transcriber** | 80, 443 | Main application via nginx reverse proxy |
+| **Direct App Access** | 5001 | Direct Flask application access |
+| **Grafana Dashboard** | 3000 | Performance monitoring and analytics |
+| **Prometheus Metrics** | 9090 | Raw metrics collection and queries |
+| **PostgreSQL** | 5432 | Production database |
+| **Redis** | 6379 | Task queue and caching |
+
+### Docker Commands
+
+```bash
+# Deploy full production stack
+docker-compose up -d
+
+# Scale background workers
+docker-compose up -d --scale celery-worker=3
+
+# Update application with new features
+docker-compose build --no-cache video-transcriber
+docker-compose up -d video-transcriber celery-worker celery-beat
+
+# View application logs
+docker logs video-transcriber-app -f
+
+# Stop everything
+docker-compose down
+
+# Clean up (removes data!)
+docker-compose down -v --remove-orphans
+```
+
+### Kubernetes Deployment
+
+For enterprise production environments:
+
+```bash
+# Deploy to Kubernetes cluster
+kubectl apply -f k8s/
+
+# Check deployment status
+kubectl get pods -l app=video-transcriber
+
+# Scale the application
+kubectl scale deployment video-transcriber --replicas=3
+
+# Access via load balancer
+kubectl get service video-transcriber-service
+```
+
+### Monitoring & Health Checks
+
+All services include comprehensive health monitoring:
+
+- **Application Health**: `http://localhost/health`
+- **Grafana Dashboards**: Pre-configured performance monitoring
+- **Prometheus Metrics**: 281+ metrics for system monitoring
+- **Celery Monitoring**: Background task processing status
+- **Database Health**: Connection pooling and query performance
 
 **Need a complete fresh start?**
 
@@ -505,18 +658,71 @@ curl -X POST http://localhost:5001/api/performance \
 - **1-hour video**: ~25-35 minutes (vs 75 minutes sequential)
 - **Speed improvement**: 2-4x faster depending on video length and system specs
 
+## 🌐 API Reference
+
+### Multi-Language API
+
+```bash
+# Get all supported languages (99+ languages)
+curl http://localhost:5001/api/multilang/supported-languages
+
+# Detect language from text
+curl -X POST http://localhost:5001/api/multilang/detect-language \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Bonjour, comment allez-vous?"}'
+
+# Get/Set language preferences
+curl http://localhost:5001/api/multilang/language-preferences
+curl -X POST http://localhost:5001/api/multilang/language-preferences \
+  -H "Content-Type: application/json" \
+  -d '{"default_language": "es", "fallback_language": "en"}'
+```
+
+### Health & Monitoring API
+
+```bash
+# Application health status
+curl http://localhost:5001/health
+
+# System metrics (when monitoring is enabled)
+curl http://localhost:9090/api/v1/query?query=up
+
+# Celery task status
+curl http://localhost:5001/api/tasks/status
+```
+
+### Performance Tuning API
+
+```bash
+# Get current performance settings
+curl http://localhost:5001/api/performance
+
+# Update performance settings
+curl -X POST http://localhost:5001/api/performance \
+  -H "Content-Type: application/json" \
+  -d '{"chunk_duration": 240, "max_workers": 2}'
+```
+
+### WebSocket Endpoints
+
+- **Real-time Updates**: `ws://localhost:5001/socket.io`
+- **Progress Monitoring**: Live transcription progress
+- **Status Notifications**: System status and error messages
+
 ## 📁 Project Structure
 
 ```text
 video-transcriber/
 ├── Makefile                     # Development workflow automation
+├── docker-compose.yml          # Docker production deployment
+├── Dockerfile                  # Multi-stage container build
 ├── run.sh                      # macOS/Linux launcher
 ├── run.bat                     # Windows launcher
 ├── kill.sh                     # Stop app processes (macOS/Linux)
 ├── kill.bat                    # Stop app processes (Windows)
 ├── clean.sh                    # Environment cleanup (macOS/Linux)
 ├── clean.bat                   # Environment cleanup (Windows)
-├── main.py                     # Application entry point
+├── main.py                     # Application entry point with Flask factory
 ├── requirements.txt            # Core Python dependencies
 ├── requirements-full.txt       # Complete installation with AI features
 ├── LICENSE                     # MIT License
@@ -526,11 +732,17 @@ video-transcriber/
 │   │   ├── main.py            # Main application routes
 │   │   ├── api.py             # API endpoints
 │   │   ├── auth.py            # Authentication routes
+│   │   ├── multilang.py       # Multi-language API routes
 │   │   └── socket_handlers.py # WebSocket handlers
 │   ├── services/              # Business logic services
 │   │   ├── transcription.py   # Core transcription service
 │   │   ├── upload.py          # File upload handling
-│   │   └── export.py          # Export format generation
+│   │   ├── export.py          # Export format generation
+│   │   ├── ai_insights.py     # AI analysis and insights
+│   │   ├── language_detection.py # Multi-language support
+│   │   ├── speaker_diarization.py # Speaker identification
+│   │   ├── advanced_monitoring.py # System monitoring
+│   │   └── health_monitoring.py # Health checks
 │   ├── models/                # Data models
 │   │   ├── auth.py            # User authentication models
 │   │   ├── memory.py          # Memory management models
@@ -540,17 +752,39 @@ video-transcriber/
 │   │   ├── keywords.py        # Keyword management
 │   │   ├── security.py        # Security utilities
 │   │   └── performance_optimizer.py # Performance tuning
-│   ├── forms/                 # WTForms form definitions
-│   │   └── auth.py            # Authentication forms
-│   └── config.py              # Application configuration
-├── templates/                 # HTML templates
-│   ├── index.html             # Upload interface
-│   ├── results.html           # Results with video player
-│   ├── sessions.html          # Session browser
-│   ├── config.html            # Keyword configuration
-│   ├── performance.html       # Performance dashboard
-│   └── auth/                  # Authentication templates
+│   └── tasks.py               # Celery background tasks
+├── data/                      # Application data directory
+│   ├── templates/             # HTML templates
+│   │   ├── index.html         # Upload interface
+│   │   ├── results.html       # Results with video player
+│   │   ├── sessions.html      # Session browser
+│   │   ├── config.html        # Keyword configuration
+│   │   ├── performance.html   # Performance dashboard
+│   │   ├── advanced_upload.html # Multi-language upload interface
+│   │   ├── base.html          # Base template (clean)
+│   │   └── auth/              # Authentication templates
+│   ├── static/                # Static assets (CSS, JS, images)
+│   └── config/                # Configuration files
+├── k8s/                       # Kubernetes deployment manifests
+│   ├── namespace.yaml         # Kubernetes namespace
+│   ├── deployment.yaml        # Main application deployment
+│   ├── service.yaml           # Service definitions
+│   ├── ingress.yaml           # Ingress configuration
+│   ├── configmap.yaml         # Configuration maps
+│   ├── secrets.yaml           # Secret management
+│   └── monitoring.yaml        # Monitoring stack
+├── helm/                      # Helm charts for parameterized deployment
+│   ├── Chart.yaml             # Helm chart metadata
+│   ├── values.yaml            # Default configuration values
+│   └── templates/             # Kubernetes template files
+├── .github/                   # GitHub Actions CI/CD
+│   └── workflows/
+│       └── ci-cd.yml          # Automated testing and deployment
 ├── scripts/                   # Utility and maintenance scripts
+│   ├── deployment/            # Deployment automation
+│   │   ├── deploy.sh          # Production deployment script
+│   │   ├── backup.sh          # Database backup automation
+│   │   └── rollback.sh        # Deployment rollback utility
 │   ├── setup/                 # Installation scripts
 │   │   └── setup_and_run.py   # Main setup & launch script
 │   ├── maintenance/           # Environment management

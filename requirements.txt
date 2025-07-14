@@ -3,6 +3,9 @@
 # For complete AI features, use: pip install -r requirements-full.txt
 
 bcrypt>=4.0.0              # Password hashing
+
+# Background task processing
+celery>=5.3.0              # Background task queue
 email-validator>=2.0.0     # Email validation
 
 # Media processing and system utilities
@@ -21,6 +24,7 @@ numpy>=2.0.0
 # Core transcription engine
 openai-whisper>=20231117
 psutil>=7.0.0
+redis>=5.0.0               # Message broker for Celery
 requests>=2.25.0          # HTTP client for health checks
 
 # Mathematical and ML foundation

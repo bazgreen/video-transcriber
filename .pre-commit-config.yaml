@@ -8,6 +8,7 @@ repos:
         exclude: \.md$
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: check-json
       - id: check-toml
       - id: check-xml

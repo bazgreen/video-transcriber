@@ -674,12 +674,12 @@ class BatchProcessor:
                     "session_name": job.session_name,
                     "original_filename": job.original_filename,
                     "error_message": job.error_message,
-                    "started_at": job.started_at.isoformat()
-                    if job.started_at
-                    else None,
-                    "completed_at": job.completed_at.isoformat()
-                    if job.completed_at
-                    else None,
+                    "started_at": (
+                        job.started_at.isoformat() if job.started_at else None
+                    ),
+                    "completed_at": (
+                        job.completed_at.isoformat() if job.completed_at else None
+                    ),
                     "timestamp": job_data["timestamp"],
                 },
                 room=batch_room,

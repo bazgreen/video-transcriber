@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  labels:
+    app: video-transcriber
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: video-transcriber
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: video-transcriber
+        component: worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: video-transcriber:latest
+        command: ["python", "-m", "celery", "-A", "main.celery", "worker", "--loglevel=info", "--concurrency=2"]
+        env:
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: redis-url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: database-url
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+        volumeMounts:
+        - name: uploads-storage
+          mountPath: /app/uploads
+        - name: data-storage
+          mountPath: /app/data
+        - name: logs-storage
+          mountPath: /app/logs
+      volumes:
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-uploads
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-data
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-logs
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  labels:
+    app: video-transcriber
+    component: scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-transcriber
+      component: scheduler
+  template:
+    metadata:
+      labels:
+        app: video-transcriber
+        component: scheduler
+    spec:
+      containers:
+      - name: celery-beat
+        image: video-transcriber:latest
+        command: ["python", "-m", "celery", "-A", "main.celery", "beat", "--loglevel=info"]
+        env:
+        - name: CELERY_BROKER_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: redis-url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: database-url
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: data-storage
+          mountPath: /app/data
+        - name: logs-storage
+          mountPath: /app/logs
+      volumes:
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-data
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-logs

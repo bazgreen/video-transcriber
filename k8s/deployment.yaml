@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-transcriber
+  labels:
+    app: video-transcriber
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: video-transcriber
+  template:
+    metadata:
+      labels:
+        app: video-transcriber
+        version: v1
+    spec:
+      containers:
+      - name: video-transcriber
+        image: video-transcriber:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: video-transcriber-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        volumeMounts:
+        - name: uploads-storage
+          mountPath: /app/uploads
+        - name: data-storage
+          mountPath: /app/data
+        - name: logs-storage
+          mountPath: /app/logs
+      volumes:
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-uploads
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-data
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: video-transcriber-logs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-transcriber-service
+  labels:
+    app: video-transcriber
+spec:
+  selector:
+    app: video-transcriber
+  ports:
+  - port: 80
+    targetPort: 5000
+    name: http
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-transcriber-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  tls:
+  - hosts:
+    - video-transcriber.example.com
+    secretName: video-transcriber-tls
+  rules:
+  - host: video-transcriber.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: video-transcriber-service
+            port:
+              number: 80

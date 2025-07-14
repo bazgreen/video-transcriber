@@ -1,0 +1,213 @@
+# Complete Docker Compose orchestration for Video Transcriber
+
+services:
+  # Main application service
+  video-transcriber:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: video-transcriber-app
+    ports:
+      - "5001:5000"  # Map host port 5001 to container port 5000
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/video_transcriber
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./results:/app/results
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Background task processor
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: video-transcriber-worker
+    command: python -m celery -A celery_app.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/video_transcriber
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./results:/app/results
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+          cpus: '4'
+    healthcheck:
+      test: ["CMD", "python", "-m", "celery", "-A", "celery_app.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Task scheduler
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: video-transcriber-scheduler
+    command: python -m celery -A celery_app.celery_app beat --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/video_transcriber
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-m", "celery", "-A", "celery_app.celery_app", "inspect", "active"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: video-transcriber-db
+    environment:
+      POSTGRES_DB: video_transcriber
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d video_transcriber"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7-alpine
+    container_name: video-transcriber-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: video-transcriber-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./static:/var/www/static:ro
+    depends_on:
+      - video-transcriber
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: video-transcriber-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: video-transcriber-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - video-transcriber-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  video-transcriber-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

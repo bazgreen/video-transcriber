@@ -1,0 +1,188 @@
+# Default values for video-transcriber.
+# This is a YAML-formatted file.
+# Declare variables to be substituted into your templates.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Application configuration
+app:
+  name: video-transcriber
+  version: v1
+
+# Image configuration
+image:
+  repository: video-transcriber
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# Replica configuration
+replicaCount:
+  app: 3
+  worker: 2
+  scheduler: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: video-transcriber.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: video-transcriber-tls
+      hosts:
+        - video-transcriber.example.com
+
+# Resource configuration
+resources:
+  app:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+  worker:
+    requests:
+      memory: "4Gi"
+      cpu: "2"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  scheduler:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Storage configuration
+storage:
+  uploads:
+    size: 50Gi
+    storageClass: fast-ssd
+  data:
+    size: 20Gi
+    storageClass: standard
+  logs:
+    size: 10Gi
+    storageClass: standard
+
+# Database configuration
+database:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  auth:
+    database: video_transcriber
+    username: postgres
+    password: your-secure-password
+  storage:
+    size: 100Gi
+    storageClass: standard
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1"
+
+# Redis configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  storage:
+    size: 10Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    enabled: true
+    image:
+      repository: prom/prometheus
+      tag: "latest"
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+  grafana:
+    enabled: true
+    image:
+      repository: grafana/grafana
+      tag: "latest"
+    adminPassword: admin
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+# Environment variables
+env:
+  FLASK_ENV: production
+  LOG_LEVEL: INFO
+  MAX_UPLOAD_SIZE: 500M
+  WHISPER_MODEL: base
+
+# Security configuration
+security:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  podSecurityPolicy:
+    enabled: false
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

@@ -40,6 +40,12 @@ def index():
     return render_template("index.html")
 
 
+@main_bp.route("/advanced-upload")
+def advanced_upload():
+    """Advanced upload page with multi-language and speaker analysis options"""
+    return render_template("advanced_upload.html")
+
+
 @main_bp.route("/favicon.ico")
 def favicon():
     """Serve favicon"""

@@ -667,11 +667,11 @@ def compare_sessions() -> Tuple[Dict[str, Any], int]:
                         "total_topics": len(topic_evolution),
                         "common_topics": len(common_topics),
                         "unique_topics": len(unique_topics),
-                        "most_common_topic": max(
-                            topic_evolution.items(), key=lambda x: len(x[1])
-                        )[0]
-                        if topic_evolution
-                        else None,
+                        "most_common_topic": (
+                            max(topic_evolution.items(), key=lambda x: len(x[1]))[0]
+                            if topic_evolution
+                            else None
+                        ),
                     },
                 }
 
@@ -702,11 +702,11 @@ def compare_sessions() -> Tuple[Dict[str, Any], int]:
                     "statistics": {
                         "total_insights": total_insights,
                         "average_per_session": total_insights / len(insights_patterns),
-                        "most_productive": max(
-                            insights_patterns, key=lambda x: x["total"]
-                        )
-                        if insights_patterns
-                        else None,
+                        "most_productive": (
+                            max(insights_patterns, key=lambda x: x["total"])
+                            if insights_patterns
+                            else None
+                        ),
                     },
                 }
 

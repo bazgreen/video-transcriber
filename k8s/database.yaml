@@ -1,0 +1,190 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: video-transcriber-secrets
+  labels:
+    app: video-transcriber
+type: Opaque
+stringData:
+  database-url: "postgresql://postgres:your-secure-password@postgres:5432/video_transcriber"
+  redis-url: "redis://redis:6379/0"
+  secret-key: "your-super-secret-key-change-this-in-production"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: video-transcriber-config
+  labels:
+    app: video-transcriber
+data:
+  FLASK_ENV: "production"
+  LOG_LEVEL: "INFO"
+  MAX_UPLOAD_SIZE: "500M"
+  CELERY_BROKER_URL: "redis://redis:6379/1"
+  WHISPER_MODEL: "base"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: video-transcriber
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-transcriber
+      component: database
+  template:
+    metadata:
+      labels:
+        app: video-transcriber
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: video_transcriber
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: your-secure-password
+        - name: POSTGRES_INITDB_ARGS
+          value: "--encoding=UTF-8"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+            - -d
+            - video_transcriber
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+            - -d
+            - video_transcriber
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: video-transcriber
+    component: database
+spec:
+  selector:
+    app: video-transcriber
+    component: database
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: video-transcriber
+    component: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-transcriber
+      component: cache
+  template:
+    metadata:
+      labels:
+        app: video-transcriber
+        component: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - redis-server
+        - --appendonly
+        - "yes"
+        - --maxmemory
+        - "512mb"
+        - --maxmemory-policy
+        - "allkeys-lru"
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: redis-storage
+        persistentVolumeClaim:
+          claimName: redis-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: video-transcriber
+    component: cache
+spec:
+  selector:
+    app: video-transcriber
+    component: cache
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP

@@ -35,6 +35,15 @@ from src.services.export import EnhancedExportService
 from src.utils import format_timestamp, load_keywords
 from src.utils.performance_optimizer import performance_optimizer
 
+# Import language detection service
+try:
+    from src.services.language_detection import LanguageDetectionService
+
+    LANGUAGE_DETECTION_AVAILABLE = True
+except ImportError:
+    LANGUAGE_DETECTION_AVAILABLE = False
+    LanguageDetectionService = None
+
 # Import AI insights engine
 try:
     from src.services.ai_insights import create_ai_insights_engine
@@ -232,6 +241,20 @@ class VideoTranscriber:
         else:
             logger.info(
                 "AI Insights Engine not available (install optional dependencies for full AI features)"
+            )
+
+        # Initialize language detection service if available
+        self.language_detector = None
+        if LANGUAGE_DETECTION_AVAILABLE:
+            try:
+                self.language_detector = LanguageDetectionService()
+                logger.info("Language Detection Service initialized successfully")
+            except Exception as e:
+                logger.warning(f"Language Detection Service initialization failed: {e}")
+                self.language_detector = None
+        else:
+            logger.info(
+                "Language Detection Service not available (install langdetect for multi-language support)"
             )
 
         # Log memory and worker configuration
@@ -434,23 +457,62 @@ class VideoTranscriber:
             .run(quiet=True)
         )
 
-    def transcribe_with_timestamps(self, audio_path: str) -> Dict[str, Any]:
+    def transcribe_with_timestamps(
+        self, audio_path: str, force_language: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Transcribe audio file with detailed timestamp information.
+        Transcribe audio file with detailed timestamp information and language detection.
 
         Args:
             audio_path: Path to the audio file to transcribe
+            force_language: Force specific language (optional)
 
         Returns:
             Dictionary containing:
             - text: Full transcription text
             - segments: List of timestamped segments with start/end times
+            - detected_language: Auto-detected language code (if detection available)
+            - language_confidence: Confidence score for language detection
+            - language_name: Full name of detected language
 
         Note:
             Uses Whisper's word-level timestamps for precise timing information.
+            Supports automatic language detection when available.
         """
         model = self.load_model()
-        result = model.transcribe(audio_path, word_timestamps=True)
+
+        # Use language detection if available and no language forced
+        detected_language = None
+        language_confidence = 0.0
+        language_name = None
+
+        if self.language_detector and not force_language:
+            try:
+                (
+                    detected_language,
+                    language_confidence,
+                ) = self.language_detector.detect_language_from_audio(
+                    audio_path, model_size="base"
+                )
+                if detected_language:
+                    language_name = self.language_detector.get_language_name(
+                        detected_language
+                    )
+                    logger.info(
+                        f"Detected language: {language_name} ({detected_language}) with confidence {language_confidence:.2f}"
+                    )
+            except Exception as e:
+                logger.warning(f"Language detection failed: {e}")
+
+        # Use forced language or detected language
+        language_to_use = force_language or detected_language
+
+        # Transcribe with language specification
+        transcribe_kwargs = {"word_timestamps": True}
+        if language_to_use:
+            transcribe_kwargs["language"] = language_to_use
+
+        result = model.transcribe(audio_path, **transcribe_kwargs)
 
         # Format with timestamps
         timestamped_segments = []
@@ -464,7 +526,17 @@ class VideoTranscriber:
                 }
             )
 
-        return {"text": result["text"], "segments": timestamped_segments}
+        # Add language detection results
+        enhanced_result = {
+            "text": result["text"],
+            "segments": timestamped_segments,
+            "detected_language": detected_language,
+            "language_confidence": language_confidence,
+            "language_name": language_name,
+            "forced_language": force_language,
+        }
+
+        return enhanced_result
 
     def get_video_duration(self, video_path: str) -> float:
         """

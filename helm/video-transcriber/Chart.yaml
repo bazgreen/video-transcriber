@@ -1,0 +1,23 @@
+apiVersion: v2
+name: video-transcriber
+description: A Helm chart for Video Transcriber application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - transcription
+  - ai
+  - video
+  - audio
+  - whisper
+
+home: https://github.com/bazgreen/video-transcriber
+sources:
+  - https://github.com/bazgreen/video-transcriber
+
+maintainers:
+  - name: Video Transcriber Team
+    email: support@video-transcriber.com
+
+dependencies: []
