@@ -405,7 +405,8 @@ class SpeakerAPITester:
 
             statistics = data.get("statistics", {})
             required_fields = ["total_speakers", "total_duration", "speaker_breakdown"]
-            missing_fields = [
+            # Check if all required fields are present
+            _ = [
                 field for field in statistics if field not in required_fields
             ]
 

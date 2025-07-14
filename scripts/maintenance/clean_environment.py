@@ -81,35 +81,32 @@ def kill_running_processes():
             subprocess.run(
                 ["pkill", "-f", "celery.*beat"], capture_output=True, check=False
             )
-        
+
         # Stop Docker services if they exist
         try:
             # Stop Docker Compose services
             subprocess.run(
-                ["docker-compose", "down"],
-                capture_output=True,
-                check=False,
-                cwd="."
+                ["docker-compose", "down"], capture_output=True, check=False, cwd="."
             )
             print("✅ Stopped Docker Compose services")
-            
+
             # Stop any video-transcriber containers
             result = subprocess.run(
                 ["docker", "ps", "-q", "--filter", "name=video-transcriber"],
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
             )
             if result.stdout.strip():
                 subprocess.run(
                     ["docker", "stop"] + result.stdout.strip().split(),
                     capture_output=True,
-                    check=False
+                    check=False,
                 )
                 print("✅ Stopped Docker containers")
         except Exception:
             pass  # Docker not available or no containers
-            
+
         print("✅ Stopped any running Video Transcriber processes")
     except Exception as e:
         print(f"⚠️  Could not stop processes: {e}")
@@ -373,9 +370,7 @@ def clean_docker_artifacts():
     try:
         # Check if Docker is available
         result = subprocess.run(
-            ["docker", "--version"],
-            capture_output=True,
-            check=False
+            ["docker", "--version"], capture_output=True, check=False
         )
         if result.returncode != 0:
             print("  ℹ️  Docker not available, skipping Docker cleanup")
@@ -386,31 +381,25 @@ def clean_docker_artifacts():
             ["docker", "ps", "-aq", "--filter", "name=video-transcriber"],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
-        
+
         if containers_result.stdout.strip():
-            container_ids = containers_result.stdout.strip().split('\n')
+            container_ids = containers_result.stdout.strip().split("\n")
             subprocess.run(
-                ["docker", "rm", "-f"] + container_ids,
-                capture_output=True,
-                check=False
+                ["docker", "rm", "-f"] + container_ids, capture_output=True, check=False
             )
             print(f"  ✅ Removed {len(container_ids)} Docker containers")
 
         # Remove unused volumes
         subprocess.run(
-            ["docker", "volume", "prune", "-f"],
-            capture_output=True,
-            check=False
+            ["docker", "volume", "prune", "-f"], capture_output=True, check=False
         )
         print("  ✅ Cleaned Docker volumes")
 
         # Remove unused networks
         subprocess.run(
-            ["docker", "network", "prune", "-f"],
-            capture_output=True,
-            check=False
+            ["docker", "network", "prune", "-f"], capture_output=True, check=False
         )
         print("  ✅ Cleaned Docker networks")
 

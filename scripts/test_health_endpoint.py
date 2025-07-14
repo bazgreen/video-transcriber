@@ -39,11 +39,6 @@ def test_health_check_function():
     """Test the wait_for_app_ready function with a mock server"""
     print("\n🧪 Testing health check function...")
 
-    # Import the function from the setup script
-    setup_script_path = os.path.join(
-        os.path.dirname(__file__), "setup", "setup_and_run.py"
-    )
-
     # Since we can't easily import from the setup script, let's test the logic separately
     try:
         import requests
@@ -51,8 +46,8 @@ def test_health_check_function():
         # Test with an invalid URL (should timeout quickly)
         start_time = time.time()
         try:
-            response = requests.get("http://localhost:9999/health", timeout=1)
-        except:
+            requests.get("http://localhost:9999/health", timeout=1)
+        except Exception:
             elapsed = time.time() - start_time
             print(f"✅ Timeout handling works (took {elapsed:.1f}s)")
 

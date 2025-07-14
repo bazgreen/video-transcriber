@@ -345,9 +345,7 @@ class AdvancedMonitoringService:
         status = (
             "healthy"
             if not health_issues
-            else "degraded"
-            if len(health_issues) < 3
-            else "unhealthy"
+            else "degraded" if len(health_issues) < 3 else "unhealthy"
         )
 
         return {

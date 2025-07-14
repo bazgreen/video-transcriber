@@ -111,7 +111,7 @@ class TestBatchProcessing(unittest.TestCase):
         """Test batch serialization to/from dictionary."""
         batch_id = self.processor.create_batch(name="Serialization Test")
 
-        job_id = self.processor.add_video_to_batch(
+        _ = self.processor.add_video_to_batch(
             batch_id=batch_id,
             file_path="/test/video.mp4",
             original_filename="video.mp4",

@@ -276,7 +276,9 @@ def install_dependencies(venv_python, installation_type="minimal"):
                                 capture_output=True,
                                 check=True,
                             )
-                            print("✅ openai-whisper installed successfully from GitHub")
+                            print(
+                                "✅ openai-whisper installed successfully from GitHub"
+                            )
                         except subprocess.CalledProcessError:
                             print("❌ Failed to install openai-whisper")
                     else:

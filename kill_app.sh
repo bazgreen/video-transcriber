@@ -16,7 +16,7 @@ check_process() {
 kill_by_pattern() {
     local pattern="$1"
     local description="$2"
-    
+
     local pids=$(ps aux | grep -E "$pattern" | grep -v grep | awk '{print $2}')
     if [ ! -z "$pids" ]; then
         echo "🔄 Stopping $description..."
@@ -34,7 +34,7 @@ if command -v docker-compose >/dev/null 2>&1; then
     if [ -f "docker-compose.yml" ]; then
         docker-compose down 2>/dev/null && echo "  ✅ Docker Compose services stopped"
     fi
-    
+
     # Stop individual containers if any
     containers=$(docker ps -q --filter "name=video-transcriber" 2>/dev/null)
     if [ ! -z "$containers" ]; then
@@ -58,7 +58,7 @@ port_names=("Flask App" "Redis" "Prometheus" "Grafana" "PostgreSQL")
 for i in "${!ports[@]}"; do
     port=${ports[$i]}
     name=${port_names[$i]}
-    
+
     if lsof -i :$port >/dev/null 2>&1; then
         echo "🔌 Port $port ($name) is in use, freeing it..."
         pids=$(lsof -ti :$port 2>/dev/null)

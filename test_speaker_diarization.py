@@ -220,9 +220,11 @@ class SpeakerDiarizationTester:
                     "expected_speakers": 2,
                     "speaker_segments": len(speaker_segments),
                     "speakers_identified": list(unique_speakers),
-                    "total_duration": max(seg["end"] for seg in speaker_segments)
-                    if speaker_segments
-                    else 0,
+                    "total_duration": (
+                        max(seg["end"] for seg in speaker_segments)
+                        if speaker_segments
+                        else 0
+                    ),
                 },
             }
 
@@ -523,7 +525,7 @@ class SpeakerDiarizationTester:
         """Test performance characteristics of speaker diarization"""
         try:
             # Test with mock processing times
-            start_time = time.time()
+            _ = time.time()  # Track start time for reference
 
             # Simulate diarization processing
             mock_audio_duration = 60.0  # 1 minute audio
@@ -548,11 +550,11 @@ class SpeakerDiarizationTester:
                     "processing_time": processing_time,
                     "processing_ratio": processing_ratio,
                     "threshold": max_processing_ratio,
-                    "performance_grade": "EXCELLENT"
-                    if processing_ratio < 0.5
-                    else "GOOD"
-                    if processing_ratio < 1.0
-                    else "ACCEPTABLE",
+                    "performance_grade": (
+                        "EXCELLENT"
+                        if processing_ratio < 0.5
+                        else "GOOD" if processing_ratio < 1.0 else "ACCEPTABLE"
+                    ),
                 },
             }
 
@@ -688,9 +690,9 @@ class SpeakerDiarizationTester:
                     {
                         "scenario": "empty_alignment",
                         "handled_gracefully": isinstance(result, list),
-                        "result": len(result)
-                        if isinstance(result, list)
-                        else str(result),
+                        "result": (
+                            len(result) if isinstance(result, list) else str(result)
+                        ),
                     }
                 )
             except Exception as e:
