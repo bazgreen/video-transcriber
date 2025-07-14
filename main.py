@@ -38,6 +38,8 @@ from src.routes import api_bp, main_bp, register_socket_handlers
 from src.routes.ai_insights_routes import ai_insights_bp
 from src.routes.api import init_api_globals
 from src.routes.batch_routes import batch_bp
+from src.routes.pwa_mobile_routes import pwa_mobile_bp
+from src.routes.pwa_routes import pwa_bp
 from src.routes.socket_handlers import init_socket_globals
 from src.routes.speaker_routes import speaker_bp
 from src.services import VideoTranscriber, delete_session, process_upload
@@ -206,6 +208,8 @@ def register_routes(
     app.register_blueprint(batch_bp)
     app.register_blueprint(ai_insights_bp)
     app.register_blueprint(speaker_bp)
+    app.register_blueprint(pwa_bp)
+    app.register_blueprint(pwa_mobile_bp)
 
     # Initialize batch processor with transcriber
     from src.services.batch_processing import batch_processor

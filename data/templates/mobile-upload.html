@@ -1,0 +1,378 @@
+<!-- Mobile Upload Interface with Camera Integration -->
+<div class="mobile-upload-section" style="display: none;">
+    <div class="upload-options-mobile">
+        <h3>📱 Mobile Upload Options</h3>
+
+        <!-- Camera Recording -->
+        <div class="mobile-option camera-option">
+            <div class="option-icon">
+                <i class="fas fa-video"></i>
+            </div>
+            <div class="option-content">
+                <h4>Record Video</h4>
+                <p>Use your device camera to record video directly</p>
+                <div class="mobile-actions">
+                    <button class="mobile-camera-btn camera-record-btn" type="button">
+                        <i class="fas fa-video record-icon"></i>
+                        Start Recording
+                    </button>
+                    <button class="mobile-camera-btn camera-switch-btn" type="button" style="display: none;">
+                        <i class="fas fa-sync-alt"></i>
+                        Switch Camera
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload with Voice -->
+        <div class="mobile-option upload-option">
+            <div class="option-icon">
+                <i class="fas fa-upload"></i>
+            </div>
+            <div class="option-content">
+                <h4>Upload Video File</h4>
+                <p>Select a video from your device</p>
+                <div class="mobile-file-input">
+                    <input type="file"
+                           id="mobile-video-upload"
+                           name="video"
+                           accept="video/*"
+                           capture="environment"
+                           style="display: none;">
+                    <button class="mobile-camera-btn upload-trigger-btn" type="button">
+                        <i class="fas fa-folder-open"></i>
+                        Choose File
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Notes -->
+        <div class="mobile-option voice-option">
+            <div class="option-icon">
+                <i class="fas fa-microphone"></i>
+            </div>
+            <div class="option-content">
+                <h4>Add Voice Notes</h4>
+                <p>Add voice notes or keywords for your video</p>
+                <div class="voice-input-container">
+                    <textarea id="mobile-voice-notes"
+                              placeholder="Tap to add notes or use voice input..."
+                              rows="3"></textarea>
+                    <button class="voice-input-btn" type="button" aria-label="Voice input">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Container for Recording -->
+    <div id="camera-container" class="camera-container">
+        <!-- Camera preview will be inserted here -->
+        <div class="camera-controls">
+            <button class="camera-switch-btn" type="button" aria-label="Switch camera">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="camera-record-btn" type="button" aria-label="Start recording">
+                <i class="fas fa-video record-icon"></i>
+            </button>
+            <button class="camera-close-btn" type="button" aria-label="Close camera">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Recording Indicator -->
+        <div class="recording-indicator">
+            <span class="recording-timer">00:00</span>
+            Recording...
+        </div>
+    </div>
+
+    <!-- Voice Command Button -->
+    <button class="voice-command-btn" type="button" aria-label="Voice commands">
+        <i class="fas fa-microphone"></i>
+    </button>
+</div>
+
+<style>
+/* Mobile Upload Interface Styles */
+.mobile-upload-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 20px 0;
+    color: white;
+}
+
+.upload-options-mobile h3 {
+    margin: 0 0 20px 0;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.mobile-option {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.mobile-option:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.option-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.option-content {
+    flex: 1;
+}
+
+.option-content h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.option-content p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.mobile-file-input {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.upload-trigger-btn {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: white !important;
+}
+
+.upload-trigger-btn:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.mobile-voice-notes {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.mobile-voice-notes::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.mobile-voice-notes:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.camera-close-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.camera-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .mobile-upload-section {
+        margin: 16px 0;
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .mobile-option {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .option-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .option-content h4 {
+        font-size: 15px;
+    }
+
+    .option-content p {
+        font-size: 13px;
+    }
+
+    .mobile-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mobile-camera-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-option {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .option-icon {
+        align-self: center;
+    }
+}
+</style>
+
+<script>
+// Mobile upload interface functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileSection = document.querySelector('.mobile-upload-section');
+    const uploadTrigger = document.querySelector('.upload-trigger-btn');
+    const fileInput = document.getElementById('mobile-video-upload');
+    const cameraContainer = document.getElementById('camera-container');
+    const cameraCloseBtn = document.querySelector('.camera-close-btn');
+
+    // Show mobile interface on mobile devices
+    if (window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        if (mobileSection) {
+            mobileSection.style.display = 'block';
+        }
+    }
+
+    // File upload trigger
+    if (uploadTrigger && fileInput) {
+        uploadTrigger.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Handle file upload (integrate with existing upload system)
+                const formData = new FormData();
+                formData.append('video', file);
+                formData.append('source', 'mobile-upload');
+
+                // Add voice notes if any
+                const voiceNotes = document.getElementById('mobile-voice-notes')?.value;
+                if (voiceNotes) {
+                    formData.append('notes', voiceNotes);
+                }
+
+                // Upload file
+                uploadFile(formData);
+            }
+        });
+    }
+
+    // Camera close button
+    if (cameraCloseBtn) {
+        cameraCloseBtn.addEventListener('click', () => {
+            if (window.cameraManager) {
+                window.cameraManager.stopRecording();
+            }
+            if (cameraContainer) {
+                cameraContainer.classList.remove('active');
+            }
+        });
+    }
+
+    // Override camera record button to show camera interface
+    document.addEventListener('click', (e) => {
+        if (e.target.matches('.camera-record-btn, .camera-record-btn *')) {
+            if (cameraContainer && !window.cameraManager?.isRecording) {
+                cameraContainer.classList.add('active');
+            }
+        }
+    });
+});
+
+async function uploadFile(formData) {
+    try {
+        const uploadBtn = document.querySelector('.upload-trigger-btn');
+        if (uploadBtn) {
+            uploadBtn.textContent = 'Uploading...';
+            uploadBtn.disabled = true;
+        }
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+
+            // Show success notification
+            if (window.pwaApp && window.pwaApp.showNotification) {
+                window.pwaApp.showNotification('File uploaded successfully!', 'success');
+            }
+
+            // Redirect to session
+            if (result.session_id) {
+                window.location.href = `/sessions/${result.session_id}`;
+            }
+        } else {
+            throw new Error('Upload failed');
+        }
+
+    } catch (error) {
+        console.error('Upload error:', error);
+
+        if (window.pwaApp && window.pwaApp.showNotification) {
+            window.pwaApp.showNotification('Upload failed: ' + error.message, 'error');
+        }
+    } finally {
+        const uploadBtn = document.querySelector('.upload-trigger-btn');
+        if (uploadBtn) {
+            uploadBtn.innerHTML = '<i class="fas fa-folder-open"></i> Choose File';
+            uploadBtn.disabled = false;
+        }
+    }
+}
+</script>

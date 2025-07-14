@@ -1,0 +1,567 @@
+/**
+ * Mobile UI Styles for PWA
+ * Bottom navigation, slide panels, pull-to-refresh, and mobile optimizations
+ */
+
+/* Mobile UI Base Styles */
+.mobile-ui-enabled {
+    --bottom-nav-height: 70px;
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --keyboard-height: 0px;
+}
+
+.mobile-ui-enabled .main-content {
+    padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-inset-bottom) + 20px);
+    transition: padding-bottom 0.3s ease;
+}
+
+.mobile-ui-enabled.keyboard-open .main-content {
+    padding-bottom: calc(var(--keyboard-height) + 20px);
+}
+
+/* Bottom Navigation */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding-bottom: var(--safe-area-inset-bottom);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 8px;
+    border-radius: 12px;
+    min-width: 50px;
+    position: relative;
+}
+
+.bottom-nav-item:hover,
+.bottom-nav-item.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.bottom-nav-item i {
+    font-size: 20px;
+    margin-bottom: 4px;
+    transition: transform 0.3s ease;
+}
+
+.bottom-nav-item:hover i,
+.bottom-nav-item.active i {
+    transform: scale(1.1);
+}
+
+.bottom-nav-item span {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Navigation Badge */
+.nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 8px;
+    background: #ff4757;
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 16px;
+    text-align: center;
+    line-height: 12px;
+}
+
+/* Slide-up Panels */
+.mobile-slide-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.mobile-slide-panel.show {
+    visibility: visible;
+    opacity: 1;
+}
+
+.panel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.panel-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    padding-bottom: var(--safe-area-inset-bottom);
+}
+
+.mobile-slide-panel.show .panel-content {
+    transform: translateY(0);
+}
+
+.panel-header {
+    position: relative;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.panel-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: #ccc;
+    border-radius: 2px;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.panel-close {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.panel-close:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.panel-body {
+    padding: 20px;
+    max-height: calc(80vh - 100px);
+    overflow-y: auto;
+}
+
+/* Mobile Upload Options */
+.mobile-upload-options {
+    display: grid;
+    gap: 15px;
+}
+
+.upload-option {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.upload-option:hover,
+.upload-option:active {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.upload-option i {
+    font-size: 24px;
+    margin-right: 15px;
+    width: 30px;
+    text-align: center;
+}
+
+.upload-option span {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Mobile Profile Options */
+.mobile-profile-options {
+    display: grid;
+    gap: 15px;
+}
+
+.profile-option {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.profile-option:hover,
+.profile-option:active {
+    background: #764ba2;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+}
+
+.profile-option i {
+    font-size: 20px;
+    margin-right: 15px;
+    width: 25px;
+    text-align: center;
+}
+
+.profile-option span {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Pull to Refresh */
+.pull-to-refresh-indicator {
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    opacity: 0;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.pull-to-refresh-indicator.ready {
+    color: #4caf50;
+}
+
+.pull-to-refresh-indicator.refreshing {
+    opacity: 1 !important;
+}
+
+.pull-spinner {
+    margin-bottom: 8px;
+}
+
+.pull-spinner i {
+    font-size: 24px;
+    transition: transform 0.3s ease;
+}
+
+.pull-to-refresh-indicator.ready .pull-spinner i {
+    transform: rotate(180deg);
+}
+
+.pull-to-refresh-indicator.refreshing .pull-spinner i {
+    animation: spin 1s linear infinite;
+}
+
+.pull-to-refresh-indicator span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Infinite Scroll Loading */
+.infinite-scroll-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    color: #666;
+}
+
+.loading-spinner {
+    margin-bottom: 10px;
+}
+
+.loading-spinner i {
+    font-size: 20px;
+    color: #667eea;
+}
+
+.infinite-scroll-loading span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Mobile Layout Optimizations */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .card {
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 12px;
+        font-weight: 500;
+        min-height: 44px; /* iOS minimum touch target */
+    }
+
+    .form-control {
+        padding: 15px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 12px;
+        min-height: 44px;
+    }
+
+    .input-group .form-control {
+        border-radius: 12px 0 0 12px;
+    }
+
+    .input-group .btn {
+        border-radius: 0 12px 12px 0;
+    }
+
+    /* Focus states for mobile */
+    .form-control:focus,
+    .btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    }
+
+    .focused .form-control {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+}
+
+/* Touch-optimized interactions */
+@media (hover: none) and (pointer: coarse) {
+    .btn:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn:active {
+        transform: scale(0.98);
+        background-color: #5a67d8;
+    }
+
+    .upload-option:hover,
+    .profile-option:hover {
+        transform: none;
+    }
+
+    .upload-option:active,
+    .profile-option:active {
+        transform: scale(0.98);
+    }
+}
+
+/* iOS specific styles */
+@supports (-webkit-touch-callout: none) {
+    .mobile-bottom-nav {
+        padding-bottom: max(var(--safe-area-inset-bottom), 10px);
+    }
+
+    .panel-content {
+        padding-bottom: max(var(--safe-area-inset-bottom), 20px);
+    }
+
+    /* Prevent bounce scrolling issues */
+    .panel-body {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Android specific styles */
+@media screen and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: 0.001dpcm) {
+    .mobile-bottom-nav {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .panel-content {
+        background: #1a1a1a;
+        color: #ffffff;
+    }
+
+    .panel-header {
+        background: #2a2a2a;
+        border-bottom-color: #404040;
+    }
+
+    .panel-header h3 {
+        color: #ffffff;
+    }
+
+    .panel-close {
+        color: #ccc;
+    }
+
+    .panel-close:hover {
+        background: #404040;
+        color: #ffffff;
+    }
+
+    .upload-option,
+    .profile-option {
+        background: #2a2a2a;
+        color: #ffffff;
+    }
+
+    .upload-option:hover,
+    .upload-option:active {
+        background: #667eea;
+    }
+
+    .profile-option:hover,
+    .profile-option:active {
+        background: #764ba2;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .mobile-bottom-nav {
+        border-top: 2px solid #000;
+    }
+
+    .bottom-nav-item {
+        border: 1px solid transparent;
+    }
+
+    .bottom-nav-item.active {
+        border-color: #fff;
+    }
+
+    .upload-option,
+    .profile-option {
+        border: 2px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .mobile-slide-panel,
+    .panel-content,
+    .bottom-nav-item,
+    .upload-option,
+    .profile-option,
+    .pull-to-refresh-indicator {
+        transition: none;
+    }
+
+    .pull-spinner i,
+    .loading-spinner i {
+        animation: none;
+    }
+}
+
+/* Landscape orientation adjustments */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .mobile-bottom-nav {
+        height: 50px;
+    }
+
+    :root {
+        --bottom-nav-height: 50px;
+    }
+
+    .bottom-nav-item {
+        font-size: 10px;
+        padding: 4px;
+    }
+
+    .bottom-nav-item i {
+        font-size: 16px;
+        margin-bottom: 2px;
+    }
+
+    .panel-content {
+        max-height: 90vh;
+    }
+}
+
+/* Animation keyframes */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

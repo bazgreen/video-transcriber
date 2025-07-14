@@ -1,0 +1,659 @@
+{% extends "base.html" %}
+
+{% block title %}Mobile Sessions - Video Transcriber{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-ui.css') }}">
+<style>
+    .mobile-sessions-container {
+        padding: 20px 15px;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .sessions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 0 5px;
+    }
+
+    .sessions-header h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .search-filter-bar {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 20px;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        font-size: 16px;
+        background: white;
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .filter-chips {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .filter-chip {
+        flex-shrink: 0;
+        padding: 8px 16px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .filter-chip.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .sessions-grid {
+        display: grid;
+        gap: 15px;
+        margin-bottom: 100px; /* Space for bottom nav */
+    }
+
+    .session-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 1px solid #f0f0f0;
+    }
+
+    .session-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .session-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .session-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+        line-height: 1.3;
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    .session-status {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .session-status.completed {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .session-status.processing {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .session-status.failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .session-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .meta-item i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+        color: #667eea;
+    }
+
+    .session-preview {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: #666;
+        line-height: 1.4;
+        max-height: 60px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .session-preview::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: linear-gradient(transparent, #f8f9fa);
+    }
+
+    .session-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .action-btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .action-btn.primary {
+        background: #667eea;
+        color: white;
+    }
+
+    .action-btn.secondary {
+        background: #f8f9fa;
+        color: #666;
+        border: 1px solid #ddd;
+    }
+
+    .action-btn:active {
+        transform: scale(0.95);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .empty-state p {
+        margin-bottom: 30px;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .fab-upload {
+        position: fixed;
+        bottom: calc(70px + var(--safe-area-inset-bottom) + 20px);
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+        z-index: 999;
+        transition: all 0.3s ease;
+    }
+
+    .fab-upload:active {
+        transform: scale(0.9);
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.6);
+    }
+
+    /* Loading states */
+    .session-card.loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 4px;
+    }
+
+    .skeleton-title {
+        height: 20px;
+        width: 70%;
+        margin-bottom: 10px;
+    }
+
+    .skeleton-text {
+        height: 14px;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .skeleton-text.short {
+        width: 60%;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+        .mobile-sessions-container {
+            background: #121212;
+            color: #ffffff;
+        }
+
+        .sessions-header h2 {
+            color: #ffffff;
+        }
+
+        .search-filter-bar {
+            background: #1e1e1e;
+        }
+
+        .search-input {
+            background: #2a2a2a;
+            border-color: #404040;
+            color: #ffffff;
+        }
+
+        .filter-chip {
+            background: #2a2a2a;
+            border-color: #404040;
+            color: #ffffff;
+        }
+
+        .session-card {
+            background: #1e1e1e;
+            border-color: #404040;
+        }
+
+        .session-title {
+            color: #ffffff;
+        }
+
+        .session-preview {
+            background: #2a2a2a;
+        }
+
+        .action-btn.secondary {
+            background: #2a2a2a;
+            border-color: #404040;
+            color: #ffffff;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mobile-sessions-container">
+    <div class="sessions-header">
+        <h2>My Sessions</h2>
+        <button class="btn btn-sm btn-outline-primary" onclick="showFilterOptions()">
+            <i class="fas fa-filter"></i>
+        </button>
+    </div>
+
+    <div class="search-filter-bar">
+        <input type="text" class="search-input" placeholder="Search sessions..."
+               id="sessionSearch" oninput="filterSessions()">
+        <div class="filter-chips">
+            <div class="filter-chip active" data-filter="all">All</div>
+            <div class="filter-chip" data-filter="completed">Completed</div>
+            <div class="filter-chip" data-filter="processing">Processing</div>
+            <div class="filter-chip" data-filter="recent">Recent</div>
+            <div class="filter-chip" data-filter="favorites">Favorites</div>
+        </div>
+    </div>
+
+    <div class="sessions-grid" id="sessionsGrid">
+        <!-- Session cards will be populated here -->
+        {% if sessions %}
+            {% for session in sessions %}
+            <div class="session-card" data-session-id="{{ session.id }}"
+                 data-status="{{ session.status }}" onclick="openSession('{{ session.id }}')">
+                <div class="session-header">
+                    <h3 class="session-title">{{ session.filename or 'Untitled Session' }}</h3>
+                    <span class="session-status {{ session.status }}">{{ session.status }}</span>
+                </div>
+
+                <div class="session-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ session.duration or '0:00' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ session.created_at.strftime('%m/%d') if session.created_at else 'Unknown' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-file-video"></i>
+                        <span>{{ session.file_size or 'Unknown' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-language"></i>
+                        <span>{{ session.language or 'Auto' }}</span>
+                    </div>
+                </div>
+
+                {% if session.transcript_preview %}
+                <div class="session-preview">
+                    {{ session.transcript_preview[:120] }}{% if session.transcript_preview|length > 120 %}...{% endif %}
+                </div>
+                {% endif %}
+
+                <div class="session-actions">
+                    <button class="action-btn secondary" onclick="event.stopPropagation(); shareSession('{{ session.id }}')">
+                        <i class="fas fa-share-alt"></i>
+                        Share
+                    </button>
+                    <button class="action-btn primary" onclick="event.stopPropagation(); openSession('{{ session.id }}')">
+                        <i class="fas fa-eye"></i>
+                        View
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-video"></i>
+            <h3>No Sessions Yet</h3>
+            <p>Start by uploading your first video to begin transcription and analysis.</p>
+            <button class="btn btn-primary btn-lg" onclick="showUploadPanel()">
+                <i class="fas fa-plus"></i>
+                Upload Video
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab-upload" onclick="showUploadPanel()" aria-label="Upload new video">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+<!-- Loading template for infinite scroll -->
+<template id="sessionCardTemplate">
+    <div class="session-card loading">
+        <div class="session-header">
+            <div class="skeleton skeleton-title"></div>
+        </div>
+        <div class="session-meta">
+            <div class="meta-item">
+                <div class="skeleton skeleton-text short"></div>
+            </div>
+            <div class="meta-item">
+                <div class="skeleton skeleton-text short"></div>
+            </div>
+        </div>
+        <div class="session-preview">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text short"></div>
+        </div>
+        <div class="session-actions">
+            <div class="skeleton" style="width: 60px; height: 32px; border-radius: 8px;"></div>
+            <div class="skeleton" style="width: 60px; height: 32px; border-radius: 8px;"></div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFilter = 'all';
+let searchTerm = '';
+let isLoading = false;
+
+// Initialize mobile sessions
+document.addEventListener('DOMContentLoaded', function() {
+    setupFilterChips();
+    setupInfiniteScroll();
+    updateActiveFilter();
+});
+
+function setupFilterChips() {
+    const chips = document.querySelectorAll('.filter-chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            chips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            filterSessions();
+        });
+    });
+}
+
+function filterSessions() {
+    const searchInput = document.getElementById('sessionSearch');
+    searchTerm = searchInput.value.toLowerCase();
+
+    const sessionCards = document.querySelectorAll('.session-card[data-session-id]');
+    let visibleCount = 0;
+
+    sessionCards.forEach(card => {
+        const title = card.querySelector('.session-title').textContent.toLowerCase();
+        const status = card.dataset.status;
+        const preview = card.querySelector('.session-preview')?.textContent.toLowerCase() || '';
+
+        let matchesSearch = title.includes(searchTerm) || preview.includes(searchTerm);
+        let matchesFilter = currentFilter === 'all' ||
+                           (currentFilter === 'completed' && status === 'completed') ||
+                           (currentFilter === 'processing' && status === 'processing') ||
+                           (currentFilter === 'recent' && isRecent(card)) ||
+                           (currentFilter === 'favorites' && isFavorite(card));
+
+        if (matchesSearch && matchesFilter) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Show empty state if no results
+    const emptyState = document.querySelector('.empty-state');
+    const hasOriginalSessions = document.querySelectorAll('.session-card[data-session-id]').length > 0;
+
+    if (visibleCount === 0 && hasOriginalSessions) {
+        if (!document.querySelector('.no-results-state')) {
+            const noResults = document.createElement('div');
+            noResults.className = 'empty-state no-results-state';
+            noResults.innerHTML = `
+                <i class="fas fa-search"></i>
+                <h3>No Results Found</h3>
+                <p>Try adjusting your search or filter criteria.</p>
+                <button class="btn btn-outline-primary" onclick="clearFilters()">Clear Filters</button>
+            `;
+            document.getElementById('sessionsGrid').appendChild(noResults);
+        }
+        document.querySelector('.no-results-state').style.display = 'block';
+    } else if (document.querySelector('.no-results-state')) {
+        document.querySelector('.no-results-state').style.display = 'none';
+    }
+}
+
+function isRecent(card) {
+    // Check if session was created in the last 7 days
+    const dateText = card.querySelector('.meta-item .fa-calendar').nextElementSibling.textContent;
+    // This is a simplified check - in real implementation, compare actual dates
+    return true; // Placeholder
+}
+
+function isFavorite(card) {
+    // Check if session is marked as favorite
+    return card.classList.contains('favorite'); // Placeholder
+}
+
+function clearFilters() {
+    document.getElementById('sessionSearch').value = '';
+    document.querySelector('.filter-chip.active').classList.remove('active');
+    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+    currentFilter = 'all';
+    searchTerm = '';
+    filterSessions();
+}
+
+function setupInfiniteScroll() {
+    const container = document.getElementById('sessionsGrid');
+    let lastScrollTop = 0;
+
+    window.addEventListener('scroll', function() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+
+        // Load more when near bottom
+        if (scrollTop + windowHeight >= documentHeight - 200 && !isLoading) {
+            loadMoreSessions();
+        }
+
+        lastScrollTop = scrollTop;
+    });
+}
+
+function loadMoreSessions() {
+    if (isLoading) return;
+
+    isLoading = true;
+
+    // Add loading indicator
+    const template = document.getElementById('sessionCardTemplate');
+    const loadingCards = [];
+
+    for (let i = 0; i < 3; i++) {
+        const clone = template.content.cloneNode(true);
+        loadingCards.push(clone);
+        document.getElementById('sessionsGrid').appendChild(clone);
+    }
+
+    // Simulate API call
+    setTimeout(() => {
+        // Remove loading cards
+        loadingCards.forEach(() => {
+            const loadingCard = document.querySelector('.session-card.loading');
+            if (loadingCard) loadingCard.remove();
+        });
+
+        // In real implementation, add actual session data here
+        isLoading = false;
+    }, 1500);
+}
+
+function openSession(sessionId) {
+    // Add loading state
+    const card = document.querySelector(`[data-session-id="${sessionId}"]`);
+    card.classList.add('loading');
+
+    // Navigate to session
+    window.location.href = `/session/${sessionId}`;
+}
+
+function shareSession(sessionId) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Video Transcription Session',
+            text: 'Check out this transcribed video session',
+            url: `${window.location.origin}/session/${sessionId}`
+        });
+    } else {
+        // Fallback to clipboard
+        const url = `${window.location.origin}/session/${sessionId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            if (window.pwaManager) {
+                window.pwaManager.showNotification('Link copied to clipboard!');
+            }
+        });
+    }
+}
+
+function showUploadPanel() {
+    if (window.mobileUIManager) {
+        window.mobileUIManager.showUploadPanel();
+    } else {
+        // Fallback to regular upload page
+        window.location.href = '/upload';
+    }
+}
+
+function showFilterOptions() {
+    // Could show additional filter options in a panel
+    console.log('Show advanced filter options');
+}
+
+function updateActiveFilter() {
+    // Update active nav item
+    if (window.mobileUIManager) {
+        window.mobileUIManager.updateActiveNavItem();
+    }
+}
+
+// Handle back button
+window.addEventListener('popstate', function(event) {
+    updateActiveFilter();
+});
+</script>
+{% endblock %}

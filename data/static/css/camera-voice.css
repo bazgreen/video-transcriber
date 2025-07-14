@@ -1,0 +1,573 @@
+/* Camera Integration Styles */
+
+.camera-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-container.active {
+    display: flex;
+}
+
+.camera-preview {
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    max-height: 70vh;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Camera Controls */
+.camera-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    z-index: 1001;
+}
+
+.camera-record-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    background: #ff4757;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+    cursor: pointer;
+}
+
+.camera-record-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(255, 71, 87, 0.6);
+}
+
+.camera-record-btn.recording {
+    background: #ff3838;
+    animation: pulse-red 1.5s infinite;
+}
+
+.camera-record-btn.paused {
+    background: #ffa502;
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); }
+    50% { box-shadow: 0 4px 25px rgba(255, 71, 87, 0.8); }
+    100% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4); }
+}
+
+.camera-switch-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.camera-switch-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Recording Indicator */
+.recording-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 71, 87, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 1001;
+    backdrop-filter: blur(10px);
+}
+
+.recording-indicator::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.recording-timer {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+/* Recording Preview Modal */
+.recording-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.recording-preview-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.recording-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.recording-preview-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.close-preview-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.close-preview-btn:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.recording-preview-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.recording-preview-video {
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+    border-radius: 8px;
+    background: #000;
+}
+
+.recording-info {
+    font-size: 14px;
+    color: #666;
+}
+
+.recording-info p {
+    margin: 4px 0;
+}
+
+.recording-preview-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+.recording-preview-actions .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+/* Voice Input Styles */
+
+.voice-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.voice-input-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-input-btn:hover {
+    background: #0056b3;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.voice-input-btn.listening {
+    background: #ff4757;
+    animation: pulse-voice 1.5s infinite;
+}
+
+@keyframes pulse-voice {
+    0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+}
+
+.voice-command-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 999;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-command-btn:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+.voice-command-btn.listening {
+    background: #ff4757;
+    animation: pulse-voice 1.5s infinite;
+}
+
+/* Voice Listening Indicator */
+.voice-listening-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 16px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    z-index: 1500;
+    backdrop-filter: blur(10px);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.voice-wave-animation {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    height: 30px;
+}
+
+.wave-bar {
+    width: 4px;
+    background: #007bff;
+    border-radius: 2px;
+    animation: wave 1.2s infinite ease-in-out;
+}
+
+.wave-bar:nth-child(1) { animation-delay: 0s; }
+.wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { animation-delay: 0.3s; }
+
+@keyframes wave {
+    0%, 40%, 100% {
+        height: 8px;
+        background: #007bff;
+    }
+    20% {
+        height: 30px;
+        background: #0056b3;
+    }
+}
+
+.voice-interim-text {
+    position: fixed;
+    background: rgba(0, 123, 255, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1001;
+    max-width: 300px;
+    word-wrap: break-word;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile Camera Button Integration */
+.mobile-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mobile-camera-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.mobile-camera-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.mobile-camera-btn:active {
+    transform: translateY(0);
+}
+
+.mobile-camera-btn.recording {
+    background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+    animation: pulse-gradient 2s infinite;
+}
+
+@keyframes pulse-gradient {
+    0% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+    50% { box-shadow: 0 6px 25px rgba(255, 71, 87, 0.6); }
+    100% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+}
+
+/* Mobile Input Enhancements */
+.voice-input-container input,
+.voice-input-container textarea {
+    padding-right: 50px; /* Make room for voice button */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .camera-controls {
+        bottom: 40px;
+        gap: 16px;
+    }
+
+    .camera-record-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 20px;
+    }
+
+    .camera-switch-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 16px;
+    }
+
+    .recording-preview-content {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+
+    .recording-preview-actions {
+        flex-direction: column;
+    }
+
+    .recording-preview-actions .btn {
+        width: 100%;
+    }
+
+    .voice-command-btn {
+        width: 56px;
+        height: 56px;
+        bottom: 16px;
+        right: 16px;
+        font-size: 18px;
+    }
+
+    .mobile-actions {
+        justify-content: center;
+        width: 100%;
+        margin-top: 16px;
+    }
+
+    .mobile-camera-btn {
+        padding: 14px 24px;
+        font-size: 16px;
+        min-width: 160px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .camera-preview {
+        max-height: 60vh;
+    }
+
+    .recording-indicator {
+        top: 10px;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .voice-listening-indicator {
+        padding: 16px 20px;
+        font-size: 14px;
+    }
+
+    .recording-preview-body {
+        padding: 16px;
+    }
+
+    .recording-preview-header {
+        padding: 16px;
+    }
+
+    .recording-preview-actions {
+        padding: 16px;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .recording-preview-content {
+        background: #1a1a1a;
+        color: white;
+    }
+
+    .recording-preview-header {
+        border-bottom-color: #333;
+    }
+
+    .recording-preview-actions {
+        border-top-color: #333;
+    }
+
+    .close-preview-btn {
+        color: #ccc;
+    }
+
+    .close-preview-btn:hover {
+        background: #333;
+        color: white;
+    }
+
+    .recording-info {
+        color: #ccc;
+    }
+}
+
+/* Accessibility Enhancements */
+.camera-record-btn:focus,
+.camera-switch-btn:focus,
+.voice-input-btn:focus,
+.voice-command-btn:focus {
+    outline: 3px solid #007bff;
+    outline-offset: 2px;
+}
+
+.voice-input-btn[aria-pressed="true"] {
+    background: #ff4757;
+}
+
+.voice-input-btn[aria-disabled="true"] {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .camera-record-btn,
+    .voice-input-btn,
+    .voice-command-btn {
+        animation: none;
+        transition: none;
+    }
+
+    .wave-bar {
+        animation: none;
+        height: 15px;
+    }
+}

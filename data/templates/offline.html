@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Video Transcriber</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/pwa.css">
+    <style>
+        .offline-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .offline-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .offline-title {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
+        }
+
+        .offline-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .offline-features {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list i {
+            margin-right: 1rem;
+            font-size: 1.2rem;
+            color: #90EE90;
+        }
+
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .network-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .network-status.online {
+            background: rgba(144, 238, 144, 0.3);
+            color: #006400;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .offline-title {
+                font-size: 2rem;
+            }
+
+            .offline-subtitle {
+                font-size: 1rem;
+            }
+
+            .offline-icon {
+                font-size: 4rem;
+            }
+
+            .offline-features {
+                padding: 1.5rem;
+                margin: 1.5rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-content">
+            <div class="offline-icon pulse">
+                <i class="bi bi-wifi-off"></i>
+            </div>
+
+            <h1 class="offline-title">You're Offline</h1>
+            <p class="offline-subtitle">
+                Don't worry! Video Transcriber works offline too.
+            </p>
+
+            <div class="offline-features">
+                <h3 style="margin-bottom: 1.5rem;">
+                    <i class="bi bi-check-circle-fill" style="color: #90EE90; margin-right: 0.5rem;"></i>
+                    What you can do offline:
+                </h3>
+
+                <ul class="feature-list">
+                    <li>
+                        <i class="bi bi-eye-fill"></i>
+                        View your previously transcribed sessions
+                    </li>
+                    <li>
+                        <i class="bi bi-search"></i>
+                        Search through cached transcripts
+                    </li>
+                    <li>
+                        <i class="bi bi-cloud-upload-fill"></i>
+                        Queue videos for processing when back online
+                    </li>
+                    <li>
+                        <i class="bi bi-download"></i>
+                        Access downloaded transcripts and exports
+                    </li>
+                    <li>
+                        <i class="bi bi-gear-fill"></i>
+                        Modify app settings and preferences
+                    </li>
+                    <li>
+                        <i class="bi bi-bookmark-fill"></i>
+                        Review saved keywords and configurations
+                    </li>
+                </ul>
+            </div>
+
+            <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
+                <button onclick="checkConnection()" class="btn retry-btn">
+                    <i class="bi bi-arrow-clockwise"></i> Try Again
+                </button>
+
+                <button onclick="goOfflineMode()" class="btn retry-btn">
+                    <i class="bi bi-house-fill"></i> Browse Offline
+                </button>
+            </div>
+
+            <div class="mt-4">
+                <small style="opacity: 0.8;">
+                    <i class="bi bi-info-circle"></i>
+                    Your queued uploads will automatically sync when you're back online
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div id="networkStatus" class="network-status">
+        <i class="bi bi-wifi-off"></i> Offline
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+
+        function updateNetworkStatus() {
+            const statusElement = document.getElementById('networkStatus');
+
+            if (navigator.onLine) {
+                statusElement.innerHTML = '<i class="bi bi-wifi"></i> Online';
+                statusElement.className = 'network-status online';
+
+                // Show reconnection message
+                showReconnectionMessage();
+            } else {
+                statusElement.innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
+                statusElement.className = 'network-status';
+            }
+
+            isOnline = navigator.onLine;
+        }
+
+        function showReconnectionMessage() {
+            const container = document.querySelector('.offline-container');
+
+            // Create success message
+            const successMessage = document.createElement('div');
+            successMessage.className = 'alert alert-success';
+            successMessage.innerHTML = `
+                <i class="bi bi-check-circle-fill"></i>
+                <strong>You're back online!</strong> Redirecting you to the app...
+            `;
+            successMessage.style.position = 'fixed';
+            successMessage.style.top = '20px';
+            successMessage.style.left = '50%';
+            successMessage.style.transform = 'translateX(-50%)';
+            successMessage.style.zIndex = '1060';
+            successMessage.style.minWidth = '300px';
+            successMessage.style.textAlign = 'center';
+
+            document.body.appendChild(successMessage);
+
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+
+        function checkConnection() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+
+            button.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> Checking...';
+            button.disabled = true;
+
+            // Try to fetch a small resource
+            fetch('/health', {
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(response => {
+                if (response.ok) {
+                    button.innerHTML = '<i class="bi bi-check-circle-fill"></i> Connected!';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    throw new Error('Not connected');
+                }
+            })
+            .catch(() => {
+                button.innerHTML = '<i class="bi bi-x-circle-fill"></i> Still offline';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 2000);
+            });
+        }
+
+        function goOfflineMode() {
+            // Try to navigate to cached home page
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                window.location.href = '/?offline=true';
+            } else {
+                // Fallback: show basic offline interface
+                document.body.innerHTML = `
+                    <div class="container mt-5">
+                        <div class="text-center">
+                            <h2>Offline Mode</h2>
+                            <p>Service Worker not available. Please check your internet connection.</p>
+                            <button onclick="window.location.reload()" class="btn btn-primary">
+                                Refresh Page
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Add CSS for spinning animation
+        const style = document.createElement('style');
+        style.textContent = `
+            .spin {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Listen for network status changes
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        // Check initial network status
+        updateNetworkStatus();
+
+        // Periodically check connection
+        setInterval(() => {
+            if (!navigator.onLine) {
+                // Try to ping the server
+                fetch('/health', {
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                })
+                .then(response => {
+                    if (response.ok && !isOnline) {
+                        // Connection restored
+                        window.dispatchEvent(new Event('online'));
+                    }
+                })
+                .catch(() => {
+                    // Still offline
+                });
+            }
+        }, 5000);
+
+        // Register service worker if not already registered
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered from offline page');
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>

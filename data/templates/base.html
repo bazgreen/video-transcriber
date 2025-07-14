@@ -11,6 +11,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- PWA CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}">
+    <!-- Camera and Voice CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/camera-voice.css') }}">
+    <!-- Mobile UI Components -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-ui.css') }}">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('pwa.manifest') }}">
+
+    <!-- Theme Color for Mobile Browsers -->
+    <meta name="theme-color" content="#007bff">
+    <meta name="msapplication-TileColor" content="#007bff">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+
+    <!-- iOS Web App Capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Video Transcriber">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -87,6 +108,26 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- PWA JS -->
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <!-- Touch Controls -->
+    <script src="{{ url_for('static', filename='js/video-touch-controls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/transcript-touch-navigation.js') }}"></script>
+    <!-- Camera JS -->
+    <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+    <!-- Voice Input JS -->
+    <script src="{{ url_for('static', filename='js/voice.js') }}"></script>
+    <!-- Mobile UI Components -->
+    <script src="{{ url_for('static', filename='js/mobile-ui.js') }}"></script>
+
+    <script>
+        // Initialize PWA when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof VideoTranscriberPWA !== 'undefined') {
+                window.pwaApp = new VideoTranscriberPWA();
+            }
+        });
+    </script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
