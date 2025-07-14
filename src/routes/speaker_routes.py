@@ -1,6 +1,4 @@
-"""
-API routes for speaker diarization functionality
-"""
+"""API routes for speaker diarization functionality."""
 
 import json
 import logging
@@ -22,7 +20,7 @@ speaker_service = SpeakerDiarizationService(use_mock=True)
 
 @speaker_bp.route("/status", methods=["GET"])
 def get_speaker_status():
-    """Get speaker diarization service status"""
+    """Get speaker diarization service status."""
     try:
         status = {
             "available": speaker_service.is_available(),
