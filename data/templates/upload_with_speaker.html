@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Transcriber - Advanced Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #0d6efd;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            transform: translateY(-2px);
+        }
+
+        .feature-card {
+            border: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-fill {
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        .speaker-options {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .processing-status {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .timeline-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            min-height: 100px;
+        }
+
+        .speaker-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .speaker-tag {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.9em;
+            border: 1px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h1 class="display-4 text-primary">
+                        <i class="fas fa-microphone-alt me-3"></i>
+                        Video Transcriber Pro
+                    </h1>
+                    <p class="lead text-muted">Advanced transcription with speaker identification</p>
+                </div>
+
+                <!-- Upload Form -->
+                <div class="card feature-card mb-4">
+                    <div class="card-body">
+                        <h3 class="card-title text-center mb-4">
+                            <i class="fas fa-cloud-upload-alt text-primary me-2"></i>
+                            Upload Your Video or Audio
+                        </h3>
+
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <!-- File Upload Area -->
+                            <div class="upload-area mb-4" id="uploadArea">
+                                <i class="fas fa-file-video fa-3x text-muted mb-3"></i>
+                                <h5>Drag & Drop Your File Here</h5>
+                                <p class="text-muted">or click to browse</p>
+                                <input type="file" id="fileInput" name="file" accept="video/*,audio/*" style="display: none;">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                                    Choose File
+                                </button>
+                            </div>
+
+                            <!-- File Info -->
+                            <div id="fileInfo" class="alert alert-info d-none">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span id="fileName"></span>
+                                <span class="badge bg-secondary ms-2" id="fileSize"></span>
+                            </div>
+
+                            <!-- Speaker Diarization Options -->
+                            <div class="speaker-options">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-users text-warning me-2"></i>
+                                    Speaker Identification Options
+                                </h5>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enableSpeakerDiarization" checked>
+                                            <label class="form-check-label" for="enableSpeakerDiarization">
+                                                <strong>Enable Speaker Identification</strong>
+                                            </label>
+                                        </div>
+
+                                        <div id="speakerControls">
+                                            <div class="mb-3">
+                                                <label for="minSpeakers" class="form-label">Minimum Speakers</label>
+                                                <select class="form-select" id="minSpeakers">
+                                                    <option value="1" selected>1 Speaker</option>
+                                                    <option value="2">2 Speakers</option>
+                                                    <option value="3">3 Speakers</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="maxSpeakers" class="form-label">Maximum Speakers</label>
+                                                <select class="form-select" id="maxSpeakers">
+                                                    <option value="2">2 Speakers</option>
+                                                    <option value="3">3 Speakers</option>
+                                                    <option value="4" selected>4 Speakers</option>
+                                                    <option value="5">5 Speakers</option>
+                                                    <option value="6">6 Speakers</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6 class="card-title">
+                                                    <i class="fas fa-magic text-success me-2"></i>
+                                                    AI Features
+                                                </h6>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="enableSentiment" checked>
+                                                    <label class="form-check-label" for="enableSentiment">
+                                                        Sentiment Analysis
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="enableTopics" checked>
+                                                    <label class="form-check-label" for="enableTopics">
+                                                        Topic Detection
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="enableKeywords" checked>
+                                                    <label class="form-check-label" for="enableKeywords">
+                                                        Keyword Extraction
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                                    <i class="fas fa-play me-2"></i>
+                                    Start Transcription
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div id="processingStatus" class="d-none">
+                    <div class="card feature-card">
+                        <div class="card-body">
+                            <h4 class="text-center mb-4">
+                                <i class="fas fa-cogs text-primary me-2"></i>
+                                Processing Your File
+                            </h4>
+
+                            <!-- Progress Indicators -->
+                            <div class="row text-center mb-4">
+                                <div class="col-md-3">
+                                    <div class="processing-step" data-step="upload">
+                                        <i class="fas fa-upload fa-2x text-success"></i>
+                                        <p class="mt-2">Upload</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="processing-step" data-step="transcribe">
+                                        <i class="fas fa-microphone-alt fa-2x text-warning"></i>
+                                        <p class="mt-2">Transcription</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-warning" id="transcribeProgress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="processing-step" data-step="speakers">
+                                        <i class="fas fa-users fa-2x text-info"></i>
+                                        <p class="mt-2">Speakers</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-info" id="speakerProgress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="processing-step" data-step="analysis">
+                                        <i class="fas fa-brain fa-2x text-purple"></i>
+                                        <p class="mt-2">AI Analysis</p>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar" style="background: #6f42c1; width: 0%" id="analysisProgress"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Real-time Updates -->
+                            <div class="alert alert-info text-center" id="statusMessage">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Preparing for processing...
+                            </div>
+
+                            <!-- Speaker Timeline Preview -->
+                            <div id="speakerTimelinePreview" class="d-none">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-timeline text-info me-2"></i>
+                                    Speaker Timeline Preview
+                                </h5>
+                                <div class="timeline-preview">
+                                    <div class="speaker-legend" id="speakerLegend"></div>
+                                    <div id="timelineChart">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-clock fa-2x mb-2"></i>
+                                            <p>Speaker timeline will appear here during processing</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="resultsSection" class="d-none">
+                    <div class="card feature-card">
+                        <div class="card-body">
+                            <h4 class="text-center mb-4">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Transcription Complete
+                            </h4>
+
+                            <div class="text-center">
+                                <a href="#" id="viewResultsBtn" class="btn btn-success btn-lg me-3">
+                                    <i class="fas fa-eye me-2"></i>
+                                    View Results
+                                </a>
+                                <a href="#" id="downloadBtn" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.4/socket.io.js"></script>
+
+    <script>
+        // Global variables
+        let socket = io();
+        let currentSessionId = null;
+        let speakerData = null;
+
+        // File upload handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadForm = document.getElementById('uploadForm');
+            const speakerToggle = document.getElementById('enableSpeakerDiarization');
+
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleFileSelect();
+                }
+            });
+
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Speaker options toggle
+            speakerToggle.addEventListener('change', function() {
+                const controls = document.getElementById('speakerControls');
+                controls.style.display = this.checked ? 'block' : 'none';
+            });
+
+            // Form submission
+            uploadForm.addEventListener('submit', handleFormSubmit);
+        });
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                document.getElementById('fileInfo').classList.remove('d-none');
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file to upload');
+                return;
+            }
+
+            // Hide upload form, show processing
+            document.getElementById('uploadForm').parentElement.classList.add('d-none');
+            document.getElementById('processingStatus').classList.remove('d-none');
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Add speaker options
+            const enableSpeakers = document.getElementById('enableSpeakerDiarization').checked;
+            formData.append('enable_speaker_diarization', enableSpeakers);
+
+            if (enableSpeakers) {
+                formData.append('min_speakers', document.getElementById('minSpeakers').value);
+                formData.append('max_speakers', document.getElementById('maxSpeakers').value);
+            }
+
+            // Add AI options
+            formData.append('enable_sentiment', document.getElementById('enableSentiment').checked);
+            formData.append('enable_topics', document.getElementById('enableTopics').checked);
+            formData.append('enable_keywords', document.getElementById('enableKeywords').checked);
+
+            try {
+                updateStatus('Uploading file...');
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentSessionId = result.session_id;
+                    updateStatus('Processing started successfully');
+
+                    // Start listening for progress updates
+                    startProgressTracking();
+
+                    if (enableSpeakers) {
+                        // Start speaker diarization
+                        startSpeakerDiarization();
+                    }
+                } else {
+                    updateStatus('Error: ' + result.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                updateStatus('Upload failed: ' + error.message, 'danger');
+            }
+        }
+
+        function startProgressTracking() {
+            // Listen for transcription progress
+            socket.on('transcription_progress', function(data) {
+                if (data.session_id === currentSessionId) {
+                    updateProgress('transcribeProgress', data.progress);
+                    updateStatus(`Transcribing: ${data.progress}% complete`);
+                }
+            });
+
+            // Listen for completion
+            socket.on('transcription_complete', function(data) {
+                if (data.session_id === currentSessionId) {
+                    updateProgress('transcribeProgress', 100);
+                    updateStatus('Transcription completed successfully', 'success');
+
+                    // Start AI analysis
+                    updateProgress('analysisProgress', 50);
+                    updateStatus('Running AI analysis...');
+
+                    setTimeout(() => {
+                        updateProgress('analysisProgress', 100);
+                        showResults(data);
+                    }, 2000);
+                }
+            });
+
+            // Listen for errors
+            socket.on('transcription_error', function(data) {
+                if (data.session_id === currentSessionId) {
+                    updateStatus('Error: ' + data.error, 'danger');
+                }
+            });
+        }
+
+        async function startSpeakerDiarization() {
+            if (!currentSessionId) return;
+
+            try {
+                updateStatus('Identifying speakers...');
+                updateProgress('speakerProgress', 20);
+
+                // Check speaker service status
+                const statusResponse = await fetch('/api/speaker/status');
+                const statusData = await statusResponse.json();
+
+                if (statusData.success && statusData.status.available) {
+                    updateProgress('speakerProgress', 40);
+
+                    // Start speaker diarization process
+                    // This would be triggered after transcription completes
+                    setTimeout(() => {
+                        updateProgress('speakerProgress', 100);
+                        showSpeakerTimeline();
+                    }, 3000);
+                } else {
+                    updateStatus('Speaker identification not available', 'warning');
+                }
+            } catch (error) {
+                console.error('Speaker diarization error:', error);
+                updateStatus('Speaker identification failed: ' + error.message, 'warning');
+            }
+        }
+
+        function showSpeakerTimeline() {
+            const timelineDiv = document.getElementById('speakerTimelinePreview');
+            const legendDiv = document.getElementById('speakerLegend');
+
+            // Mock speaker data for demonstration
+            const speakers = [
+                { id: 'SPEAKER_00', name: 'Speaker 1', color: '#2196f3' },
+                { id: 'SPEAKER_01', name: 'Speaker 2', color: '#4caf50' }
+            ];
+
+            // Create speaker legend
+            legendDiv.innerHTML = '';
+            speakers.forEach(speaker => {
+                const tag = document.createElement('div');
+                tag.className = 'speaker-tag';
+                tag.style.borderColor = speaker.color;
+                tag.style.background = speaker.color + '20';
+                tag.textContent = speaker.name;
+                legendDiv.appendChild(tag);
+            });
+
+            // Show timeline
+            timelineDiv.classList.remove('d-none');
+            updateStatus('Speaker identification completed');
+        }
+
+        function updateProgress(elementId, progress) {
+            const progressBar = document.getElementById(elementId);
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = `alert alert-${type} text-center`;
+            statusEl.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
+        }
+
+        function showResults(data) {
+            // Hide processing, show results
+            document.getElementById('processingStatus').classList.add('d-none');
+            document.getElementById('resultsSection').classList.remove('d-none');
+
+            // Set up result links
+            const viewBtn = document.getElementById('viewResultsBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if (data.result_url) {
+                viewBtn.href = data.result_url;
+                downloadBtn.href = data.result_url + '?download=true';
+            }
+        }
+
+        // Socket connection handling
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+    </script>
+</body>
+</html>

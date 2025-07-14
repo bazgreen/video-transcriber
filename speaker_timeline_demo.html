@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speaker Timeline Visualization</title>
+    <style>
+        .speaker-timeline {
+            width: 100%;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .timeline-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .zoom-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .zoom-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .zoom-btn:hover {
+            background: #0056b3;
+        }
+
+        .timeline-container {
+            position: relative;
+            height: 200px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .timeline-track {
+            position: relative;
+            width: 100%;
+            min-width: 800px;
+            height: 100%;
+        }
+
+        .time-axis {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+        }
+
+        .time-marker {
+            position: absolute;
+            height: 100%;
+            border-left: 1px solid #6c757d;
+            color: #6c757d;
+            font-size: 11px;
+            padding-left: 5px;
+            line-height: 30px;
+        }
+
+        .speaker-row {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 40px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+        }
+
+        .speaker-label {
+            position: absolute;
+            left: 10px;
+            font-weight: 500;
+            font-size: 12px;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            z-index: 10;
+        }
+
+        .speaker-segment {
+            position: absolute;
+            height: 30px;
+            top: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .speaker-segment:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .speaker-0 { background: #007bff; }
+        .speaker-1 { background: #28a745; }
+        .speaker-2 { background: #dc3545; }
+        .speaker-3 { background: #ffc107; color: #000; }
+        .speaker-4 { background: #17a2b8; }
+        .speaker-5 { background: #6610f2; }
+        .speaker-unknown { background: #6c757d; }
+
+        .segment-tooltip {
+            position: absolute;
+            background: #343a40;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 300px;
+            word-wrap: break-word;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .segment-tooltip.show {
+            opacity: 1;
+        }
+
+        .timeline-stats {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .speaker-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .playback-controls {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+
+        .play-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .play-btn:hover {
+            background: #1e7e34;
+        }
+
+        .timeline-cursor {
+            position: absolute;
+            top: 30px;
+            bottom: 0;
+            width: 2px;
+            background: #dc3545;
+            z-index: 15;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .timeline-cursor.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .timeline-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .timeline-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .timeline-stats {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="speaker-timeline" id="speakerTimeline">
+        <div class="timeline-header">
+            <div class="timeline-title">Speaker Timeline</div>
+            <div class="timeline-controls">
+                <div class="zoom-control">
+                    <button class="zoom-btn" onclick="zoomOut()">−</button>
+                    <span id="zoomLevel">100%</span>
+                    <button class="zoom-btn" onclick="zoomIn()">+</button>
+                </div>
+                <button class="zoom-btn" onclick="resetZoom()">Reset</button>
+            </div>
+        </div>
+
+        <div class="speaker-legend" id="speakerLegend">
+            <!-- Speaker legend will be populated by JS -->
+        </div>
+
+        <div class="timeline-container" id="timelineContainer">
+            <div class="timeline-track" id="timelineTrack">
+                <div class="time-axis" id="timeAxis">
+                    <!-- Time markers will be populated by JS -->
+                </div>
+                <div class="timeline-cursor" id="timelineCursor"></div>
+                <!-- Speaker rows will be populated by JS -->
+            </div>
+            <div class="playback-controls">
+                <button class="play-btn" onclick="playFromStart()">▶ Play</button>
+                <button class="play-btn" onclick="pausePlayback()">⏸ Pause</button>
+            </div>
+        </div>
+
+        <div class="timeline-stats" id="timelineStats">
+            <!-- Stats will be populated by JS -->
+        </div>
+
+        <div class="segment-tooltip" id="segmentTooltip"></div>
+    </div>
+
+    <script>
+        class SpeakerTimeline {
+            constructor(containerId, data) {
+                this.container = document.getElementById(containerId);
+                this.data = data;
+                this.zoomLevel = 1;
+                this.duration = this.calculateDuration();
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.playbackTimer = null;
+
+                this.init();
+            }
+
+            calculateDuration() {
+                if (!this.data.speaker_segments || this.data.speaker_segments.length === 0) {
+                    return 60; // Default duration
+                }
+                return Math.max(...this.data.speaker_segments.map(seg => seg.end));
+            }
+
+            init() {
+                this.createTimeAxis();
+                this.createSpeakerRows();
+                this.createLegend();
+                this.createStats();
+                this.setupEventListeners();
+            }
+
+            createTimeAxis() {
+                const timeAxis = document.getElementById('timeAxis');
+                timeAxis.innerHTML = '';
+
+                const trackWidth = 800 * this.zoomLevel;
+                const timeStep = this.duration / 10; // 10 major markers
+
+                for (let i = 0; i <= 10; i++) {
+                    const time = i * timeStep;
+                    const position = (time / this.duration) * trackWidth;
+
+                    const marker = document.createElement('div');
+                    marker.className = 'time-marker';
+                    marker.style.left = position + 'px';
+                    marker.textContent = this.formatTime(time);
+                    timeAxis.appendChild(marker);
+                }
+
+                // Update track width
+                document.getElementById('timelineTrack').style.minWidth = trackWidth + 'px';
+            }
+
+            createSpeakerRows() {
+                const track = document.getElementById('timelineTrack');
+
+                // Remove existing speaker rows
+                const existingRows = track.querySelectorAll('.speaker-row');
+                existingRows.forEach(row => row.remove());
+
+                if (!this.data.speaker_segments) return;
+
+                // Group segments by speaker
+                const speakerGroups = {};
+                this.data.speaker_segments.forEach(segment => {
+                    const speaker = segment.speaker || 'unknown';
+                    if (!speakerGroups[speaker]) {
+                        speakerGroups[speaker] = [];
+                    }
+                    speakerGroups[speaker].push(segment);
+                });
+
+                const speakers = Object.keys(speakerGroups);
+                const trackWidth = 800 * this.zoomLevel;
+
+                speakers.forEach((speaker, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'speaker-row';
+                    row.style.top = (30 + index * 45) + 'px';
+
+                    // Speaker label
+                    const label = document.createElement('div');
+                    label.className = 'speaker-label';
+                    label.textContent = this.formatSpeakerName(speaker);
+                    row.appendChild(label);
+
+                    // Speaker segments
+                    speakerGroups[speaker].forEach(segment => {
+                        const segmentEl = document.createElement('div');
+                        segmentEl.className = `speaker-segment speaker-${this.getSpeakerIndex(speaker)}`;
+
+                        const startPos = (segment.start / this.duration) * trackWidth;
+                        const width = ((segment.end - segment.start) / this.duration) * trackWidth;
+
+                        segmentEl.style.left = startPos + 'px';
+                        segmentEl.style.width = width + 'px';
+                        segmentEl.textContent = this.formatTime(segment.start);
+
+                        // Add tooltip data
+                        segmentEl.dataset.segment = JSON.stringify(segment);
+
+                        row.appendChild(segmentEl);
+                    });
+
+                    track.appendChild(row);
+                });
+
+                // Update track height
+                track.style.height = (30 + speakers.length * 45 + 20) + 'px';
+                document.getElementById('timelineContainer').style.height = (30 + speakers.length * 45 + 20) + 'px';
+            }
+
+            createLegend() {
+                const legend = document.getElementById('speakerLegend');
+                legend.innerHTML = '';
+
+                if (!this.data.speaker_statistics || !this.data.speaker_statistics.speaker_breakdown) return;
+
+                const speakers = Object.keys(this.data.speaker_statistics.speaker_breakdown);
+
+                speakers.forEach(speaker => {
+                    const item = document.createElement('div');
+                    item.className = 'legend-item';
+
+                    const color = document.createElement('div');
+                    color.className = `legend-color speaker-${this.getSpeakerIndex(speaker)}`;
+
+                    const text = document.createElement('span');
+                    const stats = this.data.speaker_statistics.speaker_breakdown[speaker];
+                    text.textContent = `${this.formatSpeakerName(speaker)} (${stats.percentage.toFixed(1)}%)`;
+
+                    item.appendChild(color);
+                    item.appendChild(text);
+                    legend.appendChild(item);
+                });
+            }
+
+            createStats() {
+                const stats = document.getElementById('timelineStats');
+                stats.innerHTML = '';
+
+                if (!this.data.speaker_statistics) return;
+
+                const statItems = [
+                    {
+                        value: this.data.speaker_statistics.total_speakers,
+                        label: 'Speakers'
+                    },
+                    {
+                        value: this.formatTime(this.data.speaker_statistics.total_duration),
+                        label: 'Total Duration'
+                    },
+                    {
+                        value: this.data.speaker_segments ? this.data.speaker_segments.length : 0,
+                        label: 'Segments'
+                    }
+                ];
+
+                statItems.forEach(item => {
+                    const statEl = document.createElement('div');
+                    statEl.className = 'stat-item';
+
+                    const value = document.createElement('div');
+                    value.className = 'stat-value';
+                    value.textContent = item.value;
+
+                    const label = document.createElement('div');
+                    label.className = 'stat-label';
+                    label.textContent = item.label;
+
+                    statEl.appendChild(value);
+                    statEl.appendChild(label);
+                    stats.appendChild(statEl);
+                });
+            }
+
+            setupEventListeners() {
+                const container = document.getElementById('timelineContainer');
+                const tooltip = document.getElementById('segmentTooltip');
+
+                // Segment hover
+                container.addEventListener('mouseover', (e) => {
+                    if (e.target.classList.contains('speaker-segment')) {
+                        const segment = JSON.parse(e.target.dataset.segment);
+                        this.showTooltip(e, segment);
+                    }
+                });
+
+                container.addEventListener('mouseout', (e) => {
+                    if (e.target.classList.contains('speaker-segment')) {
+                        this.hideTooltip();
+                    }
+                });
+
+                // Segment click
+                container.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('speaker-segment')) {
+                        const segment = JSON.parse(e.target.dataset.segment);
+                        this.jumpToTime(segment.start);
+                    }
+                });
+            }
+
+            showTooltip(event, segment) {
+                const tooltip = document.getElementById('segmentTooltip');
+                const duration = segment.end - segment.start;
+
+                tooltip.innerHTML = `
+                    <strong>${this.formatSpeakerName(segment.speaker)}</strong><br>
+                    Start: ${this.formatTime(segment.start)}<br>
+                    End: ${this.formatTime(segment.end)}<br>
+                    Duration: ${this.formatTime(duration)}
+                `;
+
+                tooltip.style.left = event.pageX + 10 + 'px';
+                tooltip.style.top = event.pageY - 10 + 'px';
+                tooltip.classList.add('show');
+            }
+
+            hideTooltip() {
+                const tooltip = document.getElementById('segmentTooltip');
+                tooltip.classList.remove('show');
+            }
+
+            jumpToTime(time) {
+                this.currentTime = time;
+                this.updateCursor();
+                console.log(`Jumping to time: ${this.formatTime(time)}`);
+                // Here you would integrate with actual audio/video player
+            }
+
+            updateCursor() {
+                const cursor = document.getElementById('timelineCursor');
+                const trackWidth = 800 * this.zoomLevel;
+                const position = (this.currentTime / this.duration) * trackWidth;
+
+                cursor.style.left = position + 'px';
+                cursor.classList.add('active');
+            }
+
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            formatSpeakerName(speaker) {
+                if (speaker === 'unknown') return 'Unknown';
+                return speaker.replace('SPEAKER_', 'Speaker ').replace('speaker_', 'Speaker ');
+            }
+
+            getSpeakerIndex(speaker) {
+                if (speaker === 'unknown') return 'unknown';
+                const match = speaker.match(/(\d+)/);
+                return match ? parseInt(match[1]) : 0;
+            }
+
+            updateZoom() {
+                document.getElementById('zoomLevel').textContent = Math.round(this.zoomLevel * 100) + '%';
+                this.createTimeAxis();
+                this.createSpeakerRows();
+            }
+        }
+
+        // Global functions for controls
+        let timeline = null;
+
+        function zoomIn() {
+            if (timeline) {
+                timeline.zoomLevel = Math.min(timeline.zoomLevel * 1.5, 5);
+                timeline.updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (timeline) {
+                timeline.zoomLevel = Math.max(timeline.zoomLevel / 1.5, 0.5);
+                timeline.updateZoom();
+            }
+        }
+
+        function resetZoom() {
+            if (timeline) {
+                timeline.zoomLevel = 1;
+                timeline.updateZoom();
+            }
+        }
+
+        function playFromStart() {
+            if (timeline) {
+                timeline.currentTime = 0;
+                timeline.isPlaying = true;
+                timeline.updateCursor();
+
+                // Simulate playback
+                timeline.playbackTimer = setInterval(() => {
+                    timeline.currentTime += 0.1;
+                    if (timeline.currentTime >= timeline.duration) {
+                        pausePlayback();
+                    } else {
+                        timeline.updateCursor();
+                    }
+                }, 100);
+
+                console.log('Playback started');
+            }
+        }
+
+        function pausePlayback() {
+            if (timeline && timeline.playbackTimer) {
+                clearInterval(timeline.playbackTimer);
+                timeline.playbackTimer = null;
+                timeline.isPlaying = false;
+                console.log('Playback paused');
+            }
+        }
+
+        // Initialize with sample data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample speaker diarization data
+            const sampleData = {
+                speaker_segments: [
+                    { start: 0, end: 12, speaker: 'SPEAKER_00' },
+                    { start: 12.5, end: 25, speaker: 'SPEAKER_01' },
+                    { start: 25.5, end: 38, speaker: 'SPEAKER_00' },
+                    { start: 38.5, end: 45, speaker: 'SPEAKER_01' },
+                    { start: 45.5, end: 60, speaker: 'SPEAKER_00' }
+                ],
+                speaker_statistics: {
+                    total_speakers: 2,
+                    total_duration: 60,
+                    speaker_breakdown: {
+                        'SPEAKER_00': {
+                            total_duration: 35,
+                            percentage: 58.3,
+                            segment_count: 3
+                        },
+                        'SPEAKER_01': {
+                            total_duration: 19,
+                            percentage: 31.7,
+                            segment_count: 2
+                        }
+                    }
+                }
+            };
+
+            timeline = new SpeakerTimeline('speakerTimeline', sampleData);
+        });
+
+        // Export for integration
+        window.SpeakerTimeline = SpeakerTimeline;
+    </script>
+</body>
+</html>

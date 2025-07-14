@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcription with Speaker Diarization - {{ session_id }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .metadata-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .metadata-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .metadata-value {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+        }
+
+        .toggle-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .toggle-btn:hover {
+            background: #0056b3;
+        }
+
+        .toggle-btn.active {
+            background: #28a745;
+        }
+
+        .segment {
+            display: flex;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            background: #fff;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .segment:hover {
+            background: #f8f9fa;
+            transform: translateX(2px);
+        }
+
+        .segment.highlight {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .segment.question {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .segment.emphasis {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .segment.speaker-segment {
+            border-left-width: 6px;
+        }
+
+        .timestamp {
+            background: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            margin-right: 15px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .speaker-tag {
+            background: #007bff;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+
+        .speaker-0 { background: #007bff; }
+        .speaker-1 { background: #28a745; }
+        .speaker-2 { background: #dc3545; }
+        .speaker-3 { background: #ffc107; color: #000; }
+        .speaker-4 { background: #17a2b8; }
+        .speaker-5 { background: #6610f2; }
+        .speaker-unknown { background: #6c757d; }
+
+        .text-content {
+            flex: 1;
+            line-height: 1.6;
+        }
+
+        .keyword {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
+            color: #856404;
+        }
+
+        .speaker-stats {
+            margin-bottom: 20px;
+        }
+
+        .speaker-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .speaker-item:last-child {
+            border-bottom: none;
+        }
+
+        .speaker-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .speaker-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .speaker-name {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .speaker-percentage {
+            font-size: 14px;
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .filter-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #dee2e6;
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .timeline-section {
+            margin-bottom: 20px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .analysis-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .analysis-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .analysis-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .export-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .export-btn:hover {
+            background: #1e7e34;
+            color: white;
+            text-decoration: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                justify-content: space-between;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .metadata {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">{{ session_id }}</h1>
+            <p class="subtitle">Transcription with Speaker Identification</p>
+
+            <div class="metadata">
+                <div class="metadata-item">
+                    <div class="metadata-label">Total Duration</div>
+                    <div class="metadata-value">{{ "%.1f"|format(analysis.get('total_duration', 0)) }} seconds</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Total Speakers</div>
+                    <div class="metadata-value">{{ speaker_statistics.get('total_speakers', 0) }}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Word Count</div>
+                    <div class="metadata-value">{{ analysis.total_words }}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Questions Found</div>
+                    <div class="metadata-value">{{ analysis.questions|length }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="searchBox">Search:</label>
+                <input type="text" id="searchBox" class="search-box" placeholder="Search transcription...">
+            </div>
+
+            <div class="control-group">
+                <button class="toggle-btn" id="showTimestamps" onclick="toggleTimestamps()">Show Timestamps</button>
+                <button class="toggle-btn" id="showSpeakers" onclick="toggleSpeakers()">Show Speakers</button>
+                <button class="toggle-btn" id="highlightKeywords" onclick="toggleKeywords()">Highlight Keywords</button>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="main-content">
+                <div class="transcript" id="transcript">
+                    {% for segment in segments %}
+                    <div class="segment {{ segment.classes|join(' ') }}"
+                         data-timestamp="{{ segment.timestamp_str }}"
+                         data-speaker="{{ segment.get('speaker', 'unknown') }}"
+                         data-types="{{ segment.types|join(' ') }}">
+
+                        <span class="timestamp" id="timestamp-{{ loop.index }}">{{ segment.timestamp_str }}</span>
+
+                        {% if segment.get('speaker') and segment.speaker != 'unknown' %}
+                        <span class="speaker-tag speaker-{{ segment.speaker.split('_')[-1] if '_' in segment.speaker else '0' }}">
+                            {{ segment.speaker.replace('SPEAKER_', 'Speaker ').replace('speaker_', 'Speaker ') }}
+                        </span>
+                        {% endif %}
+
+                        <div class="text-content">{{ segment.highlighted_text|safe }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="sidebar">
+                {% if speaker_statistics and speaker_statistics.speaker_breakdown %}
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Speaker Breakdown</h3>
+                    <div class="speaker-stats">
+                        {% for speaker, stats in speaker_statistics.speaker_breakdown.items() %}
+                        <div class="speaker-item">
+                            <div class="speaker-info">
+                                <div class="speaker-color speaker-{{ speaker.split('_')[-1] if '_' in speaker else '0' }}"></div>
+                                <span class="speaker-name">{{ speaker.replace('SPEAKER_', 'Speaker ').replace('speaker_', 'Speaker ') }}</span>
+                            </div>
+                            <span class="speaker-percentage">{{ "%.1f"|format(stats.percentage) }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterBySpeaker('all')">All</button>
+                        {% for speaker in speaker_statistics.speaker_breakdown.keys() %}
+                        <button class="filter-btn" onclick="filterBySpeaker('{{ speaker }}')">
+                            {{ speaker.replace('SPEAKER_', 'Spk ').replace('speaker_', 'Spk ') }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Content Analysis</h3>
+                    <div class="analysis-grid">
+                        <div class="analysis-card">
+                            <div class="analysis-number">{{ analysis.keyword_matches|length }}</div>
+                            <div class="analysis-label">Keywords</div>
+                        </div>
+                        <div class="analysis-card">
+                            <div class="analysis-number">{{ analysis.questions|length }}</div>
+                            <div class="analysis-label">Questions</div>
+                        </div>
+                        <div class="analysis-card">
+                            <div class="analysis-number">{{ analysis.emphasis_cues|length }}</div>
+                            <div class="analysis-label">Emphasis</div>
+                        </div>
+                        <div class="analysis-card">
+                            <div class="analysis-number">{{ segments|length }}</div>
+                            <div class="analysis-label">Segments</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if analysis.questions %}
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Questions ({{ analysis.questions|length }})</h3>
+                    {% for question in analysis.questions[:5] %}
+                    <div class="speaker-item">
+                        <div class="speaker-info">
+                            <span class="timestamp">{{ question.timestamp }}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 10px;">
+                        {{ question.text|truncate(80) }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Export Options</h3>
+                    <div class="export-buttons">
+                        <a href="/export/transcript/{{ session_id }}/srt" class="export-btn">SRT</a>
+                        <a href="/export/transcript/{{ session_id }}/vtt" class="export-btn">VTT</a>
+                        <a href="/export/transcript/{{ session_id }}/txt" class="export-btn">TXT</a>
+                        <a href="/export/transcript/{{ session_id }}/pdf" class="export-btn">PDF</a>
+                        <a href="/export/transcript/{{ session_id }}/docx" class="export-btn">DOCX</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const segments = document.querySelectorAll('.segment');
+
+            segments.forEach(segment => {
+                const text = segment.textContent.toLowerCase();
+                if (searchTerm === '' || text.includes(searchTerm)) {
+                    segment.style.display = 'flex';
+                } else {
+                    segment.style.display = 'none';
+                }
+            });
+        });
+
+        // Toggle functions
+        function toggleTimestamps() {
+            const timestamps = document.querySelectorAll('.timestamp');
+            const btn = document.getElementById('showTimestamps');
+
+            timestamps.forEach(ts => {
+                ts.style.display = ts.style.display === 'none' ? 'block' : 'none';
+            });
+
+            btn.classList.toggle('active');
+        }
+
+        function toggleSpeakers() {
+            const speakers = document.querySelectorAll('.speaker-tag');
+            const btn = document.getElementById('showSpeakers');
+
+            speakers.forEach(speaker => {
+                speaker.style.display = speaker.style.display === 'none' ? 'inline-block' : 'none';
+            });
+
+            btn.classList.toggle('active');
+        }
+
+        function toggleKeywords() {
+            const keywords = document.querySelectorAll('.keyword');
+            const btn = document.getElementById('highlightKeywords');
+
+            keywords.forEach(keyword => {
+                keyword.style.background = keyword.style.background === 'transparent' ? '#fff3cd' : 'transparent';
+            });
+
+            btn.classList.toggle('active');
+        }
+
+        // Speaker filtering
+        function filterBySpeaker(speakerFilter) {
+            const segments = document.querySelectorAll('.segment');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+
+            // Update button states
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(speakerFilter.toLowerCase()) ||
+                    (speakerFilter === 'all' && btn.textContent === 'All')) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Filter segments
+            segments.forEach(segment => {
+                const segmentSpeaker = segment.dataset.speaker;
+
+                if (speakerFilter === 'all' || segmentSpeaker === speakerFilter) {
+                    segment.style.display = 'flex';
+                } else {
+                    segment.style.display = 'none';
+                }
+            });
+        }
+
+        // Segment click to highlight
+        document.querySelectorAll('.segment').forEach(segment => {
+            segment.addEventListener('click', function() {
+                // Remove previous highlights
+                document.querySelectorAll('.segment').forEach(s => s.style.background = '');
+
+                // Highlight clicked segment
+                this.style.background = '#e3f2fd';
+
+                // Scroll to segment if needed
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        });
+
+        // Initialize with defaults
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial button states
+            document.getElementById('showTimestamps').classList.add('active');
+            document.getElementById('showSpeakers').classList.add('active');
+            document.getElementById('highlightKeywords').classList.add('active');
+        });
+
+        // Auto-scroll functionality for timeline integration
+        window.scrollToTimestamp = function(timestamp) {
+            const segments = document.querySelectorAll('.segment');
+            segments.forEach(segment => {
+                if (segment.dataset.timestamp === timestamp) {
+                    segment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    segment.style.background = '#e3f2fd';
+                    setTimeout(() => {
+                        segment.style.background = '';
+                    }, 2000);
+                }
+            });
+        };
+    </script>
+</body>
+</html>

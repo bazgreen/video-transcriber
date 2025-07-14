@@ -46,6 +46,12 @@ def advanced_upload():
     return render_template("advanced_upload.html")
 
 
+@main_bp.route("/speaker-upload")
+def speaker_upload():
+    """Enhanced upload page with speaker diarization options"""
+    return render_template("upload_with_speaker.html")
+
+
 @main_bp.route("/favicon.ico")
 def favicon():
     """Serve favicon"""
