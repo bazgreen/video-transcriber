@@ -26,6 +26,11 @@ def print_header():
     print("   • Upload files and results")
     print("   • Log files and temporary data")
     print("   • Development artifacts")
+    print("   • Test results and output files")
+    print("   • Docker containers and volumes")
+    print("   • Monitoring data")
+    print("   • Speaker diarization test data")
+    print("   • AI insights test outputs")
     print("\n📁 Preserved files:")
     print("   • Source code and configuration")
     print("   • README and documentation")
@@ -52,7 +57,7 @@ def confirm_cleanup():
 
 
 def kill_running_processes():
-    """Kill any running Video Transcriber processes"""
+    """Kill any running Video Transcriber processes and related services"""
     print("\n🔄 Stopping running processes...")
 
     try:
@@ -64,9 +69,47 @@ def kill_running_processes():
                 check=False,
             )
         else:
+            # Kill main application
             subprocess.run(
                 ["pkill", "-f", "python.*main.py"], capture_output=True, check=False
             )
+            # Kill Celery workers
+            subprocess.run(
+                ["pkill", "-f", "celery.*worker"], capture_output=True, check=False
+            )
+            # Kill Celery beat scheduler
+            subprocess.run(
+                ["pkill", "-f", "celery.*beat"], capture_output=True, check=False
+            )
+        
+        # Stop Docker services if they exist
+        try:
+            # Stop Docker Compose services
+            subprocess.run(
+                ["docker-compose", "down"],
+                capture_output=True,
+                check=False,
+                cwd="."
+            )
+            print("✅ Stopped Docker Compose services")
+            
+            # Stop any video-transcriber containers
+            result = subprocess.run(
+                ["docker", "ps", "-q", "--filter", "name=video-transcriber"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.stdout.strip():
+                subprocess.run(
+                    ["docker", "stop"] + result.stdout.strip().split(),
+                    capture_output=True,
+                    check=False
+                )
+                print("✅ Stopped Docker containers")
+        except Exception:
+            pass  # Docker not available or no containers
+            
         print("✅ Stopped any running Video Transcriber processes")
     except Exception as e:
         print(f"⚠️  Could not stop processes: {e}")
@@ -153,6 +196,11 @@ def remove_development_artifacts():
         ".eggs",
         "bandit-report.json",
         ".bandit",
+        "test_results",  # Speaker diarization test results
+        "test_ai_insights_output.json",  # AI insights test output
+        ".ruff_cache",  # Ruff cache
+        "monitoring/data",  # Monitoring data
+        "logs",  # Log directory
     ]
 
     removed_count = 0
@@ -199,6 +247,9 @@ def clean_data_directories():
         "instance",
         "data/uploads",
         "data/results",
+        "static/uploads",  # Static uploads
+        "test_audio_samples",  # Test audio files
+        "monitoring/data",  # Monitoring data
     ]
 
     cleaned_count = 0
@@ -267,6 +318,10 @@ def remove_temp_files():
         ".DS_Store",
         "Thumbs.db",
         "desktop.ini",
+        "*.pid",  # Process ID files
+        "celerybeat-schedule*",  # Celery beat schedule files
+        "*.sqlite3-wal",  # SQLite WAL files
+        "*.sqlite3-shm",  # SQLite shared memory files
     ]
 
     removed_count = 0
@@ -311,6 +366,58 @@ def reset_configuration():
         print("  ℹ️  No config directory found")
 
 
+def clean_docker_artifacts():
+    """Clean Docker-related artifacts"""
+    print("\n🗑️  Cleaning Docker artifacts...")
+
+    try:
+        # Check if Docker is available
+        result = subprocess.run(
+            ["docker", "--version"],
+            capture_output=True,
+            check=False
+        )
+        if result.returncode != 0:
+            print("  ℹ️  Docker not available, skipping Docker cleanup")
+            return
+
+        # Stop and remove containers
+        containers_result = subprocess.run(
+            ["docker", "ps", "-aq", "--filter", "name=video-transcriber"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if containers_result.stdout.strip():
+            container_ids = containers_result.stdout.strip().split('\n')
+            subprocess.run(
+                ["docker", "rm", "-f"] + container_ids,
+                capture_output=True,
+                check=False
+            )
+            print(f"  ✅ Removed {len(container_ids)} Docker containers")
+
+        # Remove unused volumes
+        subprocess.run(
+            ["docker", "volume", "prune", "-f"],
+            capture_output=True,
+            check=False
+        )
+        print("  ✅ Cleaned Docker volumes")
+
+        # Remove unused networks
+        subprocess.run(
+            ["docker", "network", "prune", "-f"],
+            capture_output=True,
+            check=False
+        )
+        print("  ✅ Cleaned Docker networks")
+
+    except Exception as e:
+        print(f"  ❌ Failed to clean Docker artifacts: {e}")
+
+
 def verify_cleanup():
     """Verify that cleanup was successful"""
     print("\n🔍 Verifying cleanup...")
@@ -323,6 +430,9 @@ def verify_cleanup():
         (".pytest_cache", "Pytest cache"),
         (".mypy_cache", "MyPy cache"),
         ("bandit-report.json", "Bandit report"),
+        ("test_results", "Test results"),
+        ("logs", "Log directory"),
+        (".ruff_cache", "Ruff cache"),
     ]
 
     remaining_items = []
@@ -373,6 +483,7 @@ def main():
         remove_log_files()
         remove_temp_files()
         reset_configuration()
+        clean_docker_artifacts()
         verify_cleanup()
         show_next_steps()
 
