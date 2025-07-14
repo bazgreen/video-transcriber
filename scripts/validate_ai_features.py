@@ -48,12 +48,8 @@ def check_ai_features():
 
         engine = create_ai_insights_engine()
         print("✅ AI Insights Engine - Working")
-        print(
-            f"   📊 Sentiment Analysis: {'✅' if engine.sentiment_available else '❌'}"
-        )
-        print(
-            f"   📈 Topic Modeling: {'✅' if engine.topic_modeling_available else '❌'}"
-        )
+        print(f"   📊 Sentiment Analysis: {'✅' if engine.sentiment_available else '❌'}")
+        print(f"   📈 Topic Modeling: {'✅' if engine.topic_modeling_available else '❌'}")
         print(f"   🧠 Advanced NLP: {'✅' if engine.nlp_available else '❌'}")
     except Exception as e:
         print(f"❌ AI Insights Engine - Failed: {e}")

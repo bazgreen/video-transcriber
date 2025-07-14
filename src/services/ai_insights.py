@@ -506,9 +506,9 @@ class AIInsightsEngine:
                         speaker_data["speaking_patterns"]["estimated_wpm"] = round(
                             np.mean(words_per_minute), 1
                         )
-                        speaker_data["speaking_patterns"]["pace"] = (
-                            self._categorize_speaking_pace(np.mean(words_per_minute))
-                        )
+                        speaker_data["speaking_patterns"][
+                            "pace"
+                        ] = self._categorize_speaking_pace(np.mean(words_per_minute))
 
         except Exception as e:
             logger.warning(f"Speaker analysis error: {e}")

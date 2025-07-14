@@ -553,7 +553,9 @@ class SpeakerDiarizationTester:
                     "performance_grade": (
                         "EXCELLENT"
                         if processing_ratio < 0.5
-                        else "GOOD" if processing_ratio < 1.0 else "ACCEPTABLE"
+                        else "GOOD"
+                        if processing_ratio < 1.0
+                        else "ACCEPTABLE"
                     ),
                 },
             }
@@ -573,7 +575,7 @@ class SpeakerDiarizationTester:
             try:
                 response = requests.get("http://localhost:5001/health", timeout=5)
                 server_running = response.status_code == 200
-            except:
+            except Exception:
                 server_running = False
 
             if not server_running:

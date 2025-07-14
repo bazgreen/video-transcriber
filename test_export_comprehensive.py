@@ -289,7 +289,9 @@ def check_for_potential_improvements():
 
     # Check for cloud integration
     print("🔍 Checking for cloud integration...")
-    improvements.append("☁️  Cloud Export: Direct upload to Google Drive, Dropbox, etc.")
+    improvements.append(
+        "☁️  Cloud Export: Direct upload to Google Drive, Dropbox, etc."
+    )
 
     # Check for email integration
     print("🔍 Checking for email integration...")

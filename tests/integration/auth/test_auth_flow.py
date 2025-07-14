@@ -120,9 +120,7 @@ def test_full_auth_flow(base_url="http://localhost:5001"):
                                             "   ⚠️  Profile still accessible after logout"
                                         )
                                 else:
-                                    print(
-                                        f"   ❌ Logout failed: {response.status_code}"
-                                    )
+                                    print(f"   ❌ Logout failed: {response.status_code}")
                             else:
                                 print("   ❌ Profile page missing expected content")
                         else:

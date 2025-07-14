@@ -74,7 +74,7 @@ class SpeakerAPITester:
         try:
             response = requests.get(f"{self.base_url}/health", timeout=5)
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
     def test_speaker_status(self):
@@ -406,9 +406,7 @@ class SpeakerAPITester:
             statistics = data.get("statistics", {})
             required_fields = ["total_speakers", "total_duration", "speaker_breakdown"]
             # Check if all required fields are present
-            _ = [
-                field for field in statistics if field not in required_fields
-            ]
+            _ = [field for field in statistics if field not in required_fields]
 
             return {
                 "test_name": "speaker_statistics",
