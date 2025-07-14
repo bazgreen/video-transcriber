@@ -1,0 +1,34 @@
+# Docker Compose override for external Prometheus and Grafana setups
+# Use this file when you already have Prometheus and Grafana running
+
+# To use this configuration:
+# docker-compose -f docker-compose.yml -f docker-compose.external-monitoring.yml up -d
+
+services:
+  # Main application with external monitoring configuration
+  video-transcriber:
+    environment:
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_URL=http://your-prometheus-server:9090  # Update with your Prometheus URL
+      - GRAFANA_URL=http://your-grafana-server:3000        # Update with your Grafana URL
+      - EXTERNAL_MONITORING=true
+    # Expose metrics endpoint for external Prometheus scraping
+    ports:
+      - "5001:5000"  # Main app
+      - "8000:8000"  # Metrics endpoint (if separate)
+
+  # Remove built-in monitoring services when using external ones
+  prometheus:
+    deploy:
+      replicas: 0  # Disable built-in Prometheus
+
+  grafana:
+    deploy:
+      replicas: 0  # Disable built-in Grafana
+
+# You can also completely remove volumes if not using built-in monitoring
+volumes:
+  prometheus_data:
+    external: true  # Indicates this is managed externally
+  grafana_data:
+    external: true  # Indicates this is managed externally

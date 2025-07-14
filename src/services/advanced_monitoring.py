@@ -1,6 +1,4 @@
-"""
-Advanced monitoring and alerting system for Video Transcriber
-"""
+"""Advanced monitoring and alerting system for Video Transcriber."""
 
 import logging
 import os
@@ -406,22 +404,22 @@ class AdvancedMonitoringService:
 monitoring_bp = Blueprint("monitoring", __name__, url_prefix="/monitoring")
 
 # Global monitoring service instance
-monitoring_service = None
+MONITORING_SERVICE = None
 
 
 def init_monitoring_service(redis_client=None):
     """Initialize the global monitoring service"""
-    global monitoring_service
-    monitoring_service = AdvancedMonitoringService(redis_client)
+    global MONITORING_SERVICE
+    MONITORING_SERVICE = AdvancedMonitoringService(redis_client)
 
 
 @monitoring_bp.route("/health")
 def health_check():
     """Comprehensive health check endpoint"""
-    if not monitoring_service:
+    if not MONITORING_SERVICE:
         return jsonify({"error": "Monitoring not initialized"}), 503
 
-    health_status = monitoring_service.get_health_status()
+    health_status = MONITORING_SERVICE.get_health_status()
 
     status_code = 200
     if health_status["status"] == "degraded":
@@ -444,17 +442,17 @@ def metrics_endpoint():
 @monitoring_bp.route("/dashboard")
 def monitoring_dashboard():
     """Monitoring dashboard"""
-    if not monitoring_service:
+    if not MONITORING_SERVICE:
         return "Monitoring not initialized", 503
 
-    health_status = monitoring_service.get_health_status()
+    health_status = MONITORING_SERVICE.get_health_status()
     return render_template("monitoring_dashboard.html", health=health_status)
 
 
 @monitoring_bp.route("/alerts")
 def get_alerts():
     """Get current alerts"""
-    if not monitoring_service:
+    if not MONITORING_SERVICE:
         return jsonify({"error": "Monitoring not initialized"}), 503
 
     active_alerts = [
@@ -466,7 +464,7 @@ def get_alerts():
             "value": alert.value,
             "resolved": alert.resolved,
         }
-        for alert in monitoring_service.alerts
+        for alert in MONITORING_SERVICE.alerts
         if not alert.resolved
     ]
 

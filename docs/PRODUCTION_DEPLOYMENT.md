@@ -123,6 +123,10 @@ kubectl exec -it deployment/video-transcriber -- python scripts/create-admin.py
 
 ## 📊 Production Monitoring Setup
 
+### Built-in Monitoring Stack
+
+The application includes a complete monitoring solution:
+
 ### Prometheus Configuration
 
 ```yaml
@@ -156,13 +160,48 @@ alerting:
           - alertmanager:9093
 ```
 
-### Grafana Dashboard Import
+### External Monitoring Integration
 
+For enterprise environments with existing Prometheus and Grafana infrastructure:
+
+**Environment Setup:**
 ```bash
-# Import pre-built dashboards
-kubectl create configmap grafana-dashboards \
-  --from-file=monitoring/dashboards/ \
-  -n video-transcriber-prod
+export EXTERNAL_MONITORING=true
+export PROMETHEUS_URL="http://your-prometheus-server:9090"
+export GRAFANA_URL="http://your-grafana-server:3000"
+```
+
+**Deployment with External Monitoring:**
+```bash
+# Use external monitoring override
+docker-compose -f docker-compose.yml -f docker-compose.external-monitoring.yml up -d
+
+# Or with Helm
+helm upgrade --install video-transcriber ./helm/video-transcriber \
+  --set monitoring.external.enabled=true \
+  --set monitoring.external.prometheusUrl="http://your-prometheus:9090" \
+  --set monitoring.external.grafanaUrl="http://your-grafana:3000"
+```
+
+**Integration Files:**
+- `external-monitoring/prometheus-config.yml` - Scrape configuration for external Prometheus
+- `external-monitoring/grafana-datasource.yml` - Datasource configuration 
+- `external-monitoring/grafana-dashboard.json` - Pre-built dashboard with comprehensive metrics
+- `external-monitoring/video_transcriber_alerts.yml` - Production alerting rules
+
+**Automatic Detection:**
+The application automatically detects external monitoring and:
+- Disables built-in Prometheus/Grafana containers
+- Configures metrics endpoints for external scraping
+- Provides configuration validation via `/monitoring/config` endpoint
+
+**Testing External Integration:**
+```bash
+# Validate external monitoring setup
+python test_external_monitoring.py
+
+# Check configuration endpoint
+curl http://your-app/monitoring/config
 ```
 
 ### Alerting Rules

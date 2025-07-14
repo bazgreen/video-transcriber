@@ -195,48 +195,76 @@ spec:
 - Business metrics (transcription jobs, user activity)
 - Database performance (query execution, connection pool)
 
-**Grafana Dashboards:**
-- Application Overview
-- System Resources
-- Database Performance
-- Celery Task Monitoring
-- Error Tracking
+### External Monitoring Integration
 
-### Log Aggregation
+For enterprise environments with existing Prometheus and Grafana infrastructure:
 
-```yaml
-# Structured logging configuration
-logging:
-  version: 1
-  formatters:
-    structured:
-      format: '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "module": "%(name)s", "message": "%(message)s"}'
-  handlers:
-    file:
-      class: logging.FileHandler
-      filename: /var/log/video-transcriber/app.log
-      formatter: structured
+**Configuration:**
+```bash
+# Environment variables for external monitoring
+export EXTERNAL_MONITORING=true
+export PROMETHEUS_URL="http://your-prometheus-server:9090"
+export GRAFANA_URL="http://your-grafana-server:3000"
+
+# Deploy with external monitoring override
+docker-compose -f docker-compose.yml -f docker-compose.external-monitoring.yml up -d
 ```
 
-### Alerting Rules
+**Features:**
+- Automatic detection of external monitoring setup
+- Conditional container orchestration (disables built-in Prometheus/Grafana)
+- Pre-configured Prometheus scrape configs in `external-monitoring/prometheus-config.yml`
+- Ready-to-import Grafana dashboard in `external-monitoring/grafana-dashboard.json`
+- Enterprise alerting rules in `external-monitoring/video_transcriber_alerts.yml`
+- Configuration endpoint at `/monitoring/config` for integration validation
 
+**External Monitoring Files:**
+```
+external-monitoring/
+├── prometheus-config.yml       # Scrape configuration for external Prometheus
+├── grafana-datasource.yml     # Datasource configuration
+├── grafana-dashboard.json     # Pre-built dashboard with 7 panels
+└── video_transcriber_alerts.yml # Alerting rules
+```
+
+### Self-Contained Monitoring
+
+For development and smaller deployments:
+
+**Prometheus Configuration:**
 ```yaml
-# Prometheus alerting rules
-- alert: HighErrorRate
-  expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
-  for: 5m
-  labels:
-    severity: warning
-  annotations:
-    summary: High error rate detected
+# prometheus.yml
+scrape_configs:
+  - job_name: 'video-transcriber'
+    static_configs:
+      - targets: ['video-transcriber:5000']
+```
 
-- alert: DatabaseConnectionFailure
-  expr: up{job="postgres"} == 0
-  for: 1m
-  labels:
-    severity: critical
-  annotations:
-    summary: Database connection failure
+**Grafana Dashboard:**
+- Import the JSON dashboard file via Grafana UI
+- Configure data source to point to Prometheus
+
+**Alerting Rules:**
+```yaml
+# alerting_rules.yml
+groups:
+- name: video_transcriber_alerts
+  rules:
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: High error rate detected
+
+  - alert: DatabaseConnectionFailure
+    expr: up{job="postgres"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: Database connection failure
 ```
 
 ## 🔧 Maintenance and Operations

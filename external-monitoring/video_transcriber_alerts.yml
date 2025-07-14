@@ -1,0 +1,48 @@
+# Prometheus alert rules for Video Transcriber
+groups:
+  - name: video_transcriber_alerts
+    rules:
+      - alert: VideoTranscriberDown
+        expr: up{job="video-transcriber"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Video Transcriber is down"
+          description: "Video Transcriber has been down for more than 5 minutes"
+
+      - alert: HighCPUUsage
+        expr: cpu_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on Video Transcriber"
+          description: "CPU usage is above 80% for more than 10 minutes"
+
+      - alert: HighMemoryUsage
+        expr: memory_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on Video Transcriber"
+          description: "Memory usage is above 85% for more than 10 minutes"
+
+      - alert: TranscriptionFailureRate
+        expr: rate(transcription_requests_total{status="failure"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transcription failure rate"
+          description: "Transcription failure rate is above 10% for 5 minutes"
+
+      - alert: LongQueueLength
+        expr: queue_length > 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long transcription queue"
+          description: "Transcription queue has more than 10 items for 15 minutes"

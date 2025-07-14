@@ -208,6 +208,50 @@ docker-compose up -d
 - **PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379
 
+**External Monitoring Setup:**
+
+For environments with existing Prometheus/Grafana infrastructure:
+
+```bash
+# Use external monitoring override
+docker-compose -f docker-compose.yml -f docker-compose.external-monitoring.yml up -d
+
+# Or set environment variables
+export EXTERNAL_MONITORING=true
+export PROMETHEUS_URL=http://your-prometheus:9090
+export GRAFANA_URL=http://your-grafana:3000
+docker-compose up -d
+```
+
+**Prometheus Configuration:**
+
+Add these scrape configs to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'video-transcriber-app'
+    static_configs:
+      - targets: ['video-transcriber-app:5000']
+    metrics_path: '/monitoring/metrics'
+  
+  - job_name: 'video-transcriber-health'
+    static_configs:
+      - targets: ['video-transcriber-app:5000']
+    metrics_path: '/monitoring/health'
+```
+
+**Grafana Setup:**
+
+- Import datasource from `external-monitoring/grafana-datasource.yml`
+- Import dashboard from `external-monitoring/grafana-dashboard.json`
+- Add alerts from `external-monitoring/video_transcriber_alerts.yml`
+
+The application automatically detects external monitoring and:
+
+- ✅ Disables built-in Prometheus/Grafana containers
+- ✅ Exports metrics for external Prometheus scraping
+- ✅ Provides configuration details at `/monitoring/config`
+
 **Kubernetes Deployment:**
 
 ```bash

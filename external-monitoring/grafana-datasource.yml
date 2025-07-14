@@ -1,0 +1,23 @@
+# Grafana datasource configuration for Video Transcriber
+# Add this to your Grafana datasources or import via UI
+
+apiVersion: 1
+
+datasources:
+  - name: VideoTranscriberPrometheus
+    type: prometheus
+    access: proxy
+    url: http://your-prometheus-server:9090  # Update with your Prometheus URL
+    basicAuth: false
+    isDefault: false
+    editable: true
+    jsonData:
+      timeInterval: 30s
+      queryTimeout: 60s
+      httpMethod: GET
+    version: 1
+
+# To add this datasource:
+# 1. Save this file as video-transcriber-datasource.yml
+# 2. Copy to your Grafana provisioning/datasources/ directory
+# 3. Restart Grafana or wait for auto-reload
