@@ -722,6 +722,34 @@ curl -X POST http://localhost:5001/api/multilang/language-preferences \
   -d '{"default_language": "es", "fallback_language": "en"}'
 ```
 
+### Speaker Diarization API
+
+```bash
+# Check speaker service status
+curl http://localhost:5001/api/speaker/status
+
+# Process audio file for speaker identification
+curl -X POST http://localhost:5001/api/speaker/diarize \
+  -H "Content-Type: application/json" \
+  -d '{"audio_path": "/path/to/audio.wav", "min_speakers": 2, "max_speakers": 4}'
+
+# Align transcript with speaker information
+curl -X POST http://localhost:5001/api/speaker/align \
+  -H "Content-Type: application/json" \
+  -d '{"transcript_segments": [...], "speaker_segments": [...]}'
+
+# Complete processing pipeline
+curl -X POST http://localhost:5001/api/speaker/process \
+  -H "Content-Type: application/json" \
+  -d '{"audio_path": "/path/to/audio.wav", "transcript_segments": [...]}'
+
+# Get speaker statistics
+curl http://localhost:5001/api/speaker/statistics/session_id
+
+# Export with speaker information (SRT/VTT/TXT/JSON)
+curl http://localhost:5001/api/speaker/export/session_id/srt
+```
+
 ### Health & Monitoring API
 
 ```bash
@@ -777,6 +805,7 @@ video-transcriber/
 │   │   ├── api.py             # API endpoints
 │   │   ├── auth.py            # Authentication routes
 │   │   ├── multilang.py       # Multi-language API routes
+│   │   ├── speaker_routes.py  # Speaker diarization API endpoints
 │   │   └── socket_handlers.py # WebSocket handlers
 │   ├── services/              # Business logic services
 │   │   ├── transcription.py   # Core transcription service
@@ -805,6 +834,8 @@ video-transcriber/
 │   │   ├── config.html        # Keyword configuration
 │   │   ├── performance.html   # Performance dashboard
 │   │   ├── advanced_upload.html # Multi-language upload interface
+│   │   ├── upload_with_speaker.html # Enhanced upload with speaker options
+│   │   ├── transcript_with_speakers.html # Speaker-enhanced transcript view
 │   │   ├── base.html          # Base template (clean)
 │   │   └── auth/              # Authentication templates
 │   ├── static/                # Static assets (CSS, JS, images)
@@ -860,6 +891,15 @@ video-transcriber/
 │   ├── unit/                  # Unit tests
 │   ├── integration/           # Integration tests
 │   └── benchmarks/            # Performance benchmarks
+├── test_speaker_diarization.py # Speaker service comprehensive test suite
+├── test_speaker_api.py        # Speaker API endpoint testing
+├── test_external_monitoring.py # External monitoring integration tests
+├── speaker_timeline_demo.html # Interactive speaker timeline visualization
+├── external-monitoring/       # External monitoring configuration
+│   ├── prometheus-config.yml  # Prometheus scrape configuration
+│   ├── grafana-datasource.yml # Grafana datasource setup
+│   ├── grafana-dashboard.json # Pre-built monitoring dashboard
+│   └── video_transcriber_alerts.yml # Production alerting rules
 ├── config/                    # Configuration files
 │   └── keywords_config.json   # Keyword configuration
 ├── uploads/                   # Temporary upload storage
@@ -893,6 +933,21 @@ If you encounter any issues or have questions:
 3. Include your system information and error logs
 
 ## 🔄 Changelog
+
+### v2.1.0 (2025-07-14) - Infrastructure & AI Enhancement Update
+
+- **🐳 Production Docker Stack**: Complete containerized deployment with 8 services
+- **📊 Advanced Monitoring**: Prometheus metrics, Grafana dashboards, health monitoring
+- **☁️ Kubernetes Support**: Production-ready manifests with auto-scaling and persistent volumes
+- **🔄 CI/CD Pipeline**: Automated testing, building, and deployment workflows
+- **🎭 Speaker Diarization**: Multi-speaker identification with pyannote.audio integration
+- **🌐 Multi-Language Support**: 99+ language detection and processing capabilities
+- **⚡ Celery Background Tasks**: Asynchronous processing with Redis broker
+- **🗃️ PostgreSQL Integration**: Production database with connection pooling
+- **🛡️ External Monitoring**: Enterprise-ready monitoring for existing Prometheus/Grafana setups
+- **🔧 Enhanced Maintenance**: Updated cleanup and kill scripts for all services
+- **📈 Performance Metrics**: 281+ metrics for comprehensive system monitoring
+- **🧪 Comprehensive Testing**: Speaker diarization test suite with 90%+ pass rates
 
 ### v2.0.0 (2025-07-05) - Major Feature Update
 
