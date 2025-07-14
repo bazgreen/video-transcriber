@@ -95,6 +95,7 @@ A comprehensive Python web application that transforms videos into searchable, a
 - **🎯 Sentiment Analysis** - Automatic emotional tone detection throughout transcripts
 - **📊 Topic Modeling** - Machine learning-based discovery of key discussion themes
 - **🏷️ Named Entity Recognition** - Identification of people, places, organizations, and concepts
+- **📝 Automated Transcript Correction** - AI-powered grammar, spelling, and quality assurance with real-time suggestions
 - **Question Detection** - Automatically identifies spoken questions with timestamps
 - **Emphasis Cue Recognition** - Finds important phrases like "make sure...", "don't forget..."
 - **Custom Keyword Tracking** - Monitors user-defined terms and their frequency
@@ -346,6 +347,7 @@ python scripts/testing/check_installation.py  # See current status
 | **AI Sentiment Analysis** | ❌ | ✅ |
 | **Topic Modeling** | ❌ | ✅ |
 | **Named Entity Recognition** | ❌ | ✅ |
+| **Transcript Correction** | ❌ | ✅ |
 | **PDF Reports** | ❌ | ✅ |
 | **DOCX Documents** | ❌ | ✅ |
 | **Install Time** | 2-3 min | 5-8 min |

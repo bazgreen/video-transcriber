@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Transcript Correction & Quality Assurance{% endblock %}
+
+{% block body_class %}layout-full{% endblock %}
+
+{% set show_header = true %}
+
+{% block extra_head %}
+<style>
+        /* Transcript Correction Specific Styles Using Design System */
+        .quality-score {
+            font-size: var(--font-size-4xl);
+            font-weight: 600;
+        }
+        .score-excellent { color: var(--success-color); }
+        .score-good { color: var(--warning-color); }
+        .score-poor { color: var(--danger-color); }
+        
+        .correction-suggestion {
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-lg);
+            background: var(--gray-50);
+            transition: var(--transition-base);
+        }
+        
+        .correction-suggestion:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+        
+        .correction-suggestion.grammar { border-left: 4px solid var(--info-color); }
+        .correction-suggestion.spelling { border-left: 4px solid var(--success-color); }
+        .correction-suggestion.terminology { border-left: 4px solid var(--primary-color); }
+        .correction-suggestion.learned { border-left: 4px solid var(--warning-color); }
+        
+        .diff-highlight {
+            background: rgba(243, 156, 18, 0.2);
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+        }
+        
+        .transcript-editor {
+            min-height: 400px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            background: var(--white);
+            transition: var(--transition-base);
+        }
+        
+        .transcript-editor:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .progress-container {
+            margin: var(--spacing-lg) 0;
+        }
+        
+        /* Custom dictionary terms display */
+        .custom-term {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .custom-term .remove-btn {
+            background: var(--danger-color);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-xs);
+            cursor: pointer;
+            font-size: var(--font-size-xs);
+        }
+        
+        /* Quality metrics styling */
+        .quality-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            text-align: center;
+        }
+        
+        .quality-metric {
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            background: var(--gray-50);
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-full">
+    <h1 class="page-title">📝 Transcript Correction & Quality Assurance</h1>
+    <p class="page-subtitle">Improve transcript accuracy with AI-powered grammar and spelling correction</p>
+
+    <div class="mt-lg">
+        <!-- Quality Dashboard -->
+        <div class="mb-lg">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-chart-line"></i> Quality Assessment</h4>
+                </div>
+                <div class="card-body">
+                    <div class="quality-metrics">
+                            <div class="quality-metric">
+                                <div class="quality-score" id="overallScore">--</div>
+                                <small class="text-muted">Overall Score</small>
+                            </div>
+                            <div class="quality-metric">
+                                <div class="quality-score" id="grammarScore">--</div>
+                                <small class="text-muted">Grammar</small>
+                            </div>
+                            <div class="quality-metric">
+                                <div class="quality-score" id="spellingScore">--</div>
+                                <small class="text-muted">Spelling</small>
+                            </div>
+                            <div class="quality-metric">
+                                <div class="quality-score" id="readabilityScore">--</div>
+                                <small class="text-muted">Readability</small>
+                            </div>
+                            <div class="quality-metric">
+                                <div class="quality-score" id="confidenceScore">--</div>
+                                <small class="text-muted">Confidence</small>
+                            </div>
+                            <div class="quality-metric">
+                                <div class="quality-score" id="issuesCount">--</div>
+                                <small class="text-muted">Issues Found</small>
+                            </div>
+                        
+                        <div class="mt-md">
+                            <div id="recommendations" class="alert alert-info" style="display: none;">
+                                <h6><i class="fas fa-lightbulb"></i> Recommendations:</h6>
+                                <ul id="recommendationsList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Interface -->
+        <div class="flex gap-lg" style="align-items: flex-start;">
+            <!-- Transcript Editor -->
+            <div style="flex: 2;">
+                <div class="card">
+                    <div class="card-header flex justify-between items-center">
+                        <h5><i class="fas fa-edit"></i> Transcript Editor</h5>
+                        <div class="flex gap-sm">
+                            <button class="btn btn-outline btn-sm" onclick="loadSampleTranscript()">
+                                <i class="fas fa-file-text"></i>Load Sample
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="analyzeQuality()">
+                                <i class="fas fa-search"></i>Analyze Quality
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="transcript-editor" contenteditable="true" id="transcriptEditor"
+                             placeholder="Paste your transcript here or load a sample to get started...">
+                        </div>
+                        
+                        <div class="progress-container">
+                            <div class="progress" style="display: none;" id="progressBar">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-lg flex justify-between">
+                            <div class="flex gap-sm">
+                                <button class="btn btn-success" onclick="generateSuggestions()" id="generateBtn">
+                                    <i class="fas fa-magic"></i>Generate Suggestions
+                                </button>
+                                <button class="btn btn-warning" onclick="applyAllCorrections()" id="applyAllBtn" disabled>
+                                    <i class="fas fa-check-double"></i>Apply All
+                                </button>
+                            </div>
+                            <div class="flex gap-sm">
+                                <button class="btn btn-secondary" onclick="resetTranscript()">
+                                    <i class="fas fa-undo"></i>Reset
+                                </button>
+                                <button class="btn btn-outline" onclick="exportCorrected()">
+                                    <i class="fas fa-download"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Corrections Panel -->
+            <div style="flex: 1;">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list-check"></i> Correction Suggestions</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        <div id="suggestionsContainer">
+                            <div class="text-center p-lg" style="color: var(--gray-500);">
+                                <i class="fas fa-info-circle" style="font-size: var(--font-size-2xl); margin-bottom: var(--spacing-md);"></i>
+                                <p>Analyze your transcript to see correction suggestions here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dictionary Settings -->
+                <div class="card mt-lg">
+                    <div class="card-header">
+                        <h6><i class="fas fa-book"></i> Dictionary Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Industry Dictionary</label>
+                            <select class="form-control" id="industrySelect" onchange="loadIndustryDictionary()">
+                                <option value="">Select industry...</option>
+                                <option value="medical">Medical</option>
+                                <option value="legal">Legal</option>
+                                <option value="technical">Technical</option>
+                                <option value="business">Business</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoApplyCheck">
+                                <label class="form-check-label" for="autoApplyCheck">
+                                    Auto-apply high-confidence corrections
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-outline btn-sm btn-full" onclick="showCustomDictionary()">
+                            <i class="fas fa-plus"></i>Manage Custom Terms
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Dictionary Modal -->
+    <div class="modal fade" id="customDictionaryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-book-open"></i> Custom Dictionary
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="flex gap-md">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Original Term</label>
+                            <input type="text" class="form-control" id="originalTerm" placeholder="e.g., AI">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Replacement</label>
+                            <input type="text" class="form-control" id="replacementTerm" placeholder="e.g., Artificial Intelligence">
+                        </div>
+                    </div>
+                    <div class="mt-md">
+                        <button class="btn btn-primary" onclick="addCustomTerm()">
+                            <i class="fas fa-plus"></i>Add Term
+                        </button>
+                    </div>
+                    
+                    <div class="mt-lg">
+                        <h6>Current Custom Terms</h6>
+                        <div id="customTermsList" class="card-body" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius-md);">
+                            <div class="text-muted">No custom terms added yet.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCustomDictionary()">
+                        <i class="fas fa-save"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/transcript-correction.js') }}"></script>
+{% endblock %}

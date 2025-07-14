@@ -45,5 +45,6 @@ WTForms>=3.0.0             # Form validation
 # - Sentiment analysis (TextBlob)
 # - Topic modeling (Scikit-learn)
 # - Advanced NLP (SpaCy)
+# - Automated transcript correction (LanguageTool)
 # - PDF reports (ReportLab)
 # - DOCX exports (python-docx)

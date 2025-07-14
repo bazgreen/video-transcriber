@@ -27,9 +27,13 @@ scikit-learn>=1.3.0       # Machine learning and topic modeling
 spacy>=3.7.0              # Advanced natural language processing
 
 # AI-Powered Insights Dependencies
-textblob>=0.17.1          # Sentiment analysis
+textblob>=0.17.1          # Sentiment analysis and transcript correction
 torch>=1.13.0
 WTForms>=3.0.0             # Form validation
 
-# Note: After installation, run the following to download SpaCy language model:
+# Transcript Correction and Quality Assurance
+language-tool-python>=2.7.1  # Advanced grammar checking
+
+# Note: After installation, run the following to download required models:
 # python -m spacy download en_core_web_sm
+# python -m textblob.download_corpora

@@ -42,6 +42,7 @@ from src.routes.pwa_mobile_routes import pwa_mobile_bp
 from src.routes.pwa_routes import pwa_bp
 from src.routes.socket_handlers import init_socket_globals
 from src.routes.speaker_routes import speaker_bp
+from src.routes.transcript_correction_routes import correction_bp, api_bp as correction_api_bp
 from src.services import VideoTranscriber, delete_session, process_upload
 from src.utils import handle_user_friendly_error
 
@@ -210,6 +211,8 @@ def register_routes(
     app.register_blueprint(speaker_bp)
     app.register_blueprint(pwa_bp)
     app.register_blueprint(pwa_mobile_bp)
+    app.register_blueprint(correction_bp)
+    app.register_blueprint(correction_api_bp)
 
     # Initialize batch processor with transcriber
     from src.services.batch_processing import batch_processor

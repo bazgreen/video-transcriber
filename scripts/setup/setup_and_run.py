@@ -151,12 +151,24 @@ def install_dependencies(venv_python, installation_type="minimal"):
         "ffmpeg-python>=0.2.0",
         "openai-whisper>=20231117",
         "psutil>=7.0.0",
+        # Authentication and security dependencies
+        "Flask-Login>=0.6.3",
+        "Flask-Migrate>=4.0.0",
+        "Flask-SQLAlchemy>=3.0.0",
+        "Flask-WTF>=1.2.0",
+        "WTForms>=3.0.0",
+        "bcrypt>=4.0.0",
+        "email-validator>=2.0.0",
+        # Monitoring and additional features
+        "prometheus_client>=0.18.0",
+        "langdetect>=1.0.9",
     ]
 
     ai_packages = [
         "textblob>=0.17.1",
         "scikit-learn>=1.3.0",
         "spacy>=3.7.0",
+        "language-tool-python>=2.7.1",
     ]
 
     export_packages = [
@@ -167,7 +179,7 @@ def install_dependencies(venv_python, installation_type="minimal"):
     # Check if dependencies are already installed
     try:
         result = subprocess.run(
-            [venv_python, "-c", "import whisper, flask, ffmpeg"], capture_output=True
+            [venv_python, "-c", "import whisper, flask, ffmpeg, flask_login, flask_migrate"], capture_output=True
         )
         if result.returncode == 0:
             print("✅ Core dependencies are already installed")

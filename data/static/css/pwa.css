@@ -72,7 +72,7 @@
     border-radius: 25px;
     font-size: 0.85rem;
     font-weight: 500;
-    z-index: 1040;
+    z-index: 999;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
     max-width: 300px;

@@ -1,0 +1,24 @@
+# Requirements for transcript correction and quality assurance features
+# 
+# NOTE: These dependencies are now included in requirements-full.txt
+# For a complete installation with all features, use:
+#   pip install -r requirements-full.txt
+#
+# Or run the AI features installer:
+#   python install_ai_features.py
+#
+# This file is maintained for standalone correction feature testing only.
+
+# Core correction libraries
+language-tool-python>=2.7.1
+textblob>=0.17.1
+spacy>=3.4.0
+
+# Download required models
+# Run after installation:
+# python -m spacy download en_core_web_sm
+# python -m textblob.download_corpora
+
+# Optional dependencies for enhanced functionality
+# nltk>=3.8  # For advanced text processing
+# gramformer>=1.0  # For transformer-based grammar correction

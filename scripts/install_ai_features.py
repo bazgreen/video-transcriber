@@ -48,7 +48,7 @@ def check_current_installation():
     # Check for AI dependencies
     try:
         subprocess.run(
-            [venv_python, "-c", "import textblob, sklearn"],
+            [venv_python, "-c", "import textblob, sklearn, language_tool_python"],
             check=True,
             capture_output=True,
         )
@@ -106,6 +106,7 @@ def install_ai_dependencies():
         "spacy>=3.7.0",
         "reportlab>=4.0.0",
         "python-docx>=1.1.0",
+        "language-tool-python>=2.7.1",  # Transcript correction
     ]
 
     print("📦 Installing AI and export packages...")
@@ -122,7 +123,7 @@ def install_ai_dependencies():
             print(f"   ❌ Failed to install {package}")
             return False
 
-    # Install SpaCy English model
+    # Install SpaCy English model and TextBlob corpora
     if not spacy_model_installed:
         try:
             print("🧠 Installing SpaCy English language model...")
@@ -136,6 +137,22 @@ def install_ai_dependencies():
             print(f"   {venv_python} -m spacy download en_core_web_sm")
             return False
 
+    # Install TextBlob corpora for transcript correction
+    try:
+        print("📚 Installing TextBlob language corpora...")
+        subprocess.run(
+            [venv_python, "-c", "import nltk; nltk.download('punkt', quiet=True)"],
+            check=True
+        )
+        subprocess.run(
+            [venv_python, "-c", "import nltk; nltk.download('brown', quiet=True)"],
+            check=True
+        )
+        print("✅ TextBlob corpora installed successfully")
+    except subprocess.CalledProcessError:
+        print("⚠️  TextBlob corpora installation failed (non-critical)")
+        print("Transcript correction will still work with reduced accuracy")
+
     # Test installation
     try:
         print("🔍 Testing AI features...")
@@ -143,7 +160,7 @@ def install_ai_dependencies():
             [
                 venv_python,
                 "-c",
-                "import textblob, sklearn, spacy; nlp = spacy.load('en_core_web_sm'); print('All AI features working!')",
+                "import textblob, sklearn, spacy, language_tool_python; nlp = spacy.load('en_core_web_sm'); print('All AI features working!')",
             ],
             check=True,
             capture_output=True,
@@ -164,7 +181,8 @@ def main():
     print("  🎯 Sentiment Analysis - Detect emotional tone")
     print("  📊 Topic Modeling - Discover discussion themes")
     print("  🧠 Advanced NLP - Find people, places, organizations")
-    print("  📄 PDF Reports - Professional analysis documents")
+    print("  � Transcript Correction - Automated grammar and spelling fixes")
+    print("  �📄 PDF Reports - Professional analysis documents")
     print("  📝 DOCX Export - Microsoft Word format")
     print("\nEstimated time: 3-5 minutes")
     print("Your existing sessions and settings will be preserved.")
@@ -188,6 +206,7 @@ def main():
         print("  • Advanced sentiment analysis")
         print("  • Intelligent topic modeling")
         print("  • Named entity recognition")
+        print("  • Automated transcript correction & quality assurance")
         print("  • Professional PDF and DOCX exports")
         print("\n🚀 Next steps:")
         print("  1. Restart the application (if running)")
