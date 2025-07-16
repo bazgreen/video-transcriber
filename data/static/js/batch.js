@@ -6,10 +6,15 @@ let connectedBatches = new Set();
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    initializeWebSocket(); // Start real-time updates
-    loadBatches();
-    setupEventListeners();
-    startAutoRefresh();
+    // Only run on batch page
+    if (window.location.pathname.includes('/batch') || document.getElementById('createBatchForm')) {
+        initializeWebSocket(); // Start real-time updates
+        loadBatches();
+        setupEventListeners();
+        startAutoRefresh();
+    } else {
+        console.log('Batch.js: Not on batch page, skipping initialization');
+    }
 });
 
 function setupEventListeners() {
@@ -28,6 +33,7 @@ function setupEventListeners() {
     // Batch actions
     document.getElementById('startBatchBtn').addEventListener('click', startCurrentBatch);
     document.getElementById('clearQueueBtn').addEventListener('click', clearQueue);
+
 }
 
 async function createBatch(e) {
@@ -458,6 +464,12 @@ function formatFileSize(bytes) {
 function initializeWebSocket() {
     if (socket && socket.connected) {
         return; // Already connected
+    }
+
+    // Check if Socket.IO is available
+    if (typeof io === 'undefined') {
+        console.error('Socket.IO not available for batch processing');
+        return;
     }
 
     socket = io();

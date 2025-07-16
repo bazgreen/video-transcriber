@@ -15,11 +15,14 @@
 
     <div class="upload-section">
         <div class="upload-area" id="uploadArea">
-            <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.flv,.wmv,.m4v" multiple>
+            <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.flv,.wmv,.m4v" multiple style="position: absolute; left: -9999px; opacity: 0;">
             <div class="upload-content">
                 <div class="upload-icon">📹</div>
                 <p class="upload-text">Drop video files here or click to browse</p>
                 <p class="upload-hint">Supports MP4, AVI, MOV, MKV, WebM, and more</p>
+                <button type="button" class="btn btn-primary" onclick="triggerFileInput()" style="margin-top: 1rem;">
+                    📁 Browse Files
+                </button>
             </div>
         </div>
 
@@ -304,7 +307,7 @@
 </style>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <script>
     // Essential JavaScript for upload functionality
@@ -313,49 +316,65 @@
     let socket = null;
     let currentSessionId = null;
 
-    // Initialize when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeUpload();
-        initializeWebSocket();
-    });
+    // Define functions immediately in global scope
+    (function() {
+        try {
+        
+        // Helper functions - move to global scope
+    window.showMessage = function(message, type = 'info') {
+        // Simple alert for now - could be enhanced with better UI
+        if (type === 'error') {
+            alert('Error: ' + message);
+        } else if (type === 'warning') {
+            alert('Warning: ' + message);
+        } else {
+            console.log(message);
+        }
+    };
 
-    function initializeUpload() {
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+    window.updateUI = function() {
         const fileQueue = document.getElementById('fileQueue');
         const fileList = document.getElementById('fileList');
         const fileOptions = document.getElementById('fileOptions');
-        const startProcessingBtn = document.getElementById('startProcessing');
+        const uploadArea = document.getElementById('uploadArea');
 
-        // Handle file input changes
-        fileInput.addEventListener('change', function(e) {
-            handleFiles(e.target.files);
-        });
+        if (selectedFiles.length > 0) {
+            fileQueue.style.display = 'block';
+            fileOptions.style.display = 'block';
+            uploadArea.classList.add('has-files');
 
-        // Handle drag and drop
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+            // Render file list
+            fileList.innerHTML = selectedFiles.map(fileObj => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">${fileObj.name}</div>
+                        <div class="file-size">${formatFileSize(fileObj.size)}</div>
+                    </div>
+                    <button type="button" class="file-remove" onclick="removeFile('${fileObj.id}')">×</button>
+                </div>
+            `).join('');
+        } else {
+            fileQueue.style.display = 'none';
+            fileOptions.style.display = 'none';
+            uploadArea.classList.remove('has-files');
+        }
+    };
 
-        uploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        });
+    window.formatFileSize = function(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
 
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
+    window.removeFile = function(fileId) {
+        selectedFiles = selectedFiles.filter(f => f.id != fileId);
+        updateUI();
+    };
 
-        // Handle start processing
-        startProcessingBtn.addEventListener('click', function() {
-            startProcessing();
-        });
-    }
-
-    function handleFiles(files) {
+    // Move handleFiles to global scope so it can be called from inline handlers
+    window.handleFiles = function(files) {
         const allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
 
         Array.from(files).forEach(file => {
@@ -383,15 +402,158 @@
         });
 
         updateUI();
+    };
+
+    // Function to trigger file input dialog - make global for inline handlers
+    window.triggerFileInput = function() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.click();
+        }
+    };
+
+
+        } catch (error) {
+            console.error('Error defining global functions:', error);
+        }
+        
+    // End of IIFE - all global functions are now defined
+    })();
+
+    // Prevent default drag/drop behavior on the entire page
+    document.addEventListener('dragover', function(e) {
+        e.preventDefault();
+    });
+    document.addEventListener('drop', function(e) {
+        e.preventDefault();
+    });
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize after a short delay to ensure DOM is fully ready
+        setTimeout(function() {
+            initializeUpload();
+            initializeWebSocket();
+        }, 100);
+    });
+
+    function initializeUpload() {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileQueue = document.getElementById('fileQueue');
+        const fileList = document.getElementById('fileList');
+        const fileOptions = document.getElementById('fileOptions');
+        const startProcessingBtn = document.getElementById('startProcessing');
+        
+        // Safety check: ensure all critical elements exist
+        if (!uploadArea || !fileInput || !fileQueue || !fileList || !fileOptions || !startProcessingBtn) {
+            console.error('Missing critical elements for upload functionality');
+            return;
+        }
+
+        // Handle file input changes
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleFiles(e.target.files);
+                }
+            });
+        }
+
+        // Handle drag and drop
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        // Also handle click on upload area
+        uploadArea.addEventListener('click', function(e) {
+            // Don't trigger if clicking on the browse button
+            if (e.target.tagName !== 'BUTTON') {
+                triggerFileInput();
+            }
+        });
+
+        // Handle start processing
+        startProcessingBtn.addEventListener('click', function() {
+            startProcessing();
+        });
+
+    }
+
+    // Move handleFiles to global scope so it can be called from inline handlers
+    window.handleFiles = function(files) {
+        console.log('=== handleFiles called ===');
+        console.log('Files received:', files.length);
+        console.log('Files object:', files);
+        console.log('Current selectedFiles count:', selectedFiles.length);
+        
+        const allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
+
+        Array.from(files).forEach(file => {
+            console.log('Processing file:', file.name);
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedExtensions.includes(extension)) {
+                showMessage(`File "${file.name}" is not a supported video format.`, 'error');
+                return;
+            }
+
+            if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                showMessage(`File "${file.name}" is already in the queue.`, 'warning');
+                return;
+            }
+
+            const fileObj = {
+                id: Date.now() + Math.random(),
+                file: file,
+                name: file.name,
+                size: file.size,
+                status: 'pending'
+            };
+
+            selectedFiles.push(fileObj);
+            console.log('File added, selectedFiles now has', selectedFiles.length, 'files');
+            console.log('File object:', fileObj);
+        });
+
+        updateUI();
     }
 
     function updateUI() {
+        console.log('updateUI called, selectedFiles.length:', selectedFiles.length);
         const fileQueue = document.getElementById('fileQueue');
         const fileList = document.getElementById('fileList');
         const fileOptions = document.getElementById('fileOptions');
         const uploadArea = document.getElementById('uploadArea');
+        const fileCount = document.getElementById('fileCount');
+
+        console.log('Elements found:', {
+            fileQueue: !!fileQueue,
+            fileList: !!fileList,
+            fileOptions: !!fileOptions,
+            uploadArea: !!uploadArea,
+            fileCount: !!fileCount
+        });
+        
+        // Update file count display
+        if (fileCount) {
+            fileCount.textContent = `Files selected: ${selectedFiles.length}`;
+        }
 
         if (selectedFiles.length > 0) {
+            console.log('Showing file queue and options');
             fileQueue.style.display = 'block';
             fileOptions.style.display = 'block';
             uploadArea.classList.add('has-files');
@@ -407,6 +569,7 @@
                 </div>
             `).join('');
         } else {
+            console.log('Hiding file queue and options');
             fileQueue.style.display = 'none';
             fileOptions.style.display = 'none';
             uploadArea.classList.remove('has-files');
@@ -503,6 +666,107 @@
         progressLog.textContent += `[${timestamp}] ${message}\n`;
         progressLog.scrollTop = progressLog.scrollHeight;
     }
+    
+    // Function to trigger file input dialog - make global for inline handlers
+    window.triggerFileInput = function() {
+        console.log('triggerFileInput called');
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            console.log('FileInput found, triggering click');
+            console.log('FileInput details:', {
+                type: fileInput.type,
+                multiple: fileInput.multiple,
+                accept: fileInput.accept
+            });
+            fileInput.click();
+            alert('File dialog should have opened. Select a video file to test.');
+        } else {
+            console.error('FileInput not found');
+            alert('Error: FileInput element not found');
+        }
+    }
+    
+    // Test function to directly check file input events - make global for inline handlers
+    window.testFileInputDirectly = function() {
+        console.log('Testing file input events directly');
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            console.log('FileInput found, testing event listener');
+            
+            // Test if event listener is attached
+            const hasEventListener = fileInput.onchange !== null;
+            console.log('Has onchange handler:', hasEventListener);
+            
+            // Try to add a test event listener
+            fileInput.addEventListener('change', function(e) {
+                console.log('TEST: FileInput change event fired!');
+                console.log('TEST: Files selected:', e.target.files.length);
+                if (e.target.files.length > 0) {
+                    alert('SUCCESS: FileInput change event working! Files: ' + e.target.files.length);
+                    // Also call the main handler to test the full flow
+                    handleFiles(e.target.files);
+                } else {
+                    alert('No files selected in test');
+                }
+            });
+            
+            // Trigger file dialog
+            fileInput.click();
+            
+            console.log('File dialog triggered for testing');
+        } else {
+            console.error('FileInput not found for testing');
+            alert('Error: FileInput element not found');
+        }
+    }
+    
+    // Test function to directly test handleFiles function - make global for inline handlers
+    window.testHandleFilesDirectly = function() {
+        console.log('Testing handleFiles function directly');
+        
+        // Create a mock file object
+        const mockFile = new File(['test content'], 'test-video.mp4', { type: 'video/mp4' });
+        const mockFileList = [mockFile];
+        
+        console.log('Created mock file:', mockFile);
+        console.log('Calling handleFiles with mock file...');
+        
+        try {
+            handleFiles(mockFileList);
+            console.log('handleFiles called successfully');
+        } catch (error) {
+            console.error('Error calling handleFiles:', error);
+            alert('Error testing handleFiles: ' + error.message);
+        }
+    }
+    
+    // Debug function to test showing transcription options - make global for inline handlers
+    window.testShowTranscriptionOptions = function() {
+        console.log('Test function called - showing transcription options');
+        
+        const fileQueue = document.getElementById('fileQueue');
+        const fileOptions = document.getElementById('fileOptions');
+        const fileList = document.getElementById('fileList');
+        
+        if (fileQueue && fileOptions && fileList) {
+            // Add a test file to the selected files
+            selectedFiles = [{
+                id: 'test-file-' + Date.now(),
+                name: 'test-video.mp4',
+                size: 1024000,
+                status: 'pending'
+            }];
+            
+            // Update UI to show options
+            updateUI();
+            
+            console.log('Test file added and UI updated');
+            alert('Test file added! Check if transcription options are now visible.');
+        } else {
+            console.error('Could not find required elements');
+            alert('Error: Could not find required elements for transcription options');
+        }
+    }
 
     function initializeWebSocket() {
         socket = io();
@@ -534,6 +798,7 @@
         }
     }
 
+
     // Reset for processing more files
     document.getElementById('processMoreBtn')?.addEventListener('click', function() {
         selectedFiles = [];
@@ -542,5 +807,6 @@
         document.getElementById('resultsSection').style.display = 'none';
         updateUI();
     });
+
 </script>
 {% endblock %}

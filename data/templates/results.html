@@ -1815,6 +1815,54 @@
         // Setup mobile enhancements on window resize
         window.addEventListener('resize', setupMobileEnhancements);
         setupMobileEnhancements(); // Call immediately
+
+        // Show video player function
+        function showVideoPlayer() {
+            const videoSection = document.getElementById('videoSection');
+            const transcriptSection = document.getElementById('transcriptSection');
+            
+            if (videoSection) {
+                videoSection.style.display = 'block';
+                videoSection.scrollIntoView({ behavior: 'smooth' });
+                
+                // Initialize video player if not already done
+                if (!videoPlayer) {
+                    initializeVideoPlayer();
+                }
+            }
+            
+            if (transcriptSection) {
+                transcriptSection.style.display = 'block';
+            }
+        }
+
+        // Initialize video player
+        function initializeVideoPlayer() {
+            videoPlayer = document.getElementById('videoPlayer');
+            if (!videoPlayer) {
+                console.error('Video player element not found');
+                return;
+            }
+
+            // Setup video metadata (would normally come from server)
+            videoMetadata = {
+                keywords: {{ analysis.keyword_matches|tojson|safe }},
+                questions: {{ analysis.questions|tojson|safe }},
+                emphasis_cues: {{ analysis.emphasis_cues|tojson|safe }},
+                total_duration: videoPlayer.duration || 3600
+            };
+
+            // Wait for video metadata to load
+            videoPlayer.addEventListener('loadedmetadata', function() {
+                setupVideoControls();
+                createChapterMarkers();
+                createProgressIndicators();
+                loadTranscriptData();
+            });
+
+            // Start loading the video
+            videoPlayer.load();
+        }
     </script>
 </body>
 </html>

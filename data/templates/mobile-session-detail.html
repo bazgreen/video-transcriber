@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Session Details - Video Transcriber{% endblock %}
+
+{% block body_class %}mobile-session-detail{% endblock %}
+
+{% block extra_css %}
+    <link href="{{ url_for('static', filename='css/mobile-ui.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-session-container">
+    <div class="mobile-header">
+        <div class="mobile-nav">
+            <button class="mobile-back-btn" onclick="window.history.back()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <h1 class="mobile-title">Session Details</h1>
+        </div>
+    </div>
+
+    <div class="mobile-content">
+        {% if session %}
+            <div class="session-info-card">
+                <div class="session-header">
+                    <h2>{{ session.session_name or 'Untitled Session' }}</h2>
+                    <span class="session-date">{{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else 'Unknown' }}</span>
+                </div>
+
+                <div class="session-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value">{{ session.status or 'Processing' }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Duration</div>
+                        <div class="stat-value">{{ session.duration or 'N/A' }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Words</div>
+                        <div class="stat-value">{{ session.word_count or 'N/A' }}</div>
+                    </div>
+                </div>
+
+                <div class="session-actions">
+                    <a href="/results/{{ session.session_id }}" class="mobile-btn mobile-btn-primary">
+                        <i class="bi bi-eye"></i> View Results
+                    </a>
+                    <a href="/transcript/{{ session.session_id }}" class="mobile-btn mobile-btn-secondary">
+                        <i class="bi bi-file-text"></i> View Transcript
+                    </a>
+                    {% if session.status == 'completed' %}
+                        <a href="/api/export/{{ session.session_id }}/pdf" class="mobile-btn mobile-btn-outline">
+                            <i class="bi bi-download"></i> Download PDF
+                        </a>
+                    {% endif %}
+                </div>
+
+                {% if session.transcript %}
+                    <div class="session-transcript">
+                        <h3>Transcript Preview</h3>
+                        <div class="transcript-preview">
+                            {{ session.transcript[:500] }}{% if session.transcript|length > 500 %}...{% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="error-message">
+                <h2>Session Not Found</h2>
+                <p>The requested session could not be found.</p>
+                <a href="/sessions" class="mobile-btn mobile-btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Sessions
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{{ url_for('static', filename='js/mobile-ui.js') }}"></script>
+{% endblock %}

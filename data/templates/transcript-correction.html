@@ -8,7 +8,14 @@
 
 {% block extra_head %}
 <style>
-        /* Transcript Correction Specific Styles Using Design System */
+        /* Trans                            <select class="form-control" id="industrySelect" onchange="loadIndustryDictionary()">
+                                <option value="">Select Industry Dictionary (Optional)</option>
+                                <option value="medical">Medical</option>
+                                <option value="legal">Legal</option>
+                                <option value="technical">Technical</option>
+                                <option value="business">Business</option>
+                                <option value="education">Education</option>
+                            </select>orrection Specific Styles Using Design System */
         .quality-score {
             font-size: var(--font-size-4xl);
             font-weight: 600;
@@ -298,6 +305,6 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
     <script src="{{ url_for('static', filename='js/transcript-correction.js') }}"></script>
 {% endblock %}

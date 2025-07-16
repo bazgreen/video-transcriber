@@ -63,14 +63,18 @@ def process_upload(
 
     session_name = request.form.get("session_name", "").strip()
 
-    # Validate session name
+    # Provide default session name if empty
     if not session_name:
-        raise UserFriendlyError("Session name is required and cannot be empty")
+        session_name = "video_transcription"
 
-    # Remove potentially problematic characters
-    session_name = re.sub(r"[^a-zA-Z0-9_-]", "_", session_name)
+    # Remove potentially problematic characters (allow more characters)
+    session_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", session_name)
     # Limit length
     session_name = session_name[: config.MAX_SESSION_NAME_LENGTH]
+    
+    # Ensure session name is not empty after cleaning
+    if not session_name:
+        session_name = "video_transcription"
 
     # Check if a keyword scenario was selected
     scenario_id = request.form.get("keyword_scenario", "").strip()
