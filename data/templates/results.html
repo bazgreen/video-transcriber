@@ -904,15 +904,15 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">{{ analysis.keyword_matches|length }}</div>
+                <div class="stat-number">{{ (analysis.keyword_matches|length) if analysis.keyword_matches is defined else 0 }}</div>
                 <div class="stat-label">Keywords Found</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{{ analysis.questions|length }}</div>
+                <div class="stat-number">{{ (analysis.questions|length) if analysis.questions is defined else 0 }}</div>
                 <div class="stat-label">Questions Detected</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{{ analysis.emphasis_cues|length }}</div>
+                <div class="stat-number">{{ (analysis.emphasis_cues|length) if analysis.emphasis_cues is defined else 0 }}</div>
                 <div class="stat-label">Emphasis Cues</div>
             </div>
             <div class="stat-card">
@@ -1091,7 +1091,7 @@
         <div class="details-section">
             <div class="detail-card">
                 <h3 class="detail-title">🔤 Keywords Found</h3>
-                {% if analysis.keyword_matches %}
+                {% if analysis.keyword_matches is defined and analysis.keyword_matches %}
                 <div class="keyword-list">
                     {% for match in analysis.keyword_matches %}
                     <div class="keyword-tag">
@@ -1102,7 +1102,7 @@
                 </div>
 
                 <div class="frequency-chart">
-                    {% set max_count = analysis.keyword_matches|map(attribute='count')|max %}
+                    {% set max_count = (analysis.keyword_matches|map(attribute='count')|max) if analysis.keyword_matches is defined and analysis.keyword_matches else 1 %}
                     {% for match in analysis.keyword_matches[:10] %}
                     <div class="frequency-bar">
                         <div class="frequency-label">{{ match.keyword }}</div>
@@ -1120,7 +1120,7 @@
 
             <div class="detail-card">
                 <h3 class="detail-title">❓ Questions Detected</h3>
-                {% if analysis.questions %}
+                {% if analysis.questions is defined and analysis.questions %}
                 <div style="max-height: 400px; overflow-y: auto;">
                     {% for question in analysis.questions[:5] %}
                     <div class="question-item">
@@ -1128,7 +1128,7 @@
                         <div class="content-text">{{ question.text }}</div>
                     </div>
                     {% endfor %}
-                    {% if analysis.questions|length > 5 %}
+                    {% if analysis.questions is defined and analysis.questions|length > 5 %}
                     <div style="text-align: center; padding: 10px; color: #666; font-style: italic;">
                         And {{ analysis.questions|length - 5 }} more questions...
                     </div>
@@ -1142,7 +1142,7 @@
 
         <div class="detail-card">
             <h3 class="detail-title">⚡ Emphasis Cues</h3>
-            {% if analysis.emphasis_cues %}
+            {% if analysis.emphasis_cues is defined and analysis.emphasis_cues %}
             <div style="max-height: 300px; overflow-y: auto;">
                 {% for cue in analysis.emphasis_cues[:8] %}
                 <div class="emphasis-item">
@@ -1150,7 +1150,7 @@
                     <div class="content-text">{{ cue.text }}</div>
                 </div>
                 {% endfor %}
-                {% if analysis.emphasis_cues|length > 8 %}
+                {% if analysis.emphasis_cues is defined and analysis.emphasis_cues|length > 8 %}
                 <div style="text-align: center; padding: 10px; color: #666; font-style: italic;">
                     And {{ analysis.emphasis_cues|length - 8 }} more emphasis cues...
                 </div>
@@ -1820,17 +1820,17 @@
         function showVideoPlayer() {
             const videoSection = document.getElementById('videoSection');
             const transcriptSection = document.getElementById('transcriptSection');
-            
+
             if (videoSection) {
                 videoSection.style.display = 'block';
                 videoSection.scrollIntoView({ behavior: 'smooth' });
-                
+
                 // Initialize video player if not already done
                 if (!videoPlayer) {
                     initializeVideoPlayer();
                 }
             }
-            
+
             if (transcriptSection) {
                 transcriptSection.style.display = 'block';
             }
@@ -1846,9 +1846,9 @@
 
             // Setup video metadata (would normally come from server)
             videoMetadata = {
-                keywords: {{ analysis.keyword_matches|tojson|safe }},
-                questions: {{ analysis.questions|tojson|safe }},
-                emphasis_cues: {{ analysis.emphasis_cues|tojson|safe }},
+                keywords: {{ (analysis.keyword_matches if analysis.keyword_matches is defined else [])|tojson|safe }},
+                questions: {{ (analysis.questions if analysis.questions is defined else [])|tojson|safe }},
+                emphasis_cues: {{ (analysis.emphasis_cues if analysis.emphasis_cues is defined else [])|tojson|safe }},
                 total_duration: videoPlayer.duration || 3600
             };
 
