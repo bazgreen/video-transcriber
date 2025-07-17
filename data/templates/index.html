@@ -9,26 +9,33 @@
 {% block main_class %}{% endblock %}
 
 {% block content %}
+<!-- Skip navigation for keyboard users -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
 <div class="container">
-    <h1 class="page-title">🎥 Video Transcriber</h1>
-    <p class="page-subtitle">Transform your videos into searchable transcripts with AI-powered analysis</p>
+    <!-- ARIA live regions for messages -->
+    <div id="messages" class="messages-container" aria-live="polite" aria-atomic="true"></div>
+    
+    <div id="main-content">
+        <h1 class="page-title">🎥 Video Transcriber</h1>
+        <p class="page-subtitle">Transform your videos into searchable transcripts with AI-powered analysis</p>
 
     <div class="upload-section">
-        <div class="upload-area" id="uploadArea">
-            <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.flv,.wmv,.m4v" multiple style="position: absolute; left: -9999px; opacity: 0;">
+        <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Upload video files. Supported formats: MP4, AVI, MOV, MKV, WebM, and more. Press Enter or Space to select files.">
+            <input type="file" id="fileInput" name="file" accept=".mp4,.avi,.mov,.mkv,.webm,.flv,.wmv,.m4v" multiple style="position: absolute; left: -9999px; opacity: 0;" aria-describedby="upload-hint">
             <div class="upload-content">
-                <div class="upload-icon">📹</div>
+                <div class="upload-icon" aria-hidden="true">📹</div>
                 <p class="upload-text">Drop video files here or click to browse</p>
-                <p class="upload-hint">Supports MP4, AVI, MOV, MKV, WebM, and more</p>
+                <p class="upload-hint" id="upload-hint">Supports MP4, AVI, MOV, MKV, WebM, and more</p>
                 <button type="button" class="btn btn-primary" onclick="triggerFileInput()" style="margin-top: 1rem;">
                     📁 Browse Files
                 </button>
             </div>
         </div>
 
-        <div class="file-queue" id="fileQueue" style="display: none;">
-            <h3 class="section-title">📋 Files Ready for Processing</h3>
-            <div class="file-list" id="fileList"></div>
+        <div class="file-queue" id="fileQueue" style="display: none;" role="region" aria-labelledby="file-queue-title">
+            <h3 class="section-title" id="file-queue-title">📋 Files Ready for Processing</h3>
+            <div class="file-list" id="fileList" role="list" aria-label="List of selected files"></div>
         </div>
 
         <div class="file-options" id="fileOptions" style="display: none;">
@@ -121,6 +128,7 @@
                 <span>🔄</span> Process More Files
             </button>
         </div>
+    </div>
     </div>
 </div>
 {% endblock %}
@@ -322,13 +330,39 @@
 
         // Helper functions - move to global scope
     window.showMessage = function(message, type = 'info') {
-        // Simple alert for now - could be enhanced with better UI
-        if (type === 'error') {
-            alert('Error: ' + message);
-        } else if (type === 'warning') {
-            alert('Warning: ' + message);
-        } else {
-            console.log(message);
+        const messagesContainer = document.getElementById('messages');
+        if (!messagesContainer) {
+            // Fallback to console
+            console.log(`${type.toUpperCase()}: ${message}`);
+            return;
+        }
+
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${type}`;
+        messageEl.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+        const messageId = 'message-' + Date.now();
+        messageEl.id = messageId;
+
+        messageEl.innerHTML = `
+            ${message}
+            <button class="message-close" onclick="dismissMessage('${messageId}')" aria-label="Close message">×</button>
+        `;
+
+        messagesContainer.appendChild(messageEl);
+
+        // Auto-dismiss after 5 seconds (except for errors)
+        if (type !== 'error') {
+            setTimeout(() => {
+                dismissMessage(messageId);
+            }, 5000);
+        }
+    };
+
+    window.dismissMessage = function(messageId) {
+        const messageEl = document.getElementById(messageId);
+        if (messageEl && messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
         }
     };
 
@@ -448,6 +482,23 @@
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             handleFiles(e.dataTransfer.files);
+        });
+
+        // Add keyboard navigation support
+        uploadArea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        // Add focus styles
+        uploadArea.addEventListener('focus', function() {
+            uploadArea.classList.add('focused');
+        });
+
+        uploadArea.addEventListener('blur', function() {
+            uploadArea.classList.remove('focused');
         });
 
         // Also handle click on upload area
@@ -744,4 +795,138 @@
     });
 
 </script>
+
+<!-- Add accessibility styles -->
+<style>
+    /* Skip link for keyboard users */
+    .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 6px;
+        background: #000;
+        color: #fff;
+        padding: 8px 16px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1000;
+        transition: top 0.3s ease;
+    }
+
+    .skip-link:focus {
+        top: 6px;
+    }
+
+    /* Message styles */
+    .messages-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        max-width: 400px;
+    }
+
+    .message {
+        padding: 16px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border-left: 4px solid;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .message.info {
+        border-left-color: #007bff;
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .message.success {
+        border-left-color: #28a745;
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .message.warning {
+        border-left-color: #ffc107;
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .message.error {
+        border-left-color: #dc3545;
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .message-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        float: right;
+        margin-left: 10px;
+    }
+
+    .message-close:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Keyboard navigation for upload area */
+    .upload-area.focused {
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        outline: none;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .messages-container {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+        }
+
+        .upload-area {
+            min-height: 200px;
+            padding: 20px;
+        }
+
+        .btn {
+            min-height: 44px;
+            padding: 12px 24px;
+            font-size: 16px;
+            touch-action: manipulation;
+        }
+    }
+
+    /* Ensure minimum touch targets */
+    button, .btn, input[type="button"], input[type="submit"] {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
 {% endblock %}
