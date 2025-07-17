@@ -456,11 +456,68 @@ def open_browser_delayed(url, delay=2):
     webbrowser.open(url)
 
 
+def check_and_start_redis():
+    """Check if Redis is running and start it if needed"""
+    try:
+        # Check if Redis is accessible
+        result = subprocess.run(
+            ["redis-cli", "ping"], capture_output=True, text=True, timeout=2
+        )
+        if result.returncode == 0 and "PONG" in result.stdout:
+            print("✅ Redis is already running")
+            return True
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # Try to start Redis using brew
+    print("🔴 Redis not running, attempting to start...")
+    try:
+        if platform.system() == "Darwin":  # macOS
+            subprocess.run(["brew", "services", "start", "redis"], check=True)
+            print("✅ Redis started via Homebrew")
+            time.sleep(2)  # Give Redis time to start
+            return True
+        else:
+            print("⚠️  Please start Redis manually: sudo systemctl start redis")
+            return False
+    except subprocess.CalledProcessError:
+        print("⚠️  Could not start Redis automatically. Please start it manually:")
+        print("   macOS: brew services start redis")
+        print("   Linux: sudo systemctl start redis")
+        return False
+
 def run_app(venv_python):
-    """Run the Flask application"""
+    """Run the Flask application with all required services"""
     print("\n🚀 Starting Video Transcriber...")
     print("   Access the app at: http://localhost:5001")
-    print("   Press Ctrl+C to stop the server\n")
+    print("   Press Ctrl+C to stop all services\n")
+
+    # Check and start Redis
+    redis_started = check_and_start_redis()
+    if not redis_started:
+        print("❌ Redis is required for progress tracking. Please start Redis and try again.")
+        return
+
+    # Start Celery worker in background
+    print("🔄 Starting background task worker...")
+    celery_process = None
+    try:
+        celery_process = subprocess.Popen(
+            [venv_python, "-m", "celery", "-A", "celery_app", "worker", "--loglevel=info", "--concurrency=2"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        time.sleep(3)  # Give Celery time to start
+        
+        # Check if Celery is still running
+        if celery_process.poll() is None:
+            print("✅ Background task worker started")
+        else:
+            print("⚠️  Background task worker failed to start (progress updates may not work)")
+            celery_process = None
+    except Exception as e:
+        print(f"⚠️  Could not start background task worker: {e}")
+        celery_process = None
 
     # Start browser opening in background with health check
     import threading
@@ -478,13 +535,19 @@ def run_app(venv_python):
     app_file = "main.py"
     if not os.path.exists(app_file):
         print(f"❌ Error: {app_file} not found in the project root!")
+        if celery_process:
+            celery_process.terminate()
         sys.exit(1)
 
     print(f"🚀 Starting Video Transcriber ({app_file})...")
     try:
         subprocess.run([venv_python, app_file], env=env)
     except KeyboardInterrupt:
-        print("\n\n👋 Video Transcriber stopped. Goodbye!")
+        print("\n\n🧹 Stopping services...")
+        if celery_process:
+            celery_process.terminate()
+            celery_process.wait()
+        print("👋 Video Transcriber stopped. Goodbye!")
 
 
 def main():

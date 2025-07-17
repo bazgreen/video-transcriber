@@ -81,6 +81,11 @@ def kill_running_processes():
             subprocess.run(
                 ["pkill", "-f", "celery.*beat"], capture_output=True, check=False
             )
+            # Kill any start-dev.sh processes
+            subprocess.run(
+                ["pkill", "-f", "start-dev.sh"], capture_output=True, check=False
+            )
+            print("✅ Stopped Video Transcriber processes")
 
         # Stop Docker services if they exist
         try:
@@ -198,6 +203,9 @@ def remove_development_artifacts():
         ".ruff_cache",  # Ruff cache
         "monitoring/data",  # Monitoring data
         "logs",  # Log directory
+        "celerybeat-schedule*",  # Celery beat schedule files
+        "celery.pid",  # Celery PID file
+        "dump.rdb",  # Redis dump file
     ]
 
     removed_count = 0
