@@ -319,7 +319,7 @@
     // Define functions immediately in global scope
     (function() {
         try {
-        
+
         // Helper functions - move to global scope
     window.showMessage = function(message, type = 'info') {
         // Simple alert for now - could be enhanced with better UI
@@ -416,7 +416,7 @@
         } catch (error) {
             console.error('Error defining global functions:', error);
         }
-        
+
     // End of IIFE - all global functions are now defined
     })();
 
@@ -444,7 +444,7 @@
         const fileList = document.getElementById('fileList');
         const fileOptions = document.getElementById('fileOptions');
         const startProcessingBtn = document.getElementById('startProcessing');
-        
+
         // Safety check: ensure all critical elements exist
         if (!uploadArea || !fileInput || !fileQueue || !fileList || !fileOptions || !startProcessingBtn) {
             console.error('Missing critical elements for upload functionality');
@@ -476,7 +476,7 @@
             uploadArea.classList.remove('dragover');
             handleFiles(e.dataTransfer.files);
         });
-        
+
         // Also handle click on upload area
         uploadArea.addEventListener('click', function(e) {
             // Don't trigger if clicking on the browse button
@@ -498,7 +498,7 @@
         console.log('Files received:', files.length);
         console.log('Files object:', files);
         console.log('Current selectedFiles count:', selectedFiles.length);
-        
+
         const allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
 
         Array.from(files).forEach(file => {
@@ -546,7 +546,7 @@
             uploadArea: !!uploadArea,
             fileCount: !!fileCount
         });
-        
+
         // Update file count display
         if (fileCount) {
             fileCount.textContent = `Files selected: ${selectedFiles.length}`;
@@ -666,7 +666,7 @@
         progressLog.textContent += `[${timestamp}] ${message}\n`;
         progressLog.scrollTop = progressLog.scrollHeight;
     }
-    
+
     // Function to trigger file input dialog - make global for inline handlers
     window.triggerFileInput = function() {
         console.log('triggerFileInput called');
@@ -685,18 +685,18 @@
             alert('Error: FileInput element not found');
         }
     }
-    
+
     // Test function to directly check file input events - make global for inline handlers
     window.testFileInputDirectly = function() {
         console.log('Testing file input events directly');
         const fileInput = document.getElementById('fileInput');
         if (fileInput) {
             console.log('FileInput found, testing event listener');
-            
+
             // Test if event listener is attached
             const hasEventListener = fileInput.onchange !== null;
             console.log('Has onchange handler:', hasEventListener);
-            
+
             // Try to add a test event listener
             fileInput.addEventListener('change', function(e) {
                 console.log('TEST: FileInput change event fired!');
@@ -709,28 +709,28 @@
                     alert('No files selected in test');
                 }
             });
-            
+
             // Trigger file dialog
             fileInput.click();
-            
+
             console.log('File dialog triggered for testing');
         } else {
             console.error('FileInput not found for testing');
             alert('Error: FileInput element not found');
         }
     }
-    
+
     // Test function to directly test handleFiles function - make global for inline handlers
     window.testHandleFilesDirectly = function() {
         console.log('Testing handleFiles function directly');
-        
+
         // Create a mock file object
         const mockFile = new File(['test content'], 'test-video.mp4', { type: 'video/mp4' });
         const mockFileList = [mockFile];
-        
+
         console.log('Created mock file:', mockFile);
         console.log('Calling handleFiles with mock file...');
-        
+
         try {
             handleFiles(mockFileList);
             console.log('handleFiles called successfully');
@@ -739,15 +739,15 @@
             alert('Error testing handleFiles: ' + error.message);
         }
     }
-    
+
     // Debug function to test showing transcription options - make global for inline handlers
     window.testShowTranscriptionOptions = function() {
         console.log('Test function called - showing transcription options');
-        
+
         const fileQueue = document.getElementById('fileQueue');
         const fileOptions = document.getElementById('fileOptions');
         const fileList = document.getElementById('fileList');
-        
+
         if (fileQueue && fileOptions && fileList) {
             // Add a test file to the selected files
             selectedFiles = [{
@@ -756,10 +756,10 @@
                 size: 1024000,
                 status: 'pending'
             }];
-            
+
             // Update UI to show options
             updateUI();
-            
+
             console.log('Test file added and UI updated');
             alert('Test file added! Check if transcription options are now visible.');
         } else {

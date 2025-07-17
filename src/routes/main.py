@@ -152,6 +152,7 @@ def transcript(session_id):
     # Load analysis data
     analysis_file = os.path.join(session_path, "analysis.json")
     analysis = {}
+    analysis_data = {}
     if os.path.exists(analysis_file):
         try:
             with open(analysis_file, "r") as f:
@@ -173,6 +174,14 @@ def transcript(session_id):
                 "emphasis_cues": [],
                 "total_words": 0,
             }
+    else:
+        # Provide empty analysis data structure when file doesn't exist
+        analysis = {
+            "keyword_matches": [],
+            "questions": [],
+            "emphasis_cues": [],
+            "total_words": 0,
+        }
 
     # Load transcript segments from analysis or session data
     segments = []

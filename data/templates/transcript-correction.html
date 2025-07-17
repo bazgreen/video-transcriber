@@ -8,14 +8,7 @@
 
 {% block extra_head %}
 <style>
-        /* Trans                            <select class="form-control" id="industrySelect" onchange="loadIndustryDictionary()">
-                                <option value="">Select Industry Dictionary (Optional)</option>
-                                <option value="medical">Medical</option>
-                                <option value="legal">Legal</option>
-                                <option value="technical">Technical</option>
-                                <option value="business">Business</option>
-                                <option value="education">Education</option>
-                            </select>orrection Specific Styles Using Design System */
+        /* Transcript Correction Specific Styles Using Design System */
         .quality-score {
             font-size: var(--font-size-4xl);
             font-weight: 600;
@@ -23,7 +16,7 @@
         .score-excellent { color: var(--success-color); }
         .score-good { color: var(--warning-color); }
         .score-poor { color: var(--danger-color); }
-        
+
         .correction-suggestion {
             border: 1px solid var(--gray-300);
             border-radius: var(--radius-md);
@@ -32,24 +25,24 @@
             background: var(--gray-50);
             transition: var(--transition-base);
         }
-        
+
         .correction-suggestion:hover {
             box-shadow: var(--shadow-md);
             transform: translateY(-1px);
         }
-        
+
         .correction-suggestion.grammar { border-left: 4px solid var(--info-color); }
         .correction-suggestion.spelling { border-left: 4px solid var(--success-color); }
         .correction-suggestion.terminology { border-left: 4px solid var(--primary-color); }
         .correction-suggestion.learned { border-left: 4px solid var(--warning-color); }
-        
+
         .diff-highlight {
             background: rgba(243, 156, 18, 0.2);
             padding: var(--spacing-xs);
             border-radius: var(--radius-sm);
             transition: var(--transition-fast);
         }
-        
+
         .transcript-editor {
             min-height: 400px;
             border: 2px solid var(--gray-300);
@@ -60,17 +53,17 @@
             background: var(--white);
             transition: var(--transition-base);
         }
-        
+
         .transcript-editor:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         .progress-container {
             margin: var(--spacing-lg) 0;
         }
-        
+
         /* Custom dictionary terms display */
         .custom-term {
             background: var(--gray-100);
@@ -82,7 +75,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .custom-term .remove-btn {
             background: var(--danger-color);
             color: var(--white);
@@ -92,7 +85,7 @@
             cursor: pointer;
             font-size: var(--font-size-xs);
         }
-        
+
         /* Quality metrics styling */
         .quality-metrics {
             display: grid;
@@ -100,7 +93,7 @@
             gap: var(--spacing-md);
             text-align: center;
         }
-        
+
         .quality-metric {
             padding: var(--spacing-md);
             border-radius: var(--radius-md);
@@ -147,7 +140,7 @@
                                 <div class="quality-score" id="issuesCount">--</div>
                                 <small class="text-muted">Issues Found</small>
                             </div>
-                        
+
                         <div class="mt-md">
                             <div id="recommendations" class="alert alert-info" style="display: none;">
                                 <h6><i class="fas fa-lightbulb"></i> Recommendations:</h6>
@@ -179,13 +172,13 @@
                         <div class="transcript-editor" contenteditable="true" id="transcriptEditor"
                              placeholder="Paste your transcript here or load a sample to get started...">
                         </div>
-                        
+
                         <div class="progress-container">
                             <div class="progress" style="display: none;" id="progressBar">
                                 <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                             </div>
                         </div>
-                        
+
                         <div class="mt-lg flex justify-between">
                             <div class="flex gap-sm">
                                 <button class="btn btn-success" onclick="generateSuggestions()" id="generateBtn">
@@ -223,7 +216,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Dictionary Settings -->
                 <div class="card mt-lg">
                     <div class="card-header">
@@ -240,7 +233,7 @@
                                 <option value="business">Business</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="autoApplyCheck">
@@ -249,7 +242,7 @@
                                 </label>
                             </div>
                         </div>
-                        
+
                         <button class="btn btn-outline btn-sm btn-full" onclick="showCustomDictionary()">
                             <i class="fas fa-plus"></i>Manage Custom Terms
                         </button>
@@ -285,7 +278,7 @@
                             <i class="fas fa-plus"></i>Add Term
                         </button>
                     </div>
-                    
+
                     <div class="mt-lg">
                         <h6>Current Custom Terms</h6>
                         <div id="customTermsList" class="card-body" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-300); border-radius: var(--radius-md);">

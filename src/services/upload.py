@@ -71,7 +71,7 @@ def process_upload(
     session_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", session_name)
     # Limit length
     session_name = session_name[: config.MAX_SESSION_NAME_LENGTH]
-    
+
     # Ensure session name is not empty after cleaning
     if not session_name:
         session_name = "video_transcription"
