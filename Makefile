@@ -68,8 +68,8 @@ docker-run: ## Run application in Docker container
 	docker run -p 5001:5001 video-transcriber
 
 # Development server
-dev: ## Run development server
-	python main.py
+dev: ## Run development server with all services
+	./start-dev.sh
 
 # Production commands
 prod-install: ## Install for production
