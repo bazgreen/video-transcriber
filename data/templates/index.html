@@ -495,12 +495,12 @@
 
             // Render file list
             fileList.innerHTML = selectedFiles.map(fileObj => `
-                <div class="file-item">
+                <div class="file-item" role="listitem" aria-label="File: ${fileObj.name}, Size: ${formatFileSize(fileObj.size)}">
                     <div class="file-info">
                         <div class="file-name">${fileObj.name}</div>
-                        <div class="file-size">${formatFileSize(fileObj.size)}</div>
+                        <div class="file-size" aria-label="File size">${formatFileSize(fileObj.size)}</div>
                     </div>
-                    <button type="button" class="file-remove" onclick="removeFile('${fileObj.id}')">×</button>
+                    <button type="button" class="file-remove" onclick="removeFile('${fileObj.id}')" aria-label="Remove ${fileObj.name} from queue">×</button>
                 </div>
             `).join('');
         } else {
