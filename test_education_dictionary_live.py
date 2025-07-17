@@ -46,7 +46,7 @@ The conferance also included presentaions on e-lerning platforms and MOCs for di
 
         print("\n💡 Recommendations:")
         for rec in quality_data.get("recommendations", []):
-            print(f"  - {rec}")
+            print(f" - {rec}")
     else:
         print(f"❌ Quality analysis failed: {quality_response.status_code}")
         return False

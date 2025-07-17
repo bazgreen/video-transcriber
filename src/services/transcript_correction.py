@@ -73,10 +73,10 @@ class TranscriptCorrectionEngine:
     def __init__(self, custom_dictionary: Optional[Dict[str, str]] = None):
         """Initialize the correction engine with optional custom dictionary."""
         self.custom_dictionary = custom_dictionary or {}
-        self.user_corrections = {}  # Learn from user corrections
+        self.user_corrections: Dict[str, str] = {}  # Learn from user corrections
         self.grammar_tool = None
         self.nlp_model = None
-        self.correction_sessions = {}  # Track correction sessions
+        self.correction_sessions: Dict[str, Any] = {}  # Track correction sessions
 
         if CORRECTION_AVAILABLE:
             try:
@@ -180,7 +180,7 @@ class TranscriptCorrectionEngine:
         Returns:
             List of CorrectionSuggestion objects
         """
-        suggestions = []
+        suggestions: List[CorrectionSuggestion] = []
 
         if not self.correction_available or not text.strip():
             return suggestions
@@ -686,7 +686,6 @@ INDUSTRY_DICTIONARIES = {
         "physics": "physics",
         "experiment": "experiment",
         "theory": "theory",
-        "hypothesis": "hypothesis",
         "molecule": "molecule",
         "organism": "organism",
         "ecosystem": "ecosystem",
@@ -730,7 +729,6 @@ INDUSTRY_DICTIONARIES = {
         "assignment": "assignment",
         "rubric": "rubric",
         "grading": "grading",
-        "evaluation": "evaluation",
         "midterm": "midterm",
         "final": "final",
         "comprehensive": "comprehensive",

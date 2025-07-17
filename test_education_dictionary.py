@@ -11,7 +11,7 @@ import pytest
 # Add src directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from src.services.transcript_correction import (
+from src.services.transcript_correction import (  # noqa: E402
     INDUSTRY_DICTIONARIES,
     TranscriptCorrectionEngine,
     get_industry_dictionary,

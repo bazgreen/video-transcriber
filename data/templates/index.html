@@ -332,33 +332,6 @@
         }
     };
 
-    window.updateUI = function() {
-        const fileQueue = document.getElementById('fileQueue');
-        const fileList = document.getElementById('fileList');
-        const fileOptions = document.getElementById('fileOptions');
-        const uploadArea = document.getElementById('uploadArea');
-
-        if (selectedFiles.length > 0) {
-            fileQueue.style.display = 'block';
-            fileOptions.style.display = 'block';
-            uploadArea.classList.add('has-files');
-
-            // Render file list
-            fileList.innerHTML = selectedFiles.map(fileObj => `
-                <div class="file-item">
-                    <div class="file-info">
-                        <div class="file-name">${fileObj.name}</div>
-                        <div class="file-size">${formatFileSize(fileObj.size)}</div>
-                    </div>
-                    <button type="button" class="file-remove" onclick="removeFile('${fileObj.id}')">×</button>
-                </div>
-            `).join('');
-        } else {
-            fileQueue.style.display = 'none';
-            fileOptions.style.display = 'none';
-            uploadArea.classList.remove('has-files');
-        }
-    };
 
     window.formatFileSize = function(bytes) {
         if (bytes === 0) return '0 Bytes';
@@ -492,44 +465,6 @@
 
     }
 
-    // Move handleFiles to global scope so it can be called from inline handlers
-    window.handleFiles = function(files) {
-        console.log('=== handleFiles called ===');
-        console.log('Files received:', files.length);
-        console.log('Files object:', files);
-        console.log('Current selectedFiles count:', selectedFiles.length);
-
-        const allowedExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv', '.m4v'];
-
-        Array.from(files).forEach(file => {
-            console.log('Processing file:', file.name);
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-
-            if (!allowedExtensions.includes(extension)) {
-                showMessage(`File "${file.name}" is not a supported video format.`, 'error');
-                return;
-            }
-
-            if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                showMessage(`File "${file.name}" is already in the queue.`, 'warning');
-                return;
-            }
-
-            const fileObj = {
-                id: Date.now() + Math.random(),
-                file: file,
-                name: file.name,
-                size: file.size,
-                status: 'pending'
-            };
-
-            selectedFiles.push(fileObj);
-            console.log('File added, selectedFiles now has', selectedFiles.length, 'files');
-            console.log('File object:', fileObj);
-        });
-
-        updateUI();
-    }
 
     function updateUI() {
         console.log('updateUI called, selectedFiles.length:', selectedFiles.length);
