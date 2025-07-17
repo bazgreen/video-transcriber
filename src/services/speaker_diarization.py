@@ -77,8 +77,8 @@ class SpeakerDiarizationService:
         self.device = "cuda" if TORCH_AVAILABLE and torch.cuda.is_available() else "cpu"
 
         if not PYANNOTE_AVAILABLE:
-            logger.warning(
-                "pyannote.audio not fully available. Using mock implementation for testing."
+            logger.info(
+                "pyannote.audio not available. Using mock implementation (install requirements-full.txt for speaker diarization)."
             )
             self.use_mock = True
             return

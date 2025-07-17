@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import re
+import warnings
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -145,7 +146,10 @@ def process_chunk_parallel(chunk_info: Tuple[str, str, float, str]) -> Dict[str,
 
         # Get model and transcribe
         model = get_model()
-        result = model.transcribe(audio_path, word_timestamps=True)
+        # Suppress FP16/FP32 warnings from Whisper
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
+            result = model.transcribe(audio_path, word_timestamps=True)
 
         # Format with timestamps
         timestamped_segments = []
@@ -512,7 +516,10 @@ class VideoTranscriber:
         if language_to_use:
             transcribe_kwargs["language"] = language_to_use
 
-        result = model.transcribe(audio_path, **transcribe_kwargs)
+        # Suppress FP16/FP32 warnings from Whisper
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
+            result = model.transcribe(audio_path, **transcribe_kwargs)
 
         # Format with timestamps
         timestamped_segments = []
