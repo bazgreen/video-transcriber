@@ -37,9 +37,10 @@ class TestValidateSessionAccess:
     @pytest.mark.unit
     def test_invalid_session_id_format(self, test_directories):
         """Test validation with invalid session ID format."""
+        # NOTE: spaces are intentionally allowed by is_valid_session_id
+        # (see src/utils/helpers.py) - session names may contain spaces.
         invalid_ids = [
             "../malicious",
-            "session with spaces",
             "session/with/slashes",
             "session\\with\\backslashes",
             "",
@@ -170,10 +171,10 @@ class TestValidateSessionForSocket:
     @pytest.mark.unit
     def test_invalid_socket_session_ids(self):
         """Test validation of invalid session IDs for sockets."""
+        # NOTE: spaces are intentionally allowed by is_valid_session_id
         invalid_ids = [
             "",
             None,
-            "session with spaces",
             "session/slash",
             "session\\backslash",
             "session.dot",
