@@ -47,6 +47,99 @@ def resolve_whisper_device() -> str:
     return "cpu"
 
 
+def resolve_whisper_backend() -> str:
+    """
+    Resolve the transcription backend: "mlx" (Apple Silicon, mlx-whisper)
+    or "openai" (openai-whisper). Honors VideoConfig.WHISPER_BACKEND
+    ("auto" | "mlx" | "openai").
+    """
+    configured = getattr(VideoConfig, "WHISPER_BACKEND", "auto").lower()
+    if configured in ("mlx", "openai"):
+        return configured
+    if configured == "whisper":  # friendly alias
+        return "openai"
+    try:
+        import mlx_whisper  # noqa: F401
+
+        return "mlx"
+    except ImportError:
+        return "openai"
+
+
+#: Hugging Face repos for mlx-community Whisper conversions.
+_MLX_REPO_OVERRIDES = {
+    "turbo": "mlx-community/whisper-large-v3-turbo",
+    "large-v3-turbo": "mlx-community/whisper-large-v3-turbo",
+    "large-v3": "mlx-community/whisper-large-v3-mlx",
+    "large": "mlx-community/whisper-large-v3-mlx",
+}
+
+
+def mlx_repo_for(model_name: str) -> str:
+    """Map an openai-whisper model name to its mlx-community HF repo."""
+    return _MLX_REPO_OVERRIDES.get(
+        model_name, f"mlx-community/whisper-{model_name}-mlx"
+    )
+
+
+class MLXWhisperModel:
+    """
+    Thin adapter giving mlx-whisper the same .transcribe(audio, **kwargs)
+    surface as an openai-whisper model, so services need no backend logic.
+    """
+
+    def __init__(self, repo: str):
+        self.repo = repo
+
+    def transcribe(self, audio, **kwargs):
+        import mlx_whisper
+
+        kwargs.pop("fp16", None)  # mlx manages precision itself
+        return mlx_whisper.transcribe(audio, path_or_hf_repo=self.repo, **kwargs)
+
+
+def load_whisper_model(model_name: str):
+    """
+    Load a Whisper model on the best available backend.
+
+    Returns (model, description) where model exposes .transcribe(...).
+    Order: mlx-whisper (if selected/available) -> openai-whisper on
+    cuda/mps with warm-up validation -> openai-whisper on CPU.
+    """
+    import numpy as _np
+
+    if resolve_whisper_backend() == "mlx":
+        try:
+            model = MLXWhisperModel(mlx_repo_for(model_name))
+            # Warm-up: triggers weight download and validates the repo.
+            model.transcribe(_np.zeros(16000, dtype=_np.float32))
+            return model, f"mlx-whisper ({model.repo})"
+        except Exception as mlx_error:
+            logger.warning(
+                f"mlx-whisper backend failed for '{model_name}' ({mlx_error}); "
+                "falling back to openai-whisper."
+            )
+
+    if not WHISPER_AVAILABLE:
+        raise RuntimeError("Whisper is not available - cannot load model")
+
+    device = resolve_whisper_device()
+    try:
+        model = whisper.load_model(model_name, device=device)
+        if device != "cpu":
+            model.transcribe(_np.zeros(16000, dtype=_np.float32), fp16=True)
+    except Exception as device_error:
+        if device == "cpu":
+            raise
+        logger.warning(
+            f"Whisper failed on device '{device}' ({device_error}); "
+            "falling back to CPU. Set WHISPER_DEVICE=cpu to silence this."
+        )
+        model = whisper.load_model(model_name, device="cpu")
+        device = "cpu"
+    return model, f"openai-whisper ({device})"
+
+
 class ModelManager:
     """
     Memory-efficient Whisper model management.
@@ -123,28 +216,9 @@ class ModelManager:
         if self._memory_manager:
             memory_before = self._memory_manager.get_memory_info()
 
-        device = resolve_whisper_device()
-        logger.info(f"Whisper device: {device}")
-
         try:
-            try:
-                self._model = whisper.load_model(model_name, device=device)
-                if device != "cpu":
-                    # Warm-up: catch unsupported-op errors on GPU/MPS early and
-                    # fall back to CPU instead of failing mid-transcription.
-                    import numpy as _np
-
-                    self._model.transcribe(
-                        _np.zeros(16000, dtype=_np.float32), fp16=True
-                    )
-            except Exception as device_error:
-                if device == "cpu":
-                    raise
-                logger.warning(
-                    f"Whisper failed on device '{device}' ({device_error}); "
-                    "falling back to CPU. Set WHISPER_DEVICE=cpu to silence this."
-                )
-                self._model = whisper.load_model(model_name, device="cpu")
+            self._model, backend_desc = load_whisper_model(model_name)
+            logger.info(f"Whisper backend: {backend_desc}")
             self._load_count += 1
             self._model_name = model_name
 

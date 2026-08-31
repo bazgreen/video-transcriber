@@ -7,7 +7,21 @@ for better organization and maintainability.
 """
 
 import os
+import platform
+import sys
 from typing import List, Set
+
+
+def _default_whisper_model() -> str:
+    """Pick a sensible default Whisper model for this machine.
+
+    Apple Silicon Macs default to large-v3-turbo: with the mlx backend it is
+    both faster and far more accurate than "small". Other platforms keep the
+    conservative "small" default. Override with WHISPER_MODEL.
+    """
+    if sys.platform == "darwin" and platform.machine() == "arm64":
+        return "large-v3-turbo"
+    return "small"
 
 
 class AppConfig:
@@ -175,11 +189,16 @@ class VideoConfig:
     AUDIO_CODEC: str = "pcm_s16le"
 
     # Whisper Model Configuration
-    WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "small")
+    WHISPER_MODEL: str = os.getenv("WHISPER_MODEL") or _default_whisper_model()
 
     # Whisper compute device: "auto" picks cuda > mps (Apple Silicon) > cpu.
     # Set WHISPER_DEVICE=cpu to force CPU if MPS misbehaves on your torch version.
+    # (Only used by the openai-whisper backend; mlx manages its own device.)
     WHISPER_DEVICE: str = os.getenv("WHISPER_DEVICE", "auto")
+
+    # Whisper backend: "auto" uses mlx-whisper (Apple Silicon, much faster)
+    # when installed, otherwise openai-whisper. Force with "mlx" or "openai".
+    WHISPER_BACKEND: str = os.getenv("WHISPER_BACKEND", "auto")
     SUPPORTED_WHISPER_MODELS: Set[str] = {
         "tiny",
         "tiny.en",
@@ -193,6 +212,8 @@ class VideoConfig:
         "large-v1",
         "large-v2",
         "large-v3",
+        "large-v3-turbo",
+        "turbo",
     }
 
 

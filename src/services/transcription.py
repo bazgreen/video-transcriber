@@ -283,28 +283,13 @@ class VideoTranscriber:
             Model loading is thread-safe and cached after first load.
         """
         if self.model is None:
-            from src.models.model_manager import resolve_whisper_device
+            from src.models.model_manager import load_whisper_model
 
-            device = resolve_whisper_device()
-            logger.info(
-                f"Loading Whisper model: {video_config.WHISPER_MODEL} "
-                f"(device: {device})"
+            logger.info(f"Loading Whisper model: {video_config.WHISPER_MODEL}")
+            self.model, backend_desc = load_whisper_model(
+                video_config.WHISPER_MODEL
             )
-            try:
-                self.model = whisper.load_model(
-                    video_config.WHISPER_MODEL, device=device
-                )
-            except Exception as device_error:
-                if device == "cpu":
-                    raise
-                logger.warning(
-                    f"Whisper failed on device '{device}' ({device_error}); "
-                    "falling back to CPU."
-                )
-                self.model = whisper.load_model(
-                    video_config.WHISPER_MODEL, device="cpu"
-                )
-            logger.info("Whisper model loaded successfully")
+            logger.info(f"Whisper model loaded successfully ({backend_desc})")
         return self.model
 
     def split_video(
