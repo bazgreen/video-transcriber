@@ -590,7 +590,7 @@ def main():
         print("   • Export: SRT, VTT, Text, JSON, HTML")
         print("   • Session management")
         print("\n💡 To upgrade to full features later, run:")
-        print("   python install_ai_features.py")
+        print("   python scripts/install_ai_features.py")
     else:
         print("✅ Full installation ready with:")
         print("   • Advanced AI insights and NLP")
