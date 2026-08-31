@@ -24,6 +24,29 @@ from .memory import MemoryManager
 logger = logging.getLogger(__name__)
 
 
+def resolve_whisper_device() -> str:
+    """
+    Resolve the compute device for Whisper.
+
+    Honors VideoConfig.WHISPER_DEVICE ("auto", "cpu", "cuda", "mps").
+    "auto" prefers CUDA, then Apple Silicon MPS, then CPU.
+    """
+    configured = getattr(VideoConfig, "WHISPER_DEVICE", "auto").lower()
+    if configured != "auto":
+        return configured
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return "cuda"
+        mps = getattr(torch.backends, "mps", None)
+        if mps is not None and mps.is_available():
+            return "mps"
+    except Exception:  # pragma: no cover - torch import issues fall back to CPU
+        pass
+    return "cpu"
+
+
 class ModelManager:
     """
     Memory-efficient Whisper model management.
@@ -100,8 +123,28 @@ class ModelManager:
         if self._memory_manager:
             memory_before = self._memory_manager.get_memory_info()
 
+        device = resolve_whisper_device()
+        logger.info(f"Whisper device: {device}")
+
         try:
-            self._model = whisper.load_model(model_name)
+            try:
+                self._model = whisper.load_model(model_name, device=device)
+                if device != "cpu":
+                    # Warm-up: catch unsupported-op errors on GPU/MPS early and
+                    # fall back to CPU instead of failing mid-transcription.
+                    import numpy as _np
+
+                    self._model.transcribe(
+                        _np.zeros(16000, dtype=_np.float32), fp16=True
+                    )
+            except Exception as device_error:
+                if device == "cpu":
+                    raise
+                logger.warning(
+                    f"Whisper failed on device '{device}' ({device_error}); "
+                    "falling back to CPU. Set WHISPER_DEVICE=cpu to silence this."
+                )
+                self._model = whisper.load_model(model_name, device="cpu")
             self._load_count += 1
             self._model_name = model_name
 

@@ -209,3 +209,6 @@ test_results/
 *.tar.gz
 *.rar
 *.7z
+
+# Local staging area for files pending deletion (VM cannot delete)
+_to_delete/

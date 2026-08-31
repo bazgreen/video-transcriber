@@ -283,8 +283,27 @@ class VideoTranscriber:
             Model loading is thread-safe and cached after first load.
         """
         if self.model is None:
-            logger.info(f"Loading Whisper model: {video_config.WHISPER_MODEL}")
-            self.model = whisper.load_model(video_config.WHISPER_MODEL)
+            from src.models.model_manager import resolve_whisper_device
+
+            device = resolve_whisper_device()
+            logger.info(
+                f"Loading Whisper model: {video_config.WHISPER_MODEL} "
+                f"(device: {device})"
+            )
+            try:
+                self.model = whisper.load_model(
+                    video_config.WHISPER_MODEL, device=device
+                )
+            except Exception as device_error:
+                if device == "cpu":
+                    raise
+                logger.warning(
+                    f"Whisper failed on device '{device}' ({device_error}); "
+                    "falling back to CPU."
+                )
+                self.model = whisper.load_model(
+                    video_config.WHISPER_MODEL, device="cpu"
+                )
             logger.info("Whisper model loaded successfully")
         return self.model
 

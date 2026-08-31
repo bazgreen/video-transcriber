@@ -1,0 +1,9 @@
+# Authentication dependencies (already included in requirements.txt)
+# Kept for standalone auth installs referenced by scripts/setup/install_auth.py
+Flask-Login>=0.6.3
+Flask-SQLAlchemy>=3.1.0
+Flask-Migrate>=4.1.0
+Flask-WTF>=1.2.0
+WTForms>=3.1.0
+bcrypt>=4.1.0
+email-validator>=2.1.0

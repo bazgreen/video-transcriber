@@ -1,38 +1,31 @@
 # Full installation with all AI features and export formats
 # Complete Video Transcriber with advanced capabilities
 # Install with: pip install -r requirements-full.txt
+# Updated: 2026-08-31 (dependency refresh - see docs/DEPENDENCY_UPDATE_2026.md)
 
 # Core dependencies (minimal installation)
 -r requirements.txt
-bcrypt>=4.0.0              # Password hashing
-email-validator>=2.0.0     # Email validation
 
-# Authentication and Security Dependencies
-Flask-Login>=0.6.3         # User authentication
-Flask-Migrate>=4.0.0       # Database migrations
-Flask-SQLAlchemy>=3.0.0    # Database ORM
-Flask-WTF>=1.2.0           # Form handling and CSRF protection
+# AI-Powered Insights
+textblob>=0.18.0           # Sentiment analysis and transcript correction
+scikit-learn>=1.5.0        # Machine learning and topic modeling
+spacy>=3.8.0               # Advanced natural language processing
 langdetect>=1.0.9          # Language detection
-# Advanced monitoring
-prometheus_client>=0.18.0
-psutil>=5.9.0
-
-# Speaker diarization (optional)
-pyannote.audio>=3.1.0
-
-# Professional Export Format Dependencies
-python-docx>=1.1.0        # DOCX export support
-reportlab>=4.0.0          # PDF export support
-scikit-learn>=1.3.0       # Machine learning and topic modeling
-spacy>=3.7.0              # Advanced natural language processing
-
-# AI-Powered Insights Dependencies
-textblob>=0.17.1          # Sentiment analysis and transcript correction
-torch>=1.13.0
-WTForms>=3.0.0             # Form validation
 
 # Transcript Correction and Quality Assurance
-language-tool-python>=2.7.1  # Advanced grammar checking
+language-tool-python>=2.9.0  # Advanced grammar checking (needs Java runtime)
+
+# Speaker diarization (optional; needs a Hugging Face token)
+# NOTE: pinned below 4.0 - pyannote.audio 4.x changed the Pipeline.from_pretrained
+# API (use_auth_token -> token) and default pipelines. Upgrade deliberately.
+pyannote.audio>=3.1.0,<4.0
+
+# Professional Export Formats
+python-docx>=1.1.0         # DOCX export support
+reportlab>=4.2.0           # PDF export support
+
+# Advanced monitoring
+prometheus_client>=0.20.0
 
 # Note: After installation, run the following to download required models:
 # python -m spacy download en_core_web_sm

@@ -1,0 +1,2 @@
+# PDF export support (also in requirements-full.txt)
+reportlab>=4.2.0

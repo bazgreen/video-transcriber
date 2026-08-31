@@ -176,6 +176,10 @@ class VideoConfig:
 
     # Whisper Model Configuration
     WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "small")
+
+    # Whisper compute device: "auto" picks cuda > mps (Apple Silicon) > cpu.
+    # Set WHISPER_DEVICE=cpu to force CPU if MPS misbehaves on your torch version.
+    WHISPER_DEVICE: str = os.getenv("WHISPER_DEVICE", "auto")
     SUPPORTED_WHISPER_MODELS: Set[str] = {
         "tiny",
         "tiny.en",
