@@ -294,9 +294,7 @@ class VideoTranscriber:
             from src.models.model_manager import load_whisper_model
 
             logger.info(f"Loading Whisper model: {video_config.WHISPER_MODEL}")
-            self.model, backend_desc = load_whisper_model(
-                video_config.WHISPER_MODEL
-            )
+            self.model, backend_desc = load_whisper_model(video_config.WHISPER_MODEL)
             logger.info(f"Whisper model loaded successfully ({backend_desc})")
         return self.model
 

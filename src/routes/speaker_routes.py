@@ -340,8 +340,6 @@ def format_vtt_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 
 
-
-
 # Error handlers
 @speaker_bp.errorhandler(400)
 def bad_request(error):

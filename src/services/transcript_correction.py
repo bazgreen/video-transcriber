@@ -557,7 +557,7 @@ class TranscriptCorrectionEngine:
 
 # Factory function
 def create_transcript_correction_engine(
-    custom_dictionary: Dict[str, str] = None
+    custom_dictionary: Dict[str, str] = None,
 ) -> TranscriptCorrectionEngine:
     """Create a transcript correction engine instance."""
     return TranscriptCorrectionEngine(custom_dictionary)
