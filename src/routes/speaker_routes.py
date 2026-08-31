@@ -8,6 +8,7 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
 from src.services.speaker_diarization import SpeakerDiarizationService
+from src.utils.helpers import format_timestamp_mmss as format_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -339,11 +340,6 @@ def format_vtt_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 
 
-def format_timestamp(seconds):
-    """Format time as MM:SS"""
-    minutes = int(seconds // 60)
-    secs = int(seconds % 60)
-    return f"{minutes:02d}:{secs:02d}"
 
 
 # Error handlers

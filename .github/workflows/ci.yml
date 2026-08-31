@@ -203,7 +203,7 @@ jobs:
 
       - name: Test application startup
         run: |
-          python validate_ci.py
+          python scripts/validation/validate_ci.py
 
       - name: Validate configuration
         run: |

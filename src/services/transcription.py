@@ -63,6 +63,12 @@ analysis_config = AnalysisConfig()
 # Patterns are now configured in AnalysisConfig
 
 
+# Per-process ModelManager cache: each worker process loads the Whisper
+# model once and reuses it across chunks (previously every chunk built a
+# fresh ModelManager and reloaded the model from scratch).
+_worker_model_manager: Optional[ModelManager] = None
+
+
 def init_worker() -> None:
     """
     Initialize worker process for parallel transcription.
@@ -88,8 +94,10 @@ def get_model() -> Any:
         This function is primarily used by worker processes and will be
         refactored to use dependency injection in future versions.
     """
-    model_manager = ModelManager()
-    return model_manager.get_model()
+    global _worker_model_manager
+    if _worker_model_manager is None:
+        _worker_model_manager = ModelManager()
+    return _worker_model_manager.get_model()
 
 
 def process_chunk_parallel(chunk_info: Tuple[str, str, float, str]) -> Dict[str, Any]:

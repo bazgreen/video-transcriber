@@ -5,6 +5,7 @@ This module provides secure file access controls while maintaining
 backward compatibility with anonymous usage.
 """
 
+import functools
 import logging
 import os
 from typing import Optional, Tuple
@@ -251,6 +252,7 @@ def require_session_access(allow_anonymous: bool = True):
     """
 
     def decorator(f):
+        @functools.wraps(f)
         def decorated_function(*args, **kwargs):
             session_id = kwargs.get("session_id")
             if session_id:
@@ -258,7 +260,6 @@ def require_session_access(allow_anonymous: bool = True):
                 log_access_attempt(session_id, f.__name__, True)
             return f(*args, **kwargs)
 
-        decorated_function.__name__ = f.__name__
         return decorated_function
 
     return decorator

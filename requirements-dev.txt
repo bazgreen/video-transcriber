@@ -1,0 +1,13 @@
+# Development dependencies (lint, test, hooks)
+# Referenced by .github/workflows/ci.yml and Makefile
+-r requirements.txt
+
+pytest>=8.0.0
+pytest-cov>=5.0.0
+pytest-benchmark>=4.0.0
+
+black>=24.0.0
+isort>=5.13.0
+flake8>=7.0.0
+mypy>=1.10.0
+pre-commit>=3.7.0
