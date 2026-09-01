@@ -508,7 +508,7 @@ def run_app(venv_python):
             stderr=subprocess.DEVNULL
         )
         time.sleep(3)  # Give Celery time to start
-        
+
         # Check if Celery is still running
         if celery_process.poll() is None:
             print("✅ Background task worker started")

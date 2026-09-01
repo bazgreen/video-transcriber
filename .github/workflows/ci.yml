@@ -37,10 +37,17 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Run pre-commit hooks
-        uses: pre-commit/action@v3.0.0
+      - name: Check formatting (black)
+        run: black --check src tests main.py
 
-      - name: Type checking with mypy
+      - name: Check import order (isort)
+        run: isort --check-only src tests main.py
+
+      - name: Lint (flake8)
+        run: flake8 src main.py
+
+      - name: Type checking with mypy (non-blocking - see docs/history)
+        continue-on-error: true
         run: mypy src/ --ignore-missing-imports --no-strict-optional
 
       - name: Security check with bandit

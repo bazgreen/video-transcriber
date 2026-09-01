@@ -52,13 +52,13 @@ USER app
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--worker-class", "gevent", "--worker-connections", "1000", "--timeout", "300", "main:app"]
 
 # GPU-enabled stage for AI processing
-FROM nvidia/cuda:11.8-runtime-ubuntu22.04 as gpu-production
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 as gpu-production
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-pip \
+    python3-pip \
     python3.11-dev \
     ffmpeg \
     git \

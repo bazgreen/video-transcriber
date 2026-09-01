@@ -11,7 +11,7 @@ import time
 def test_transcript_correction():
     """Test the transcript correction API endpoints."""
     base_url = "http://127.0.0.1:5001"
-    
+
     # Sample transcript with errors
     sample_transcript = """Hello, welcome to today's meating about artifical inteligence and machine lerning. We're going to discus the latest advancements in AI technolgy and how they effect our bussiness operations.
 
@@ -23,7 +23,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
 
     print("🧪 Testing Transcript Correction Feature")
     print("=" * 50)
-    
+
     # Test 1: Quality Analysis
     print("\n1. Testing Quality Analysis...")
     try:
@@ -34,7 +34,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
             },
             headers={"Content-Type": "application/json"}
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
@@ -46,7 +46,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
                 print(f"   📚 Readability Score: {metrics.get('readability_score', 0) * 100:.1f}%")
                 print(f"   🎯 Confidence Score: {metrics.get('confidence_score', 0) * 100:.1f}%")
                 print(f"   ⚠️  Issues Found: {metrics.get('issues_found', 0)}")
-                
+
                 session_id = result.get('session_id')
                 print(f"   🆔 Session ID: {session_id}")
             else:
@@ -59,7 +59,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
     except Exception as e:
         print(f"   ❌ Exception: {e}")
         return False
-    
+
     # Test 2: Generate Suggestions
     print("\n2. Testing Correction Suggestions...")
     try:
@@ -71,13 +71,13 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
             },
             headers={"Content-Type": "application/json"}
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
                 suggestions = result.get('suggestions', [])
                 print(f"   ✅ Generated {len(suggestions)} correction suggestions!")
-                
+
                 for i, suggestion in enumerate(suggestions[:5]):  # Show first 5
                     print(f"   📝 Suggestion {i+1}:")
                     print(f"      Original: '{suggestion.get('original_text')}'")
@@ -87,7 +87,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
                     if suggestion.get('explanation'):
                         print(f"      Explanation: {suggestion.get('explanation')}")
                     print()
-                
+
                 if len(suggestions) > 5:
                     print(f"   ... and {len(suggestions) - 5} more suggestions")
             else:
@@ -100,18 +100,18 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
     except Exception as e:
         print(f"   ❌ Exception: {e}")
         return False
-    
+
     # Test 3: Dictionary Information
     print("\n3. Testing Dictionary Features...")
     try:
         response = requests.get(f"{base_url}/api/correction/dictionaries")
-        
+
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
                 dictionaries = result.get('dictionaries', {})
                 print(f"   ✅ Available dictionaries: {list(dictionaries.keys())}")
-                
+
                 for name, info in dictionaries.items():
                     print(f"   📚 {name}: {info.get('description', 'No description')}")
                     print(f"      Terms: {info.get('term_count', 0)}")
@@ -121,12 +121,12 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
             print(f"   ❌ HTTP Error: {response.status_code}")
     except Exception as e:
         print(f"   ❌ Exception: {e}")
-    
+
     # Test 4: Statistics
     print("\n4. Testing Statistics...")
     try:
         response = requests.get(f"{base_url}/api/correction/statistics")
-        
+
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
@@ -141,7 +141,7 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
             print(f"   ❌ HTTP Error: {response.status_code}")
     except Exception as e:
         print(f"   ❌ Exception: {e}")
-    
+
     print("\n" + "=" * 50)
     print("🎉 Transcript Correction Test Completed!")
     print("\n📝 To test the web interface:")
@@ -151,16 +151,16 @@ In conclustion, while AI has made remarkabel progress, we stil need to be carefu
     print("   - Try different types of text with errors")
     print("   - Test custom dictionary functionality")
     print("   - Test export features")
-    
+
     return True
 
 if __name__ == "__main__":
     print("Starting transcript correction tests...")
     print("Make sure the application is running on http://127.0.0.1:5001")
-    
+
     # Wait a moment for the server to be ready
     time.sleep(2)
-    
+
     try:
         test_transcript_correction()
     except KeyboardInterrupt:

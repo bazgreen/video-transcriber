@@ -18,6 +18,13 @@ class TestKeywordScenariosIntegration:
         """Test transcriber uses keyword scenario if specified."""
         # Create mock objects
         mock_memory_manager = MagicMock()
+        mock_memory_manager.get_memory_info.return_value = {
+            "system_total_gb": 16.0,
+            "system_available_gb": 8.0,
+            "system_used_percent": 50.0,
+            "process_rss_mb": 100.0,
+            "process_vms_mb": 200.0,
+        }
         mock_file_manager = MagicMock()
         mock_progress_tracker = MagicMock()
 
@@ -137,6 +144,13 @@ class TestKeywordScenariosIntegration:
         """Test transcriber falls back to custom keywords if scenario not found."""
         # Create mock objects
         mock_memory_manager = MagicMock()
+        mock_memory_manager.get_memory_info.return_value = {
+            "system_total_gb": 16.0,
+            "system_available_gb": 8.0,
+            "system_used_percent": 50.0,
+            "process_rss_mb": 100.0,
+            "process_vms_mb": 200.0,
+        }
         mock_file_manager = MagicMock()
         mock_progress_tracker = MagicMock()
 
@@ -175,7 +189,9 @@ class TestKeywordScenariosIntegration:
         # Patch get_scenario_by_id to return None (scenario not found)
         with (
             patch("src.utils.get_scenario_by_id", return_value=None),
-            patch("src.utils.load_keywords", return_value=custom_keywords),
+            patch(
+                "src.services.transcription.load_keywords", return_value=custom_keywords
+            ),
         ):
             # Mock the text and segments for analysis
             text = "This is a test transcript with default custom words."
@@ -254,6 +270,13 @@ class TestKeywordScenariosIntegration:
         # Create mock objects
         mock_transcriber = MagicMock()
         mock_memory_manager = MagicMock()
+        mock_memory_manager.get_memory_info.return_value = {
+            "system_total_gb": 16.0,
+            "system_available_gb": 8.0,
+            "system_used_percent": 50.0,
+            "process_rss_mb": 100.0,
+            "process_vms_mb": 200.0,
+        }
 
         # Mock request object
         class MockRequest:
@@ -269,8 +292,9 @@ class TestKeywordScenariosIntegration:
         monkeypatch.setattr("os.makedirs", lambda *args, **kwargs: None)
         monkeypatch.setattr("src.services.upload.os.path.exists", lambda x: True)
 
-        # Mock file.save
+        # Mock file.save and give the mock file a real size for validation
         MockRequest.files["video"].save = MagicMock()
+        MockRequest.files["video"].tell.return_value = 1024 * 1024  # 1MB
 
         # Setup mock results
         mock_transcriber.process_video.return_value = {
