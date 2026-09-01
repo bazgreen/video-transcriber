@@ -86,17 +86,14 @@ class TestVideoProcessingPerformance:
     def test_content_analysis_performance(self, benchmark, benchmark_transcriber):
         """Benchmark content analysis performance."""
         # Create test content
-        test_text = (
-            """
+        test_text = """
         This is a comprehensive test for content analysis performance.
         Make sure to include various educational keywords like assignment, submission,
         deadline, assessment, grading, criteria, and feedback. Don't forget to test
         question detection as well. What is the main purpose of this test?
         How can we improve the performance? When should we run these benchmarks?
         Important note: this will be used for assessment purposes.
-        """
-            * 100
-        )  # Repeat to create substantial content
+        """ * 100  # Repeat to create substantial content
 
         test_segments = []
         for i in range(0, len(test_text), 100):

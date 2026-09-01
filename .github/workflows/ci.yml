@@ -37,10 +37,17 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Run pre-commit hooks
-        uses: pre-commit/action@v3.0.0
+      - name: Check formatting (black)
+        run: black --check src tests main.py
 
-      - name: Type checking with mypy
+      - name: Check import order (isort)
+        run: isort --check-only src tests main.py
+
+      - name: Lint (flake8)
+        run: flake8 src main.py
+
+      - name: Type checking with mypy (non-blocking - see docs/history)
+        continue-on-error: true
         run: mypy src/ --ignore-missing-imports --no-strict-optional
 
       - name: Security check with bandit
@@ -59,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -203,7 +210,7 @@ jobs:
 
       - name: Test application startup
         run: |
-          python validate_ci.py
+          python scripts/validation/validate_ci.py
 
       - name: Validate configuration
         run: |

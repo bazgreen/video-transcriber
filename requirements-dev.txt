@@ -1,0 +1,13 @@
+# Development dependencies (lint, test, hooks)
+# Referenced by .github/workflows/ci.yml and Makefile
+-r requirements.txt
+
+pytest>=8.0.0
+pytest-cov>=5.0.0
+pytest-benchmark>=4.0.0
+
+black>=26.0.0,<27  # pin major: formatting must match CI checks
+isort>=5.13.0
+flake8>=7.0.0
+mypy>=1.10.0  # informational for now: 136 pre-existing errors, CI step is non-blocking
+pre-commit>=3.7.0

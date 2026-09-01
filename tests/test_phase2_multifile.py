@@ -152,7 +152,9 @@ def create_multiple_test_videos():
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0:
                 video_files.append(temp_file.name)
-                print(f"✅ Created test video {i+1}: {os.path.basename(temp_file.name)}")
+                print(
+                    f"✅ Created test video {i+1}: {os.path.basename(temp_file.name)}"
+                )
             else:
                 print(f"❌ Failed to create test video {i+1}")
 

@@ -9,21 +9,21 @@ echo "======================================================="
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n🧹 Cleaning up background processes..."
-    
+
     # Kill Redis if we started it
     if [ ! -z "$REDIS_PID" ]; then
         kill $REDIS_PID 2>/dev/null || true
     fi
-    
+
     # Kill Celery if we started it
     if [ ! -z "$CELERY_PID" ]; then
         kill $CELERY_PID 2>/dev/null || true
     fi
-    
+
     # Kill any remaining processes
     pkill -f "celery.*worker" 2>/dev/null || true
     pkill -f "redis-server" 2>/dev/null || true
-    
+
     echo "✅ Cleanup completed"
     exit 0
 }

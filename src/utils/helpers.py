@@ -28,6 +28,13 @@ def is_safe_path(file_path: str, base_dir: str) -> bool:
         return False
 
 
+def format_timestamp_mmss(seconds: float) -> str:
+    """Format seconds as MM:SS (minutes are not capped at 60)."""
+    minutes = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
 def format_timestamp(seconds: float) -> str:
     """Format seconds as HH:MM:SS."""
     hours = int(seconds // 3600)

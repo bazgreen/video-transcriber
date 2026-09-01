@@ -71,8 +71,7 @@ class TestPWABrowserFunctionality:
             )
 
             # Check service worker registration
-            sw_registered = self.driver.execute_script(
-                """
+            sw_registered = self.driver.execute_script("""
                 return new Promise((resolve) => {
                     if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.ready.then(() => {
@@ -84,8 +83,7 @@ class TestPWABrowserFunctionality:
                         resolve(false);
                     }
                 });
-            """
-            )
+            """)
 
             assert sw_registered, "Service worker should be registered"
             print("✅ Service worker registered successfully")
@@ -107,28 +105,24 @@ class TestPWABrowserFunctionality:
             time.sleep(3)
 
             # Check manifest link
-            manifest_link = self.driver.execute_script(
-                """
+            manifest_link = self.driver.execute_script("""
                 const manifestLink = document.querySelector('link[rel="manifest"]');
                 return manifestLink ? manifestLink.href : null;
-            """
-            )
+            """)
 
             assert manifest_link, "Manifest link should be present"
             assert "manifest.json" in manifest_link
             print("✅ Manifest link detected")
 
             # Check PWA install criteria
-            install_criteria = self.driver.execute_script(
-                """
+            install_criteria = self.driver.execute_script("""
                 return {
                     hasManifest: !!document.querySelector('link[rel="manifest"]'),
                     hasServiceWorker: 'serviceWorker' in navigator,
                     isSecure: location.protocol === 'https:' || location.hostname === 'localhost',
                     hasIcons: true // Assume icons exist based on manifest
                 };
-            """
-            )
+            """)
 
             assert install_criteria["hasManifest"], "Should have manifest"
             assert install_criteria[
@@ -154,8 +148,7 @@ class TestPWABrowserFunctionality:
             time.sleep(5)
 
             # Simulate offline mode
-            self.driver.execute_script(
-                """
+            self.driver.execute_script("""
                 // Simulate offline
                 Object.defineProperty(navigator, 'onLine', {
                     writable: true,
@@ -164,20 +157,17 @@ class TestPWABrowserFunctionality:
 
                 // Dispatch offline event
                 window.dispatchEvent(new Event('offline'));
-            """
-            )
+            """)
 
             # Wait for offline indicator
             time.sleep(2)
 
             # Check for offline indicator
-            self.driver.execute_script(
-                """
+            self.driver.execute_script("""
                 return document.querySelector('.offline-indicator') !== null ||
                        document.body.classList.contains('offline') ||
                        document.querySelector('[data-offline]') !== null;
-            """
-            )
+            """)
 
             # The offline indicator might not be visible immediately
             # This is acceptable as the PWA handles offline gracefully
@@ -223,12 +213,10 @@ class TestPWABrowserFunctionality:
             self.driver.get(self.base_url)
 
             # Check theme color meta tag
-            theme_color = self.driver.execute_script(
-                """
+            theme_color = self.driver.execute_script("""
                 const metaTheme = document.querySelector('meta[name="theme-color"]');
                 return metaTheme ? metaTheme.content : null;
-            """
-            )
+            """)
 
             assert theme_color, "Theme color meta tag should be present"
             assert theme_color.startswith("#"), "Theme color should be a hex color"
@@ -247,16 +235,14 @@ class TestPWABrowserFunctionality:
             self.driver.get(self.base_url)
 
             # Check Apple meta tags
-            apple_tags = self.driver.execute_script(
-                """
+            apple_tags = self.driver.execute_script("""
                 return {
                     webAppCapable: document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.content,
                     statusBarStyle: document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.content,
                     title: document.querySelector('meta[name="apple-mobile-web-app-title"]')?.content,
                     touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.href
                 };
-            """
-            )
+            """)
 
             assert (
                 apple_tags["webAppCapable"] == "yes"
@@ -291,23 +277,19 @@ class TestPWABrowserFunctionality:
                 time.sleep(1)
 
                 # Check viewport meta tag
-                viewport_meta = self.driver.execute_script(
-                    """
+                viewport_meta = self.driver.execute_script("""
                     const viewport = document.querySelector('meta[name="viewport"]');
                     return viewport ? viewport.content : null;
-                """
-                )
+                """)
 
                 assert (
                     "width=device-width" in viewport_meta
                 ), "Viewport should be responsive"
 
                 # Check if content is visible
-                body_visible = self.driver.execute_script(
-                    """
+                body_visible = self.driver.execute_script("""
                     return document.body.offsetHeight > 0 && document.body.offsetWidth > 0;
-                """
-                )
+                """)
 
                 assert body_visible, f"Content should be visible at {width}x{height}"
 
